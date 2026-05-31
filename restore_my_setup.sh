@@ -644,6 +644,21 @@ monitor = DP-2,1920x1080@144,0x0,1
 
 # DP-1 (HP Z23n) - Portrait mode, left of DP-2, fine-tuned alignment
 monitor = DP-1,1920x1080@60,-1080x-700,1,transform,1
+
+# Workspace Rules
+# Assign workspaces 1 to 8 to DP-2 (144Hz main display)
+workspace = 1, monitor:DP-2, default:true
+workspace = 2, monitor:DP-2
+workspace = 3, monitor:DP-2
+workspace = 4, monitor:DP-2
+workspace = 5, monitor:DP-2
+workspace = 6, monitor:DP-2
+workspace = 7, monitor:DP-2
+workspace = 8, monitor:DP-2
+
+# Assign workspaces 9 and 10 to DP-1 (60Hz portrait side screen)
+workspace = 9, monitor:DP-1, default:true
+workspace = 10, monitor:DP-1
 EOF
 
 # --- WRITE ~/.config/hypr/nvidia.conf ---
