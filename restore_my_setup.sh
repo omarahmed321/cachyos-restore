@@ -141,6 +141,9 @@ if command -v awww &>/dev/null && ! command -v swww &>/dev/null; then
     mkdir -p "$HOME/.local/bin"
     ln -sf /usr/bin/awww "$HOME/.local/bin/swww"
     ln -sf /usr/bin/awww-daemon "$HOME/.local/bin/swww-daemon"
+    mkdir -p "$HOME/.local/share/bin"
+    ln -sf /usr/bin/awww "$HOME/.local/share/bin/swww"
+    ln -sf /usr/bin/awww-daemon "$HOME/.local/share/bin/swww-daemon"
 fi
 
 # 4. Deploy EXACT Customized Dotfiles
@@ -1310,6 +1313,7 @@ tooltip {
     padding-left: 3px;
 }
 EOF
+cp "$HOME/.config/waybar/style.css" "$HOME/.config/waybar/modules/style.css"
 
 # --- WRITE ~/.config/waybar/theme.css ---
 echo -e "${CYAN}Writing ~/.config/waybar/theme.css...${NC}"
