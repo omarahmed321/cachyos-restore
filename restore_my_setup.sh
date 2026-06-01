@@ -1705,6 +1705,9 @@ if [ -f "$HOME/hyde/Source/arcs/Sddm_Candy.tar.gz" ]; then
     elif [ -f "$HOME/.cache/hyde/wall.set" ]; then
         echo -e "${CYAN}Copying SDDM background to current desktop wallpaper...${NC}"
         sudo cp "$HOME/.cache/hyde/wall.set" /usr/share/sddm/themes/Candy/backgrounds/bg.png
+    elif [ -f "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" ]; then
+        echo -e "${CYAN}Copying default 'misty_forest.jpg' as SDDM background...${NC}"
+        sudo cp "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" /usr/share/sddm/themes/Candy/backgrounds/bg.png
     fi
 
     # Customize SDDM Candy layout and accent color
@@ -1740,6 +1743,19 @@ if [ -f "$HOME/.local/share/bin/themeswitch.sh" ]; then
     echo -e "${CYAN}Switching HyDE theme to 'Gruvbox Retro'...${NC}"
     # Run in background or with suppressions
     "$HOME/.local/share/bin/themeswitch.sh" "Gruvbox Retro" &>/dev/null || true
+fi
+
+# Ensure default wallpaper is set to 'misty_forest.jpg' and cache is fully generated
+if [ -f "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" ]; then
+    echo -e "${CYAN}Setting default wallpaper to 'misty_forest.jpg'...${NC}"
+    # Ensure the theme's default wallpaper symlink is set to misty_forest.jpg
+    mkdir -p "$HOME/.config/hyde/themes/Gruvbox Retro"
+    ln -sf "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" "$HOME/.config/hyde/themes/Gruvbox Retro/wall.set"
+    
+    # Initialize the wallpaper using HyDE's wallpaper daemon script
+    if [ -f "$HOME/.local/share/bin/swwwallpaper.sh" ]; then
+        "$HOME/.local/share/bin/swwwallpaper.sh" -s "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" &>/dev/null || true
+    fi
 fi
 
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
