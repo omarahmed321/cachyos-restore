@@ -1500,6 +1500,158 @@ zle -N select-all-line
 bindkey '^A' select-all-line
 EOF
 
+# --- WRITE ~/.config/fastfetch/logo.txt ---
+echo -e "${CYAN}Writing ~/.config/fastfetch/logo.txt...${NC}"
+mkdir -p "$HOME/.config/fastfetch"
+cat << 'EOF' > "$HOME/.config/fastfetch/logo.txt"
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⣀⣠⡄⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣴⣿⣽⠟⢁⣠⣤⣤⣶⣿⣽⣿⠟⠁⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣀⣶⣿⣟⢿⣟⣿⣷⢞⢻⡻⣫⡻⣖⣾⣻⠏⠀⠀⠀⠀⠀⣀⣴⣾
+⠀⠀⢀⠀⣸⣿⢻⣍⣷⢽⢿⢹⣪⣗⣽⣹⢽⡫⣿⣽⠏⢀⣀⣤⣴⣫⣿⣯⡟⠁
+⠀⠀⣾⣿⢿⡣⢷⢼⣷⣿⢧⢿⢮⡷⡽⡵⣽⢎⣿⣯⠶⣿⡿⣛⢯⣫⣿⡿⠁⠀
+⠀⢸⣿⡏⣾⢳⢟⢇⣿⢿⡳⡻⡕⣯⢪⡞⣾⣷⡟⣕⢗⡿⡸⣇⢯⡾⣻⠁⠀⠀
+⢠⣿⣿⣷⣺⢕⣿⣾⠟⠚⠛⠛⠚⢓⣿⢾⣺⡳⡟⣾⢱⢻⡞⣷⢻⣿⡟⠀⠀⠀
+⢻⣿⢏⣿⣽⣾⢿⡀⠀⠀⠀⠀⣐⣿⢝⠈⠓⣕⣽⣹⣏⣺⢕⣿⣿⣭⣤⣤⣤⣀
+⢸⣿⢵⠷⣽⣯⣼⣧⠀⠀⣠⣼⠗⠁⢸⠀⠀⠘⡷⣽⢮⣼⠷⠿⠽⢾⣾⡿⠋⠀
+⠀⠻⣷⡗⣽⣿⣿⣋⡗⣾⢿⣿⠀⠀⢨⠤⢭⡑⡟⡾⢝⢟⠶⣗⢟⣾⡿⠁⠀⠀
+⠈⠻⣙⣛⠛⠋⠉⣁⣈⣿⣿⣿⡠⠾⢣⠀⠨⢸⢿⣹⡪⣿⣝⣝⣽⡟⠁⠀⠀⠀
+⠀⠀⠀⠑⣿⣝⣿⡘⢇⡀⠄⢡⠀⡇⠈⢢⣸⣱⡏⣾⢬⣺⣪⣿⠏⠀⠀⠀⠀⠀
+⠀⠀⠀⢀⣼⠷⢽⢾⣣⣽⣤⢤⣵⣧⢼⢭⢿⣾⣷⣿⡾⠟⠋⠁⠀⠀⠀⠀⠀⠀
+⠀⢠⣶⡟⢾⣿⣷⠿⠛⢻⣿⣿⢟⢕⢿⢷⣿⣖⢟⢿⣳⣦⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⢀⣿⣿⣿⣿⣷⣴⠮⠟⠻⣿⣿⣿⣽⣫⣻⡉⠻⣯⣿⣿⣷⡄⠀⠀⠀⠀⠀⠀
+⠀⠸⣿⡿⣿⣿⠤⠤⠤⢤⣀⣰⣯⣿⣽⣿⢻⢿⣆⣿⣽⣿⣽⣇⣠⠀⠀⠀⠀⠀
+⠀⣶⣚⣗⢹⣿⠉⠉⠑⠲⣙⣿⣽⣿⣾⣿⢘⣿⡝⣿⣿⣿⣋⠟⡿⠀⠀⠀⠀⠀
+⠀⠨⢳⡷⣽⣿⡇⠀⠀⢠⡾⣿⣷⣿⣾⡟⣾⢻⡷⣿⣟⠛⠒⠺⢅⠀⠀⠀⠀⠀
+⠀⠀⠿⠟⢿⠟⠛⠙⣿⣿⣯⣻⠟⠋⢉⡭⠿⠼⡏⠉⠉⠉⠉⠢⢄⡑⣦⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢀⢴⠯⠥⣴⠏⠀⡴⠋⠀⠀⠀⡗⡦⢤⣄⣀⠀⠀⠉⠛⠷⣤⣀
+⠀⠀⠀⠀⠀⠀⠚⠙⠓⢲⠋⡠⠊⠀⢀⣤⠴⠚⠁⠀⠀⠈⠉⠉⠉⠉⠉⠉⠉⠁
+⠀⠀⠀⠀⠀⠀⠀⠀⢴⠷⠽⠶⠒⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+EOF
+
+# --- WRITE ~/.config/fastfetch/config.jsonc ---
+echo -e "${CYAN}Writing ~/.config/fastfetch/config.jsonc...${NC}"
+cat << 'EOF' > "$HOME/.config/fastfetch/config.jsonc"
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "source": "/home/omar/.config/fastfetch/logo.txt",
+    "width": 1,
+    "padding": {
+      "top": 2
+    }
+  },
+  "display": {
+    "separator": " : "
+  },
+  "modules": [
+    {
+      "type": "custom",
+      "format": "\u001b[36m   󰄛  コンピューター"
+    },
+    {
+      "type": "custom",
+      "format": "┌──────────────────────────────────────────┐"
+    },
+    {
+      "type": "chassis",
+      "key": "  󰇺 Chassis",
+      "format": "{3}"
+    },
+    {
+      "type": "os",
+      "key": "  󰣇 OS",
+      "format": "{2}",
+      "keyColor": "red"
+    },
+    {
+      "type": "kernel",
+      "key": "   Kernel",
+      "format": "{2}",
+      "keyColor": "red"
+    },
+    {
+      "type": "packages",
+      "key": "  󰏗 Packages",
+      "keyColor": "green"
+    },
+    {
+      "type": "display",
+      "key": "  󰍹 Display",
+      "format": "{1}x{2} @ {3}Hz [{7}]",
+      "keyColor": "green"
+    },
+    {
+      "type": "terminal",
+      "key": "  >_ Terminal",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "wm",
+      "key": "  󱗃 WM",
+      "format": "{2}",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "custom",
+      "format": "└──────────────────────────────────────────┘"
+    },
+    "break",
+    {
+      "type": "title",
+      "key": "  ",
+      "format": "{6} {7} {8}"
+    },
+    {
+      "type": "custom",
+      "format": "┌──────────────────────────────────────────┐"
+    },
+    {
+      "type": "cpu",
+      "format": "{1} @ {7}",
+      "key": "   CPU",
+      "keyColor": "blue"
+    },
+    {
+      "type": "gpu",
+      "format": "{1} {2}",
+      "key": "  󰊴 GPU",
+      "keyColor": "blue"
+    },
+    {
+      "type": "gpu",
+      "format": "{3}",
+      "key": "   GPU Driver",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "memory",
+      "key": "    Memory",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "command",
+      "key": "  󱦟 OS Age ",
+      "keyColor": "red",
+      "text": "birth_install=$(stat -c %W /); current=$(date +%s); time_progression=$((current - birth_install)); days_difference=$((time_progression / 86400)); echo $days_difference days"
+    },
+    {
+      "type": "uptime",
+      "key": "  󱫐 Uptime ",
+      "keyColor": "red"
+    },
+    {
+      "type": "custom",
+      "format": "└──────────────────────────────────────────┘"
+    },
+    {
+      "type": "colors",
+      "paddingLeft": 2,
+      "symbol": "circle"
+    }
+  ]
+}
+EOF
+
 # --- SDDM Theme Configuration ---
 echo -e "\n${BLUE}${BOLD}Configuring SDDM Candy theme...${NC}"
 if [ -f "$HOME/hyde/Source/arcs/Sddm_Candy.tar.gz" ]; then
