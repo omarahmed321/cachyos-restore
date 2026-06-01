@@ -154,6 +154,28 @@ mkdir -p "$HOME/.config/kitty"
 mkdir -p "$HOME/.config/waybar"
 mkdir -p "$HOME/.config/hyde"
 
+# Robustly copy default themes and animations from the cloned HyDE repo if they exist
+if [ -d "$HOME/hyde/Configs/.config/hypr" ]; then
+    echo -e "${CYAN}Deploying animations and theme configuration directories from HyDE...${NC}"
+    cp -r "$HOME/hyde/Configs/.config/hypr/animations" "$HOME/.config/hypr/"
+    cp -r "$HOME/hyde/Configs/.config/hypr/themes/." "$HOME/.config/hypr/themes/"
+fi
+
+# Robustly copy wallbash configuration directory from HyDE if it exists
+if [ -d "$HOME/hyde/Configs/.config/hyde" ]; then
+    echo -e "${CYAN}Deploying wallbash configuration directory from HyDE...${NC}"
+    cp -r "$HOME/hyde/Configs/.config/hyde/wallbash" "$HOME/.config/hyde/"
+fi
+
+# Deploy Bibata-Modern-Ice cursor theme locally (passwordless and robust)
+if [ ! -d "$HOME/.icons/Bibata-Modern-Ice" ]; then
+    echo -e "${CYAN}Installing Bibata-Modern-Ice cursor theme locally...${NC}"
+    mkdir -p "$HOME/.icons"
+    curl -sSL -o /tmp/Bibata-Modern-Ice.tar.xz https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Modern-Ice.tar.xz
+    tar -xf /tmp/Bibata-Modern-Ice.tar.xz -C "$HOME/.icons/"
+    rm -f /tmp/Bibata-Modern-Ice.tar.xz
+fi
+
 # --- WRITE ~/.config/hypr/hyprland.conf ---
 echo -e "${CYAN}Writing ~/.config/hypr/hyprland.conf...${NC}"
 cat << 'EOF' > "$HOME/.config/hypr/hyprland.conf"
@@ -198,6 +220,7 @@ exec-once = wl-paste --type image --watch cliphist store # clipboard store image
 exec-once = $scrPath/swwwallpaper.sh # start wallpaper daemon
 exec-once = $scrPath/batterynotify.sh # battery notification
 exec-once = hyprsunset -t 3500 # night light (warmer temperature for better blue light filtering)
+exec-once = hyprctl setcursor Bibata-Modern-Ice 20
 
 
 # █▀▀ █▄░█ █░█
@@ -215,6 +238,8 @@ env = QT_WAYLAND_DISABLE_WINDOWDECORATION,1
 env = QT_AUTO_SCREEN_SCALE_FACTOR,1
 env = MOZ_ENABLE_WAYLAND,1
 env = GDK_SCALE,1
+env = XCURSOR_THEME,Bibata-Modern-Ice
+env = XCURSOR_SIZE,20
 
 
 # █ █▄░█ █▀█ █░█ ▀█▀
@@ -652,7 +677,7 @@ cat << 'EOF' > "$HOME/.config/hypr/animations.conf"
 layerrule = no_anim on, match:namespace hyprpicker
 layerrule = no_anim on, match:namespace selection
 
-source = $HOME/.config/hypr/animations/animations-default.conf
+source = ~/.config/hypr/animations/animations-default.conf
 EOF
 
 # --- WRITE ~/.config/hypr/monitors.conf ---
