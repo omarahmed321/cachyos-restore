@@ -1716,6 +1716,19 @@ if [ -f "$HOME/hyde/Source/arcs/Sddm_Candy.tar.gz" ]; then
     echo -e "${GREEN}[OK] SDDM Candy theme configured successfully!${NC}"
 fi
 
+# Robustly clone and patch preset HyDE themes to ensure Waybar theme switches work perfectly out-of-the-box
+if [ -f "$HOME/hyde/Scripts/themepatcher.lst" ] && [ -f "$HOME/hyde/Scripts/themepatcher.sh" ]; then
+    echo -e "\n${BLUE}${BOLD}Installing and patching all preset HyDE themes...${NC}"
+    echo -e "${YELLOW}Note: This ensures the theme switcher button on your Waybar works flawlessly out-of-the-box!${NC}"
+    while IFS='"' read -r null1 themeName null2 themeRepo; do
+        if [ -n "$themeName" ] && [ -n "$themeRepo" ]; then
+            echo -e "  - Patching theme: ${CYAN}$themeName${NC}..."
+            "$HOME/hyde/Scripts/themepatcher.sh" "$themeName" "$themeRepo" --skipcaching false &>/dev/null || true
+        fi
+    done < "$HOME/hyde/Scripts/themepatcher.lst"
+    echo -e "${GREEN}[OK] All preset HyDE themes installed and patched successfully!${NC}"
+fi
+
 # 5. Apply Settings and Refresh
 echo -e "\n${BLUE}${BOLD}Refreshing themes, icon caches, and font caches...${NC}"
 fc-cache -f
