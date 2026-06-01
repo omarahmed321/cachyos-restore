@@ -214,7 +214,8 @@ input {
         natural_scroll = no
     }
 
-    sensitivity = 0
+    sensitivity = -1.0
+    accel_profile = flat
     force_no_accel = 1
     numlock_by_default = true
 }
@@ -255,7 +256,7 @@ master {
 # See https://wiki.hyprland.org/Configuring/Variables/
 
 misc {
-    vrr = 0
+    vrr = 1
     disable_hyprland_logo = true
     disable_splash_rendering = true
     force_default_wallpaper = 0
@@ -269,7 +270,6 @@ xwayland {
 # █▀ █▀█ █░█ █▀█ █▀▀ █▀▀
 # ▄█ █▄█ █▄█ █▀▄ █▄▄ ██▄
 
-# Custom configurations
 source = ~/.config/hypr/animations.conf
 source = ~/.config/hypr/keybindings.conf
 source = ~/.config/hypr/windowrules.conf
@@ -323,6 +323,12 @@ device {
     name = -------skyloong-gaming-keyboard-mouse
     accel_profile = custom 100 0.1
 }
+
+# --- Game Mouse Cursor Fixes ---
+# Confine mouse pointer to game windows (forces mouse capture, essential for dual-monitor setups)
+# windowrule = confine_pointer 1, match:class ^(steam_app_2399830)$
+# windowrule = confine_pointer 1, match:title ^(ArkAscended)$
+# windowrule = confine_pointer 1, match:class ^(steam_app_.*)$
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -347,7 +353,7 @@ $browser = firefox
 # Window/Session actions
 bindd = $mainMod+Shift, P,Color Picker , exec, hyprpicker -a # Pick color (Hex) >> clipboard# 
 bind = $mainMod, Q, exec, $scrPath/dontkillsteam.sh # close focused window (close tab/window)
-#bind = Ctrl, C, exec, /home/omar/.config/hypr/close_kitty_or_copy.sh # close kitty or copy text
+#bind = Ctrl, C, exec, $HOME/.config/hypr/close_kitty_or_copy.sh # close kitty or copy text
 bind = Alt, F4, exec, $scrPath/dontkillsteam.sh # close focused window
 bind = $mainMod, Delete, exit, # kill hyprland session
 bind = $mainMod, W, togglefloating, # toggle the window between focus and float
@@ -640,10 +646,10 @@ cat << 'EOF' > "$HOME/.config/hypr/monitors.conf"
 # █░▀░█ █▄█ █░▀█ █ ░█░ █▄█ █▀▄ ▄█
 
 # DP-2 (CMT GM238-FFS) - 144Hz main display
-monitor = DP-2,1920x1080@144,0x0,1
+monitor = DP-2,1920x1080@144,1080x700,1
 
 # DP-1 (HP Z23n) - Portrait mode, left of DP-2, fine-tuned alignment
-monitor = DP-1,1920x1080@60,-1080x-700,1,transform,1
+monitor = DP-1,1920x1080@60,0x0,1,transform,1
 
 # Workspace Rules
 # Assign workspaces 1 to 8 to DP-2 (144Hz main display)
@@ -675,7 +681,9 @@ env = __GLX_VENDOR_LIBRARY_NAME,nvidia
 env = __GL_VRR_ALLOWED,1
 env = WLR_DRM_NO_ATOMIC,1
 
-cursor:no_hardware_cursors = true
+cursor {
+    no_hardware_cursors = true
+}
 EOF
 
 # --- WRITE ~/.config/hypr/close_kitty_or_copy.sh ---
@@ -820,6 +828,41 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
         "on-click-middle": "sleep 0.1 && swwwallselect.sh",
         "interval" : 86400, // once every day
         "tooltip": true
+    },
+
+    "hyprland/workspaces": {
+        "disable-scroll": true,
+        "rotate": 0,
+        "all-outputs": true,
+        "active-only": false,
+        "on-click": "activate",
+        "disable-scroll": false,
+        "on-scroll-up": "hyprctl dispatch workspace -1",
+        "on-scroll-down": "hyprctl dispatch workspace +1",
+        "format": "{name} {windows}",
+        "format-window-separator": " ",
+        "window-rewrite-default": "",
+        "window-rewrite": {
+            "class<kitty>": "",
+            "class<firefox>": "",
+            "class<chromium>": "",
+            "class<google-chrome>": "",
+            "class<dolphin>": "󰉋",
+            "class<thunar>": "󰉋",
+            "class<vs-code-oss>": "󰨞",
+            "class<code-oss>": "󰨞",
+            "class<vscode>": "󰨞",
+            "class<discord>": "󰙯",
+            "class<spotify>": "",
+            "class<steam>": "",
+            "class<vlc>": "󰕼",
+            "class<mpv>": "󰕼"
+        },
+        "persistent-workspaces": {
+            "1": [],
+            "2": [],
+            "3": []
+        }
     },
 
 	"wlr/taskbar": {
@@ -1251,10 +1294,10 @@ cat << 'EOF' > "$HOME/.config/waybar/config.ctl"
 0|28|top|( cpu memory custom/cpuinfo ) ( idle_inhibitor clock ) ( hyprland/workspaces )|( hyprland/window )|( backlight network pulseaudio pulseaudio#microphone custom/updates custom/keybindhint ) ( privacy tray battery ) ( custom/wallchange custom/theme custom/wbar custom/cliphist custom/power )
 0||bottom|( hyprland/workspaces hyprland/window )|( idle_inhibitor clock )|( cpu memory custom/cpuinfo custom/gpuinfo ) ( backlight network pulseaudio pulseaudio#microphone custom/updates custom/keybindhint ) ( privacy tray battery ) ( custom/wallchange custom/theme custom/wbar custom/cliphist custom/power )
 0||top|( hyprland/workspaces hyprland/window )|( idle_inhibitor clock )|( cpu memory custom/cpuinfo custom/gpuinfo ) ( backlight network pulseaudio pulseaudio#microphone custom/updates custom/keybindhint ) ( privacy tray battery ) ( custom/wallchange custom/theme custom/wbar custom/cliphist custom/power )
-0|31|bottom|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( hyprland/workspaces wlr/taskbar custom/spotify )|( idle_inhibitor clock )|( privacy tray battery ) ( backlight network pulseaudio pulseaudio#microphone custom/notifications custom/keybindhint )
-0|31|left|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( hyprland/workspaces wlr/taskbar custom/spotify )|( idle_inhibitor clock )|( privacy tray battery ) ( backlight network pulseaudio pulseaudio#microphone custom/keybindhint )
+0|31|bottom|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( wlr/taskbar custom/spotify ) |( idle_inhibitor clock )|( privacy tray battery ) ( backlight network pulseaudio pulseaudio#microphone custom/notifications custom/keybindhint )
+0|31|left|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( wlr/taskbar custom/spotify ) |( idle_inhibitor clock )|( privacy tray battery ) ( backlight network pulseaudio pulseaudio#microphone custom/keybindhint )
 1|38|top|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( hyprland/workspaces wlr/taskbar custom/spotify )|( idle_inhibitor clock )|( privacy tray battery ) ( backlight network pulseaudio pulseaudio#microphone custom/keybindhint )
-0|31|right|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( hyprland/workspaces wlr/taskbar custom/spotify )|( idle_inhibitor clock )|( privacy tray battery ) ( backlight network pulseaudio pulseaudio#microphone custom/keybindhint )
+0|31|right|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( wlr/taskbar custom/spotify ) |( idle_inhibitor clock )|( privacy tray battery ) ( backlight network pulseaudio pulseaudio#microphone custom/keybindhint )
 0|32|bottom||( custom/power ) ( privacy tray battery ) ( wlr/taskbar idle_inhibitor clock ) ( custom/cliphist ) ( custom/wbar ) ( custom/wallchange ) ( custom/theme )|
 0|32|left||( custom/power ) ( privacy tray battery ) ( wlr/taskbar idle_inhibitor clock ) ( custom/cliphist ) ( custom/wbar ) ( custom/wallchange ) ( custom/theme )|
 0|32|top||( custom/power ) ( privacy tray battery ) ( wlr/taskbar idle_inhibitor clock ) ( custom/cliphist ) ( custom/wbar ) ( custom/wallchange ) ( custom/theme )|
