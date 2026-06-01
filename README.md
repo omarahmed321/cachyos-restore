@@ -66,3 +66,5 @@ Applies your exact customized environment configurations:
 * **Waybar:** Complete bar layout configuration, modules (Spotify media playback integration, clock, CPU, battery, and tray modules), and customized themes/colors.
 * **Kitty Terminal:** Font sizes (CaskaydiaCove Nerd Font), smooth cursor trail effects (`cursor_trail 10`), custom keymaps for clipboard operations.
 * **Zsh Config:** Completely customized `.zshrc` with advanced system aliases (`ll`, `ls`, `lt`, `up`, `un`), custom prompt integrations, and autocomplete optimizations.
+* **Fastfetch Mascot Logo:** Deploys a customized, beautifully downscaled 30-column Braille anime mascot art (`logo.txt`) with an aligned, vertically centered hardware information block (`config.jsonc`).
+* **SDDM Login Screen (Candy Theme):** Automated SDDM Candy installation with dynamic active wallpaper synchronization (via `$HOME/.cache/hyde/wall.set`) and Gruvbox orange theme accents (`#fe8019`).
