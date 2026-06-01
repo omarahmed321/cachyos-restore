@@ -58,7 +58,11 @@ fi
 
 # Ensure git and zsh are installed
 echo -e "\n${BLUE}${BOLD}[2/5] Ensuring Core packages (git, zsh) are installed...${NC}"
-sudo pacman -S --needed --noconfirm git zsh
+if ! pacman -Qi git &>/dev/null || ! pacman -Qi zsh &>/dev/null; then
+    sudo pacman -S --needed --noconfirm git zsh
+else
+    echo -e "${GREEN}[OK] Core packages (git, zsh) are already installed.${NC}"
+fi
 
 # 2. Check and Install Required Packages
 echo -e "\n${BLUE}${BOLD}[3/5] Checking and installing required packages...${NC}"
@@ -99,7 +103,12 @@ for svc in bluetooth NetworkManager sddm; do
         echo -e "  - ${GREEN}[Active]${NC} $svc service is running."
     else
         echo -e "  - ${YELLOW}[Inactive]${NC} Enabling and starting $svc..."
-        sudo systemctl enable --now "$svc".service
+        if sudo -n true &>/dev/null; then
+            sudo systemctl enable --now "$svc".service
+        else
+            echo -e "    ${YELLOW}[WARNING] Sudo requires a password. Skipping automatic service start for $svc.${NC}"
+            echo -e "    To enable, run: ${CYAN}sudo systemctl enable --now $svc.service${NC}"
+        fi
     fi
 done
 
@@ -125,6 +134,14 @@ export myShell="zsh"
 echo -e "\n\n\nn" | ./install.sh
 
 echo -e "${GREEN}[OK] HyDE base configuration installed successfully!${NC}"
+
+# Ensure swww/swww-daemon compatibility symlinks exist if awww is installed instead
+if command -v awww &>/dev/null && ! command -v swww &>/dev/null; then
+    echo -e "${BLUE}[INFO] Creating swww compatibility symlinks for awww...${NC}"
+    mkdir -p "$HOME/.local/bin"
+    ln -sf /usr/bin/awww "$HOME/.local/bin/swww"
+    ln -sf /usr/bin/awww-daemon "$HOME/.local/bin/swww-daemon"
+fi
 
 # 4. Deploy EXACT Customized Dotfiles
 echo -e "\n${MAGENTA}${BOLD}==============================================================${NC}"
@@ -300,7 +317,7 @@ decoration {
         enabled = true
         range = 18
         render_power = 4
-        color = rgba(b4637aff)
+        color = rgba(8ec07cff)
         color_inactive = rgba(00000055)
         offset = 0 0
     }
@@ -1482,6 +1499,28 @@ select-all-line() {
 zle -N select-all-line
 bindkey '^A' select-all-line
 EOF
+
+# --- SDDM Theme Configuration ---
+echo -e "\n${BLUE}${BOLD}Configuring SDDM Candy theme...${NC}"
+if [ -f "$HOME/hyde/Source/arcs/Sddm_Candy.tar.gz" ]; then
+    if sudo -n true &>/dev/null; then
+        sudo mkdir -p /usr/share/sddm/themes
+        sudo tar -xzf "$HOME/hyde/Source/arcs/Sddm_Candy.tar.gz" -C /usr/share/sddm/themes/
+        if [ -f /etc/sddm.conf ]; then
+            if ! grep -q "^Current=" /etc/sddm.conf; then
+                echo -e "\n[Theme]\nCurrent=Candy" | sudo tee -a /etc/sddm.conf >/dev/null
+            else
+                sudo sed -i 's/^Current=.*/Current=Candy/' /etc/sddm.conf
+            fi
+        else
+            echo -e "[Theme]\nCurrent=Candy" | sudo tee /etc/sddm.conf >/dev/null
+        fi
+        echo -e "${GREEN}[OK] SDDM Candy theme configured successfully!${NC}"
+    else
+        echo -e "    ${YELLOW}[WARNING] Sudo requires a password. Skipping automatic SDDM Candy theme installation.${NC}"
+        echo -e "    To manually set the login theme, extract Sddm_Candy.tar.gz to /usr/share/sddm/themes/ and set Current=Candy under [Theme] in /etc/sddm.conf.${NC}"
+    fi
+fi
 
 # 5. Apply Settings and Refresh
 echo -e "\n${BLUE}${BOLD}Refreshing themes, icon caches, and font caches...${NC}"
