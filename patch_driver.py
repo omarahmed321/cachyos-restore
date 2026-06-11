@@ -142,6 +142,20 @@ static int cfg80211_rtw_set_wiphy_params(struct wiphy *wiphy, u32 changed)
         f.write(content)
     print("Patching completed.")
 
+def patch_makefile(makefile_path):
+    print(f"Patching {makefile_path}...")
+    with open(makefile_path, 'r', encoding='utf-8', errors='ignore') as f:
+        content = f.read()
+
+    # Replace EXTRA_CFLAGS with ccflags-y
+    if "EXTRA_CFLAGS" in content:
+        content = content.replace("EXTRA_CFLAGS", "ccflags-y")
+        print("  - Replaced EXTRA_CFLAGS with ccflags-y")
+
+    with open(makefile_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print("Makefile patching completed.")
+
 def main():
     if len(sys.argv) > 1:
         target_dir = sys.argv[1]
@@ -159,6 +173,10 @@ def main():
         sys.exit(1)
 
     patch_file(file_to_patch)
+
+    makefile_to_patch = os.path.join(target_dir, "Makefile")
+    if os.path.exists(makefile_to_patch):
+        patch_makefile(makefile_to_patch)
 
 if __name__ == "__main__":
     main()

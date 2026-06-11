@@ -125,6 +125,13 @@ REQUIRED_PACKAGES=(
 echo -e "${CYAN}Checking ${#REQUIRED_PACKAGES[@]} essential packages...${NC}"
 TO_INSTALL=()
 for pkg in "${REQUIRED_PACKAGES[@]}"; do
+    if [ "$pkg" = "8188eu-dkms-git" ]; then
+        if pacman -Qq | grep -qE '^8188eu-' &>/dev/null; then
+            INSTALLED_8188EU_PKG=$(pacman -Qq | grep -E '^8188eu-' | head -n 1)
+            echo -e "  - ${GREEN}[Installed]${NC} 8188eu-dkms (provided by $INSTALLED_8188EU_PKG)"
+            continue
+        fi
+    fi
     if pacman -Qi "$pkg" &>/dev/null; then
         echo -e "  - ${GREEN}[Installed]${NC} $pkg"
     else
