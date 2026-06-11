@@ -59,3 +59,19 @@ The `restore_my_setup.sh` script automates the entire installation and configura
 - **Zsh & Fastfetch Customization**: Configures Oh My Zsh, Powerlevel10k, zsh autocomplete/syntax plugins, and displays a custom Braille anime mascot fastfetch logo.
 - **Automated Wi-Fi Driver Patching**: Detects `/usr/src/8188eu-*` driver source directories and automatically executes `patch_driver.py` to fix compilation issues on kernels 6.1+, followed by rebuilding/reinstalling via DKMS.
 - **HyDE Framework Setup**: Clones the official `hyprdots` (HyDE) framework, automated using pre-seeded inputs to skip standard installation prompt timers.
+
+---
+
+## 📂 Repository File Structure & Descriptions
+
+When you clone this repository, you will find the following files. Here is what each file does:
+
+| File | Description |
+| :--- | :--- |
+| **[`restore_my_setup.sh`](file:///home/omar/cachyosconfigupdate/restore_my_setup.sh)** | **The main installer & configuration script.** It handles core packages installation, kernel headers installation, SDDM Candy theme setup, HyDE configuration, monitor layout calculation, VS Code settings sync, keyboard layout, and driver building. |
+| **[`patch_driver.py`](file:///home/omar/cachyosconfigupdate/patch_driver.py)** | **The Wi-Fi driver patcher.** A Python script that automatically modifies the out-of-tree RTL8188EUS (`8188eu`) wireless driver source files (Makefiles, header inclusions, and modern Timer APIs) so that the driver successfully compiles and loads on 6.x/7.x kernels under modern compilers (Clang/GCC). |
+| **[`start_hotspot.sh`](file:///home/omar/cachyosconfigupdate/start_hotspot.sh)** | **Hotspot activation utility.** Spawns a Wi-Fi hotspot on the Realtek `wlan0` interface using `create_ap`, automatically disabling wireless power-saving via `iw` for maximum link stability and bandwidth. |
+| **[`double-pageup.sh`](file:///home/omar/cachyosconfigupdate/double-pageup.sh)** | **Key-binding helper script.** Runs in the background to capture double-taps of the Page_Up key, using `wtype` to simulate pressing `Ctrl + \`` (used to toggle the integrated terminal on and off). |
+| **[`ara-custom`](file:///home/omar/cachyosconfigupdate/ara-custom)** | **Custom keyboard layout.** Custom XKB layout symbol map that maps the Arabic letter `ذ` (Thal) to the backslash (`\`) key, allowing natural Arabic typing. |
+| **[`ioctl_cfg80211_patched.c`](file:///home/omar/cachyosconfigupdate/ioctl_cfg80211_patched.c)** | **Patched source reference.** A reference backup file containing the patched version of the driver's wireless configuration interfaces (`ioctl_cfg80211.c`). |
+| **[`README.md`](file:///home/omar/cachyosconfigupdate/README.md)** | **Documentation.** The setup guide and description file you are reading right now. |
