@@ -922,8 +922,22 @@ if [ -z "$MONITOR_CONFIGS" ]; then
         MAIN_NAME="${CONNECTED_DEVS[0]}"
         if [ "$NUM_DEVS" -gt 1 ]; then
             SIDE_NAME="${CONNECTED_DEVS[1]}"
-            # Default fallback for dual monitor
-            MONITOR_CONFIGS="monitor = ${SIDE_NAME},preferred,0x0,1,transform,1\nmonitor = ${MAIN_NAME},preferred,1080x700,1"
+            
+            # Read native resolution for the side monitor to calculate offsets
+            # Fallback to default if files are missing
+            SIDE_MODE=$(head -n 1 /sys/class/drm/card*-${SIDE_NAME}/modes 2>/dev/null)
+            SIDE_WIDTH=$(echo "$SIDE_MODE" | cut -d'x' -f1)
+            SIDE_HEIGHT=$(echo "$SIDE_MODE" | cut -d'x' -f2)
+            
+            SIDE_WIDTH=${SIDE_WIDTH:-1920}
+            SIDE_HEIGHT=${SIDE_HEIGHT:-1080}
+            
+            # Rotated width is SIDE_HEIGHT, Y offset is centered relative to MAIN (default 1080 height)
+            OFFSET_X=${SIDE_HEIGHT}
+            OFFSET_Y=$(( (SIDE_WIDTH - 1080) / 2 ))
+            [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+            
+            MONITOR_CONFIGS="monitor = ${SIDE_NAME},preferred,0x0,1,transform,1\nmonitor = ${MAIN_NAME},preferred,${OFFSET_X}x${OFFSET_Y},1"
             
             WORKSPACE_RULES="# Workspace Rules\n"
             for w in {1..8}; do
