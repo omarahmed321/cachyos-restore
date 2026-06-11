@@ -67,8 +67,8 @@ cleanup() {
         kill -TERM "$CREATE_AP_PID" 2>/dev/null
     fi
     
-    # Force kill dnsmasq and hostapd just to be sure
-    killall -9 hostapd dnsmasq create_ap 2>/dev/null
+    # Force kill dnsmasq, hostapd, and haveged just to be sure
+    killall -9 hostapd dnsmasq create_ap haveged 2>/dev/null
     
     # Re-enable Wi-Fi Power Saving
     iw dev "$WIFI_INT" set power_save on 2>/dev/null
@@ -82,7 +82,7 @@ trap cleanup SIGINT SIGTERM SIGHUP EXIT
 
 # --- Start Hotspot ---
 echo -e "${CYAN}[*] Stopping any conflicting services...${NC}"
-killall -9 create_ap dnsmasq hostapd 2>/dev/null || true
+killall -9 create_ap dnsmasq hostapd haveged 2>/dev/null || true
 sleep 1
 
 echo -e "${CYAN}[*] Disabling Wi-Fi Power Saving on $WIFI_INT...${NC}"
