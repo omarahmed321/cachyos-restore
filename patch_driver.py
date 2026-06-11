@@ -147,6 +147,18 @@ def patch_makefile(makefile_path):
     with open(makefile_path, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
 
+    # Add header search paths to ccflags-y/EXTRA_CFLAGS to resolve relative includes on newer kernels
+    target_inc_c = "ccflags-y += -I$(src)/include -I$(src) -I$(srctree)/$(src)/include"
+    target_inc_e = "EXTRA_CFLAGS += -I$(src)/include -I$(src) -I$(srctree)/$(src)/include"
+    addition = " -I$(srctree)/include/linux -I$(srctree)/arch/x86/include/uapi/asm -I$(srctree)/include/net -I$(src)/include/cmn_info"
+
+    if target_inc_e in content:
+        content = content.replace(target_inc_e, target_inc_e + addition)
+        print("  - Added additional header search paths to EXTRA_CFLAGS")
+    elif target_inc_c in content:
+        content = content.replace(target_inc_c, target_inc_c + addition)
+        print("  - Added additional header search paths to ccflags-y")
+
     # Replace EXTRA_CFLAGS with ccflags-y
     if "EXTRA_CFLAGS" in content:
         content = content.replace("EXTRA_CFLAGS", "ccflags-y")
@@ -157,21 +169,47 @@ def patch_makefile(makefile_path):
     print("Makefile patching completed.")
 
 def patch_version_h(target_dir):
-    print("Patching version.h includes...")
-    files_to_patch = [
-        os.path.join(target_dir, "include", "osdep_service_linux.h"),
-        os.path.join(target_dir, "platform", "platform_aml_s905_sdio.h")
-    ]
-    for filepath in files_to_patch:
-        if os.path.exists(filepath):
-            print(f"  - Patching {filepath}...")
-            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            if '#include "version.h"' in content:
-                content = content.replace('#include "version.h"', '#include <linux/version.h>')
-                print("    - Replaced #include \"version.h\" with <linux/version.h>")
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(content)
+    print("Patching version.h includes and timer compatibility...")
+    # 1. Patch osdep_service_linux.h with timer compatibility
+    osdep_path = os.path.join(target_dir, "include", "osdep_service_linux.h")
+    if os.path.exists(osdep_path):
+        print(f"  - Patching {osdep_path}...")
+        with open(osdep_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        if '#include "version.h"' in content:
+            replacement = """#include <linux/version.h>
+#include <linux/timer.h>
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
+#ifndef del_timer_sync
+#define del_timer_sync timer_delete_sync
+#endif
+#ifndef del_timer
+#define del_timer timer_delete
+#endif
+#endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+#ifndef from_timer
+#define from_timer timer_container_of
+#endif
+#endif"""
+            content = content.replace('#include "version.h"', replacement)
+            print("    - Replaced #include \"version.h\" with <linux/version.h> and timer compatibility definitions")
+        with open(osdep_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    # 2. Patch platform_aml_s905_sdio.h
+    platform_path = os.path.join(target_dir, "platform", "platform_aml_s905_sdio.h")
+    if os.path.exists(platform_path):
+        print(f"  - Patching {platform_path}...")
+        with open(platform_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        if '#include "version.h"' in content:
+            content = content.replace('#include "version.h"', '#include <linux/version.h>')
+            print("    - Replaced #include \"version.h\" with <linux/version.h>")
+        with open(platform_path, 'w', encoding='utf-8') as f:
+            f.write(content)
     print("version.h patching completed.")
 
 def main():
