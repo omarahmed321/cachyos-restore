@@ -118,7 +118,7 @@ REQUIRED_PACKAGES=(
     zsh-syntax-highlighting zsh-completions
     wl-clipboard qt5-graphicaleffects qt5-quickcontrols qt5-quickcontrols2
     seahorse networkmanager zenity fastfetch bibata-cursor-theme-bin
-    psmisc python dnsmasq hostapd iw
+    psmisc python dnsmasq hostapd iw sddm
 )
 
 # Install packages
@@ -135,8 +135,26 @@ done
 
 if [ ${#TO_INSTALL[@]} -gt 0 ]; then
     echo -e "${YELLOW}\nInstalling missing packages using $AUR_HELPER...${NC}"
-    $AUR_HELPER -S --noconfirm "${TO_INSTALL[@]}"
-    echo -e "${GREEN}[OK] All packages installed successfully!${NC}"
+    if ! $AUR_HELPER -S --noconfirm "${TO_INSTALL[@]}"; then
+        echo -e "${YELLOW}[WARNING] Batch installation failed. Falling back to installing packages individually to ensure maximum coverage...${NC}"
+        FAILED_PACKAGES=()
+        for pkg in "${TO_INSTALL[@]}"; do
+            echo -e "${CYAN}Installing $pkg...${NC}"
+            if ! $AUR_HELPER -S --noconfirm "$pkg"; then
+                echo -e "${RED}[ERROR] Failed to install $pkg${NC}"
+                FAILED_PACKAGES+=("$pkg")
+            fi
+        done
+        
+        if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then
+            echo -e "${YELLOW}[WARNING] The following packages failed to install: ${FAILED_PACKAGES[*]}${NC}"
+            echo -e "${YELLOW}The setup will proceed with the remaining components.${NC}"
+        else
+            echo -e "${GREEN}[OK] All packages installed successfully after fallback!${NC}"
+        fi
+    else
+        echo -e "${GREEN}[OK] All packages installed successfully!${NC}"
+    fi
 else
     echo -e "${GREEN}[OK] All required packages are already installed.${NC}"
 fi
