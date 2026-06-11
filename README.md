@@ -40,37 +40,21 @@ chmod +x restore_my_setup.sh
 
 ---
 
-## 🛠️ What This Replicator Does
+## 🛠️ What this config actually does
 
 The `restore_my_setup.sh` script automates the entire installation and configuration pipeline:
 
-### 1. Core & AUR Preparation
-* Checks for an AUR helper (`yay` or `paru`). If missing, it installs `yay` automatically.
-* Installs crucial system utilities like `git` and `zsh`.
-* **Dynamic Kernel Headers Detection**: Automatically detects the running kernel (`uname -r`) and installs the matching headers package (e.g. `linux-cachyos-headers` or `linux-lts-headers`), which is required for compilation of out-of-tree kernel modules.
-
-### 2. Complete Package Deployment
-* Verifies and installs **45+ system and GUI packages**, including:
-  * **Window Manager / Bars:** `hyprland`, `waybar`, `dunst`, `rofi-wayland`, `sddm`
-  * **Core Tools:** `kitty`, `firefox`, `visual-studio-code-bin` (code), `dolphin`
-  * **Developer & Gaming:** `antigravity`, `antigravity-ide`, `prismlauncher`, `python`
-  * **Enhancements:** `swaylock-effects-git`, `wlogout`, `cliphist`, `hyprpicker`, `hyprsunset` (for warm night light), `wtype`, `wl-clipboard`, `zenity`, `fastfetch`
-  * **UI / Engine styling:** `nwg-look`, `kvantum`, `kvantum-qt5`, `qt5ct`, `qt6ct`, `qt5-wayland`, `qt6-wayland`, `qt5-graphicaleffects`, `qt5-quickcontrols`, `qt5-quickcontrols2`
-  * **Hotspot & Network:** `create_ap`, `gnome-keyring`, `blueman`, `bluez`, `seahorse`, `networkmanager`, `dnsmasq`, `hostapd`, `iw`
-* **Fallback Package Installer Loop**: If the batch installation command fails, the script automatically falls back to installing packages individually. This prevents minor package or AUR failures from crashing the replication process.
-
-### 3. HyDE Framework Setup
-* Clones the official `hyprdots` (HyDE) framework.
-* Automates the installation script using pre-seeded inputs to skip standard installation prompt timers.
-
-### 4. Custom Dotfiles & Configurations Integration
-Applies your exact customized environment configurations:
-* **Hyprland:** Custom screen configurations, inputs (US/Arabic layout with `Alt+Shift` toggle using a custom keyboard layout map `ara-custom` that puts the letter `ذ` on the backslash key), trackpad settings, window rules, keybindings, opacity overlays, and Nvidia optimizations.
-* **Waybar:** Complete bar layout configuration, modules (Spotify media playback integration, clock, CPU, battery, and tray modules), and customized themes/colors.
-* **Kitty Terminal:** Font sizes (CaskaydiaCove Nerd Font), smooth cursor trail effects (`cursor_trail 10`), custom keymaps for clipboard operations.
-* **Zsh Config:** Completely customized `.zshrc` with advanced system aliases (`ll`, `ls`, `lt`, `up`, `un`), custom prompt integrations, and autocomplete optimizations.
-* **Fastfetch Mascot Logo:** Deploys a customized, beautifully downscaled 30-column Braille anime mascot art (`logo.txt`) with an aligned, vertically centered hardware information block (`config.jsonc`).
-* **SDDM Login Screen (Candy Theme):** Automated SDDM Candy installation with dynamic active wallpaper synchronization (via `$HOME/.cache/hyde/wall.set`) and Gruvbox orange theme accents (`#fe8019`).
-* **Wi-Fi Hotspot Controller:** Deploys a convenient CLI script (`start_hotspot.sh`) to quickly spawn local NATed/Bridged Wi-Fi hotspots using `create_ap` and disables power-save via `iw`.
-* **Automated Wi-Fi Driver Patching**: Detects `/usr/src/8188eu-*` driver source directories and automatically executes `patch_driver.py` to fix compilation issues on kernels 6.1+, followed by rebuilding/reinstalling via DKMS.
-* **Antigravity Keyring Persistence:** Automatically configures `--password-store=gnome-libsecret` flags and unmasks the `gnome-keyring-daemon` service to securely persist authentication tokens.
+- **Core & AUR Preparation**: Checks for an AUR helper (`yay`/`paru`), installs `yay` if missing, and ensures basic system utilities (`git`, `zsh`) are installed.
+- **Dynamic Kernel Headers Installation**: Automatically detects the running kernel (`uname -r`) and installs the matching headers package (e.g. `linux-cachyos-headers` or `linux-lts-headers`), which is required for compiling out-of-tree kernel modules.
+- **Automated Package Deployment**: Verifies and installs **45+ system, font, and GUI packages** (including `hyprland`, `waybar`, `dunst`, `rofi-wayland`, `sddm`, `kitty`, `firefox`, `visual-studio-code-bin`, `dolphin`, `antigravity`, `antigravity-ide`, `prismlauncher`, etc.).
+- **Self-Sufficient Fallback Installer**: Uses a batch installation method with an automatic individual package installer fallback loop to prevent minor package or AUR failures from crashing the setup.
+- **Dynamic Monitor & G-Sync Setup**: Automatically queries monitor layouts, native resolutions, and maximum refresh rates; configures the highest refresh rate monitor as the primary display, rotates the secondary monitor to portrait on the left, and configures G-Sync/VRR.
+- **Interactive Mouse Offset Calibration**: Launches an interactive Zenity calibration loop at the end of the script, allowing the user to shift and align the monitors in real-time.
+- **Custom Keyboard Layout**: Integrates a custom Arabic layout (`ara-custom`) mapping the letter `ذ` to the backslash key, allowing quick `Alt+Shift` toggles between US and custom layout.
+- **Antigravity Keyring & Token Persistence**: Configures Electron keyring flags (`--password-store=gnome-libsecret`) and unmasks `gnome-keyring-daemon` services to securely persist login tokens on reboot.
+- **Nvidia & Firefox Stability Fix**: Writes custom registry configuration tweaks (`PowerMizerDefaultAC=0x3`) to stop Firefox crash/stutter loops between P0 and P8 GPU states.
+- **SDDM Login Screen (Candy Theme)**: Installs the SDDM Candy theme, configures Qt5 graphical effects, centers login prompts, and dynamically syncs the background image with the active desktop wallpaper.
+- **Wi-Fi Hotspot Wrapper**: Installs `create_ap` and copies a helper script (`start_hotspot.sh`) to quickly spawn local hotspots, automatically disabling Wi-Fi power-save via `iw` for maximum stability.
+- **Zsh & Fastfetch Customization**: Configures Oh My Zsh, Powerlevel10k, zsh autocomplete/syntax plugins, and displays a custom Braille anime mascot fastfetch logo.
+- **Automated Wi-Fi Driver Patching**: Detects `/usr/src/8188eu-*` driver source directories and automatically executes `patch_driver.py` to fix compilation issues on kernels 6.1+, followed by rebuilding/reinstalling via DKMS.
+- **HyDE Framework Setup**: Clones the official `hyprdots` (HyDE) framework, automated using pre-seeded inputs to skip standard installation prompt timers.
