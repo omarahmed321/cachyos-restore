@@ -49,11 +49,13 @@ The `restore_my_setup.sh` script automates the entire installation and configura
 * Installs crucial system utilities like `git` and `zsh`.
 
 ### 2. Complete Package Deployment
-* Verifies and installs **29+ system and GUI packages**, including:
+* Verifies and installs **35+ system and GUI packages**, including:
   * **Window Manager / Bars:** `hyprland`, `waybar`, `dunst`, `rofi-wayland`
   * **Core Tools:** `kitty`, `firefox`, `visual-studio-code-bin` (code), `dolphin`
-  * **Enhancements:** `swaylock-effects-git`, `wlogout`, `cliphist`, `hyprpicker`, `hyprsunset` (for warm night light)
+  * **Developer & Gaming:** `antigravity`, `antigravity-ide`, `prismlauncher`
+  * **Enhancements:** `swaylock-effects-git`, `wlogout`, `cliphist`, `hyprpicker`, `hyprsunset` (for warm night light), `wtype`
   * **UI / Engine styling:** `nwg-look`, `kvantum`, `qt5ct`, `qt6ct`
+  * **Hotspot & Network:** `create_ap`, `gnome-keyring`, `blueman`, `bluez`
   * **System Services:** Automatically configures and enables `bluetooth`, `NetworkManager`, and `sddm`.
 
 ### 3. HyDE Framework Setup
@@ -62,9 +64,11 @@ The `restore_my_setup.sh` script automates the entire installation and configura
 
 ### 4. Custom Dotfiles & Configurations Integration
 Applies your exact customized environment configurations:
-* **Hyprland:** Custom screen configurations, inputs (US/Arabic layout with `Alt+Shift` toggle), trackpad settings, window rules, keybindings, opacity overlays, and Nvidia optimizations.
+* **Hyprland:** Custom screen configurations, inputs (US/Arabic layout with `Alt+Shift` toggle using a custom keyboard layout map `ara-custom` that puts the letter `ذ` on the backslash key), trackpad settings, window rules, keybindings, opacity overlays, and Nvidia optimizations.
 * **Waybar:** Complete bar layout configuration, modules (Spotify media playback integration, clock, CPU, battery, and tray modules), and customized themes/colors.
 * **Kitty Terminal:** Font sizes (CaskaydiaCove Nerd Font), smooth cursor trail effects (`cursor_trail 10`), custom keymaps for clipboard operations.
 * **Zsh Config:** Completely customized `.zshrc` with advanced system aliases (`ll`, `ls`, `lt`, `up`, `un`), custom prompt integrations, and autocomplete optimizations.
 * **Fastfetch Mascot Logo:** Deploys a customized, beautifully downscaled 30-column Braille anime mascot art (`logo.txt`) with an aligned, vertically centered hardware information block (`config.jsonc`).
 * **SDDM Login Screen (Candy Theme):** Automated SDDM Candy installation with dynamic active wallpaper synchronization (via `$HOME/.cache/hyde/wall.set`) and Gruvbox orange theme accents (`#fe8019`).
+* **Wi-Fi Hotspot Controller:** Deploys a convenient CLI script (`start_hotspot.sh`) to quickly spawn local NATed/Bridged Wi-Fi hotspots using `create_ap`.
+* **Antigravity Keyring Persistence:** Automatically configures `--password-store=gnome-libsecret` flags and unmasks the `gnome-keyring-daemon` service to securely persist authentication tokens.

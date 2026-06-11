@@ -1,0 +1,11 @@
+// Custom Arabic layout variant with ذ (Arabic_thal) on the backslash key
+
+partial alphanumeric_keys
+xkb_symbols "thal_bksl" {
+    include "ara(basic)"
+
+    name[Group1]= "Arabic (Thal on backslash)";
+
+    // Put ذ on the backslash key, with \ on AltGr
+    key <BKSL> {[     Arabic_thal,        Arabic_shadda,           backslash,             bar ]};
+};

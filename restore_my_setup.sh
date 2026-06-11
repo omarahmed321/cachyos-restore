@@ -74,7 +74,8 @@ REQUIRED_PACKAGES=(
     network-manager-applet brightnessctl pamixer playerctl udiskie
     nwg-look kvantum kvantum-qt5 qt5ct qt6ct qt5-wayland qt6-wayland
     awww parallel pacman-contrib imagemagick ffmpegthumbs kde-cli-tools
-    bc 8188eu-dkms-git
+    bc 8188eu-dkms-git antigravity antigravity-ide prismlauncher
+    create_ap wtype gnome-keyring
 )
 
 # Install packages
@@ -157,6 +158,160 @@ mkdir -p "$HOME/.config/hypr/themes"
 mkdir -p "$HOME/.config/kitty"
 mkdir -p "$HOME/.config/waybar"
 mkdir -p "$HOME/.config/hyde"
+
+# Deploy custom Arabic keyboard layout
+echo -e "${CYAN}Writing custom Arabic layout to /usr/share/X11/xkb/symbols/ara-custom...${NC}"
+sudo tee /usr/share/X11/xkb/symbols/ara-custom >/dev/null << 'XKBEOF'
+// Custom Arabic layout variant with ذ (Arabic_thal) on the backslash key
+
+partial alphanumeric_keys
+xkb_symbols "thal_bksl" {
+    include "ara(basic)"
+
+    name[Group1]= "Arabic (Thal on backslash)";
+
+    // Put ذ on the backslash key, with \ on AltGr
+    key <BKSL> {[     Arabic_thal,        Arabic_shadda,           backslash,             bar ]};
+};
+XKBEOF
+
+# --- WRITE ~/.local/bin/double-pageup.sh ---
+echo -e "${CYAN}Writing ~/.local/bin/double-pageup.sh...${NC}"
+mkdir -p "$HOME/.local/bin"
+cat << 'DPEOF' > "$HOME/.local/bin/double-pageup.sh"
+#!/bin/bash
+LAST_FILE="/tmp/.pageup_last"
+NOW=$(date +%s%N)
+
+if [ -f "$LAST_FILE" ]; then
+    LAST=$(cat "$LAST_FILE")
+    DIFF=$(( (NOW - LAST) / 1000000 ))
+    if [ "$DIFF" -lt 500 ]; then
+        rm -f "$LAST_FILE"
+        wtype -M ctrl -k grave
+        exit 0
+    fi
+fi
+
+echo "$NOW" > "$LAST_FILE"
+sleep 0.6
+[ -f "$LAST_FILE" ] && rm -f "$LAST_FILE"
+DPEOF
+chmod +x "$HOME/.local/bin/double-pageup.sh"
+
+# --- WRITE ~/start_hotspot.sh ---
+echo -e "${CYAN}Writing ~/start_hotspot.sh...${NC}"
+cat << 'HOTEOF' > "$HOME/start_hotspot.sh"
+#!/bin/bash
+
+# --- Color Definitions ---
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+# --- Default Configurations ---
+DEFAULT_SSID="tplink-7825"
+DEFAULT_PASS="bolbol123*#"
+WIFI_INT="wlan0"
+INTERNET_INT="enp37s0"
+CHANNEL="11"
+
+# --- Root Check & Auto-Sudo ---
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${YELLOW}[!] This script needs root privileges. Rerunning with sudo...${NC}"
+    exec sudo "$0" "$@"
+fi
+
+# --- Parameter Parsing ---
+SSID="${1:-$DEFAULT_SSID}"
+PASSPHRASE="${2:-$DEFAULT_PASS}"
+
+# --- Banner ---
+show_banner() {
+    clear
+    echo -e "${CYAN}${BOLD}====================================================${NC}"
+    echo -e "${MAGENTA}${BOLD}     TP-Link TL-WN722N v2 Hotspot Controller        ${NC}"
+    echo -e "${CYAN}${BOLD}====================================================${NC}"
+    echo -e "Interface:  ${GREEN}${WIFI_INT}${NC}"
+    echo -e "Internet:   ${GREEN}${INTERNET_INT}${NC}"
+    echo -e "Channel:    ${GREEN}${CHANNEL}${NC}"
+    echo -e "SSID:       ${YELLOW}${SSID}${NC}"
+    echo -e "Password:   ${YELLOW}${PASSPHRASE}${NC}"
+    echo -e "${CYAN}----------------------------------------------------${NC}"
+}
+
+# Show configurations
+show_banner
+
+# --- Check Prerequisites ---
+if ! command -v create_ap &> /dev/null; then
+    echo -e "${RED}[-] Error: create_ap is not installed.${NC}"
+    echo -e "${YELLOW}[*] Please install it first (e.g., yay -S create_ap).${NC}"
+    exit 1
+fi
+
+if ! ip link show "$WIFI_INT" &> /dev/null; then
+    echo -e "${RED}[-] Error: Wi-Fi interface '$WIFI_INT' not found!${NC}"
+    echo -e "${YELLOW}[*] Available interfaces:${NC}"
+    ip link show | grep -E "^[0-9]+: "
+    exit 1
+fi
+
+# --- Cleanup Function ---
+cleanup() {
+    echo -e "\n${YELLOW}[*] Shutting down hotspot and cleaning up...${NC}"
+    
+    # Terminate create_ap and child processes
+    if [ -n "$CREATE_AP_PID" ]; then
+        kill -TERM "$CREATE_AP_PID" 2>/dev/null
+    fi
+    
+    # Force kill dnsmasq and hostapd just to be sure
+    killall -9 hostapd dnsmasq create_ap 2>/dev/null
+    
+    # Re-enable Wi-Fi Power Saving
+    iw dev "$WIFI_INT" set power_save on 2>/dev/null
+    
+    echo -e "${GREEN}[+] Cleanup complete. Hotspot stopped.${NC}"
+    exit 0
+}
+
+# Setup traps for SIGINT (Ctrl+C), SIGTERM, SIGHUP, and EXIT
+trap cleanup SIGINT SIGTERM SIGHUP EXIT
+
+# --- Start Hotspot ---
+echo -e "${CYAN}[*] Stopping any conflicting services...${NC}"
+killall -9 create_ap dnsmasq hostapd 2>/dev/null || true
+sleep 1
+
+echo -e "${CYAN}[*] Disabling Wi-Fi Power Saving on $WIFI_INT...${NC}"
+iw dev "$WIFI_INT" set power_save off 2>/dev/null || true
+
+echo -e "${GREEN}[+] Starting Hotspot... (Press Ctrl+C to stop)${NC}"
+echo -e "${CYAN}----------------------------------------------------${NC}"
+
+# Run create_ap in the background so the trap can catch signals
+create_ap --no-virt --ieee80211n --ht_capab '[HT40-][SHORT-GI-20][SHORT-GI-40][DSSS_CCK-40]' -c "$CHANNEL" "$WIFI_INT" "$INTERNET_INT" "$SSID" "$PASSPHRASE" &
+CREATE_AP_PID=$!
+
+# Wait for create_ap to finish
+wait "$CREATE_AP_PID"
+HOTEOF
+chmod +x "$HOME/start_hotspot.sh"
+
+# --- Configure Antigravity IDE Flags & Keyring ---
+echo -e "${CYAN}Writing ~/.config/antigravity-ide-flags.conf...${NC}"
+mkdir -p "$HOME/.config"
+echo "--password-store=gnome-libsecret" > "$HOME/.config/antigravity-ide-flags.conf"
+
+echo -e "${CYAN}Ensuring gnome-keyring-daemon systemd services are unmasked...${NC}"
+systemctl --user unmask gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
+systemctl --user enable gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
 
 # Robustly copy default themes and animations from the cloned HyDE repo if they exist
 if [ -d "$HOME/hyde/Configs/.config/hypr" ]; then
@@ -252,7 +407,8 @@ env = XCURSOR_SIZE,20
 # See https://wiki.hyprland.org/Configuring/Variables/
 
 input {
-    kb_layout = us,ara
+    kb_layout = us,ara-custom
+    kb_variant = ,thal_bksl
     kb_options = grp:alt_shift_toggle
     follow_mouse = 1
 
@@ -262,7 +418,7 @@ input {
 
     sensitivity = -1.0
     accel_profile = flat
-    force_no_accel = 1
+    force_no_accel = 0
     numlock_by_default = true
 }
 
@@ -329,6 +485,11 @@ source = ~/.config/hypr/userprefs.conf # initially empty, to be configured by us
 
 # Note: as userprefs.conf is sourced at the end, settings configured in this file will override the defaults
 source = ~/.config/hypr/nvidia.conf # auto sourced vars for nvidia
+
+# Nvidia & Wayland Fixes
+env = LIBVA_DRIVER_NAME,nvidia
+env = GBM_BACKEND,nvidia-drm
+env = __GLX_VENDOR_LIBRARY_NAME,nvidia
 EOF
 
 # --- WRITE ~/.config/hypr/userprefs.conf ---
@@ -353,21 +514,12 @@ decoration {
 }
 
 input {
-    kb_layout = us,ara
+    kb_layout = us,ara-custom
+    kb_variant = ,thal_bksl
     kb_options = grp:alt_shift_toggle
-    sensitivity = 0.0
-    accel_profile = custom 100 0.1
-    force_no_accel = false
-}
-
-device {
-    name = -------x3pro
-    accel_profile = custom 100 0.1
-}
-
-device {
-    name = -------skyloong-gaming-keyboard-mouse
-    accel_profile = custom 100 0.1
+    sensitivity = -0.5
+    accel_profile = flat
+    force_no_accel = 0
 }
 
 # --- Game Mouse Cursor Fixes ---
@@ -375,6 +527,10 @@ device {
 # windowrule = confine_pointer 1, match:class ^(steam_app_2399830)$
 # windowrule = confine_pointer 1, match:title ^(ArkAscended)$
 # windowrule = confine_pointer 1, match:class ^(steam_app_.*)$
+
+# --- Keyring Fix ---
+# Start gnome-keyring-daemon for managing credentials and secrets securely in Electron/VSCode applications
+exec-once = gnome-keyring-daemon --start --components=secrets
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -412,6 +568,7 @@ bind = Ctrl+Alt, W, exec, killall waybar || (env reload_flag=1 $scrPath/wbarconf
 #bind = Ctrl+Alt, W, exec, killall waybar || waybar # toggle waybar without reloading, this is faster
 
 # Application shortcuts
+bind = , Page_Up, exec, $HOME/.local/bin/double-pageup.sh # double-press Page_Up to open terminal
 bind = $mainMod, T, exec, $term # launch terminal emulator
 bind = $mainMod, E, exec, $file # launch file manager
 bind = $mainMod, C, exec, $editor # launch text editor
@@ -1723,14 +1880,37 @@ if [ -f "$HOME/hyde/Source/arcs/Sddm_Candy.tar.gz" ]; then
 fi
 
 # --- RTL8188EUS USB Wi-Fi Hotspot driver configuration ---
-echo -e "\n${BLUE}${BOLD}Configuring RTL8188EUS USB Wi-Fi driver and blacklisting rtl8xxxu...${NC}"
-# Blacklist default rtl8xxxu driver to ensure 8188eu takes over
+echo -e "\n${BLUE}${BOLD}Configuring RTL8188EUS USB Wi-Fi driver and blacklisting conflicting drivers...${NC}"
+
+# Blacklist default rtl8xxxu driver
 if [ ! -f /etc/modprobe.d/rtl8xxxu.conf ] || ! grep -q "blacklist rtl8xxxu" /etc/modprobe.d/rtl8xxxu.conf; then
     echo -e "${CYAN}Creating blacklisting rule for default rtl8xxxu driver...${NC}"
     echo "blacklist rtl8xxxu" | sudo tee /etc/modprobe.d/rtl8xxxu.conf >/dev/null
     echo -e "${GREEN}[OK] Blacklisted rtl8xxxu driver successfully!${NC}"
 else
     echo -e "${GREEN}[OK] rtl8xxxu driver is already blacklisted.${NC}"
+fi
+
+# Blacklist staging r8188eu driver
+if [ ! -f /etc/modprobe.d/r8188eu.conf ] || ! grep -q "blacklist r8188eu" /etc/modprobe.d/r8188eu.conf; then
+    echo -e "${CYAN}Creating blacklisting rule for staging r8188eu driver...${NC}"
+    echo "blacklist r8188eu" | sudo tee /etc/modprobe.d/r8188eu.conf >/dev/null
+    echo -e "${GREEN}[OK] Blacklisted staging r8188eu driver successfully!${NC}"
+else
+    echo -e "${GREEN}[OK] staging r8188eu driver is already blacklisted.${NC}"
+fi
+
+# --- Nvidia PowerMizer & Firefox Loop Fix configuration ---
+echo -e "\n${BLUE}${BOLD}Configuring Nvidia PowerMizer options for Firefox stability...${NC}"
+if [ ! -f /etc/modprobe.d/nvidia.conf ] || ! grep -q "PowerMizerDefaultAC" /etc/modprobe.d/nvidia.conf; then
+    echo -e "${CYAN}Creating PowerMizer registry configuration in /etc/modprobe.d/nvidia.conf...${NC}"
+    sudo tee /etc/modprobe.d/nvidia.conf >/dev/null << 'NVIEOF'
+options nvidia_drm modeset=1 fbdev=1
+options nvidia NVreg_RegistryDwords="PowerMizerEnable=0x1; PerfLevelSrc=0x3322; PowerMizerDefaultAC=0x3"
+NVIEOF
+    echo -e "${GREEN}[OK] Nvidia PowerMizer configured successfully!${NC}"
+else
+    echo -e "${GREEN}[OK] Nvidia PowerMizer configuration already exists.${NC}"
 fi
 
 # Robustly clone and patch preset HyDE themes to ensure Waybar theme switches work perfectly out-of-the-box
