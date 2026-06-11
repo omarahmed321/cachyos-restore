@@ -1169,19 +1169,32 @@ MONEOF
                     --title="Mouse Alignment Calibration" \
                     --text="Current offset: ${OFFSET_Y}px.\nTry moving your mouse between the screens.\nAdjust the position of the main monitor:" \
                     --column="Action" \
-                    "Shift Main Monitor Down (+50px)" \
-                    "Shift Main Monitor Up (-50px)" \
+                    "Enter Custom Y-Offset Value" \
+                    "Shift Main Monitor Down (+50px) - enters lower on second screen" \
+                    "Shift Main Monitor Up (-50px) - enters higher on second screen" \
                     "Fine-tune Down (+10px)" \
                     "Fine-tune Up (-10px)" \
                     "Save and Exit" \
-                    --width=450 --height=280 2>/dev/null)
+                    --width=450 --height=320 2>/dev/null)
                     
                 # Parse choice
                 case "$choice" in
-                    "Shift Main Monitor Down (+50px)")
+                    "Enter Custom Y-Offset Value")
+                        custom_val=$(zenity --entry \
+                            --title="Custom Y-Offset" \
+                            --text="Enter custom Y-offset in pixels (e.g., 0, 100, 200...):\n(Higher values shift the main screen down / lower transition on side screen)" \
+                            --entry-text="$OFFSET_Y" 2>/dev/null)
+                        # Validate if input is a number (integer)
+                        if [[ "$custom_val" =~ ^-?[0-9]+$ ]]; then
+                            OFFSET_Y=$custom_val
+                        elif [ -n "$custom_val" ]; then
+                            zenity --error --title="Invalid Input" --text="Please enter a valid integer number." --width=300 2>/dev/null
+                        fi
+                        ;;
+                    "Shift Main Monitor Down (+50px) - enters lower on second screen")
                         OFFSET_Y=$((OFFSET_Y + 50))
                         ;;
-                    "Shift Main Monitor Up (-50px)")
+                    "Shift Main Monitor Up (-50px) - enters higher on second screen")
                         OFFSET_Y=$((OFFSET_Y - 50))
                         ;;
                     "Fine-tune Down (+10px)")
