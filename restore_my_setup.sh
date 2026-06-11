@@ -112,7 +112,7 @@ REQUIRED_PACKAGES=(
     network-manager-applet brightnessctl pamixer playerctl udiskie
     nwg-look kvantum kvantum-qt5 qt5ct qt6ct qt5-wayland qt6-wayland
     awww parallel pacman-contrib imagemagick ffmpegthumbs kde-cli-tools
-    bc 8188eu-dkms-git antigravity antigravity-ide prismlauncher
+    bc 8188eu-dkms-git antigravity antigravity-ide prismlauncher cava
     create_ap wtype gnome-keyring ttf-cascadia-code-nerd
     oh-my-zsh-git zsh-theme-powerlevel10k zsh-autosuggestions
     zsh-syntax-highlighting zsh-completions
@@ -226,6 +226,7 @@ mkdir -p "$HOME/.config/hypr/themes"
 mkdir -p "$HOME/.config/kitty"
 mkdir -p "$HOME/.config/waybar"
 mkdir -p "$HOME/.config/hyde"
+mkdir -p "$HOME/.config/cava"
 
 # Deploy custom Arabic keyboard layout
 echo -e "${CYAN}Writing custom Arabic layout to /usr/share/X11/xkb/symbols/ara-custom...${NC}"
@@ -376,6 +377,31 @@ chmod +x "$HOME/start_hotspot.sh"
 echo -e "${CYAN}Writing ~/.config/antigravity-ide-flags.conf...${NC}"
 mkdir -p "$HOME/.config"
 echo "--password-store=gnome-libsecret" > "$HOME/.config/antigravity-ide-flags.conf"
+
+# --- Configure Cava & Write default config with Green-Blue Gradient theme ---
+echo -e "${CYAN}Writing ~/.config/cava/config...${NC}"
+mkdir -p "$HOME/.config/cava"
+cat << 'EOF' > "$HOME/.config/cava/config"
+[general]
+bars = 0
+bar_width = 3
+bar_spacing = 1
+
+[input]
+method = pulse
+source = auto
+
+[output]
+method = noncurses
+
+[color]
+gradient = 1
+gradient_color_1 = '#2af598'
+gradient_color_2 = '#15e3b6'
+gradient_color_3 = '#00c9ff'
+gradient_color_4 = '#00f2fe'
+gradient_color_5 = '#0072ff'
+EOF
 
 echo -e "${CYAN}Ensuring gnome-keyring-daemon systemd services are unmasked...${NC}"
 systemctl --user unmask gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
