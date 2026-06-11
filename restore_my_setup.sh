@@ -64,6 +64,44 @@ else
     echo -e "${GREEN}[OK] Core packages (git, zsh) are already installed.${NC}"
 fi
 
+# Ensure kernel headers matching the running kernel are installed (critical for DKMS driver compilation)
+echo -e "\n${BLUE}${BOLD}[2.5/5] Detecting and installing matching kernel headers...${NC}"
+KERNEL_NAME=$(uname -r)
+HEADERS_PKG=""
+
+if [[ "$KERNEL_NAME" == *"-cachyos"* ]]; then
+    if [[ "$KERNEL_NAME" == *"-lts"* ]]; then
+        HEADERS_PKG="linux-cachyos-lts-headers"
+    elif [[ "$KERNEL_NAME" == *"-rc"* ]]; then
+        HEADERS_PKG="linux-cachyos-rc-headers"
+    elif [[ "$KERNEL_NAME" == *"-server"* ]]; then
+        HEADERS_PKG="linux-cachyos-server-headers"
+    elif [[ "$KERNEL_NAME" == *"-hardened"* ]]; then
+        HEADERS_PKG="linux-cachyos-hardened-headers"
+    else
+        HEADERS_PKG="linux-cachyos-headers"
+    fi
+elif [[ "$KERNEL_NAME" == *"-lts"* ]]; then
+    HEADERS_PKG="linux-lts-headers"
+elif [[ "$KERNEL_NAME" == *"-zen"* ]]; then
+    HEADERS_PKG="linux-zen-headers"
+elif [[ "$KERNEL_NAME" == *"-hardened"* ]]; then
+    HEADERS_PKG="linux-hardened-headers"
+elif [[ "$KERNEL_NAME" == *"-rt"* ]]; then
+    HEADERS_PKG="linux-rt-headers"
+else
+    HEADERS_PKG="linux-headers"
+fi
+
+echo -e "Running kernel: ${CYAN}$KERNEL_NAME${NC}, selected headers package: ${CYAN}$HEADERS_PKG${NC}"
+if ! pacman -Qi "$HEADERS_PKG" &>/dev/null; then
+    echo -e "Installing ${YELLOW}$HEADERS_PKG${NC}..."
+    sudo pacman -S --needed --noconfirm "$HEADERS_PKG"
+    echo -e "${GREEN}[OK] Installed kernel headers successfully.${NC}"
+else
+    echo -e "${GREEN}[OK] Kernel headers ($HEADERS_PKG) are already installed.${NC}"
+fi
+
 # 2. Check and Install Required Packages
 echo -e "\n${BLUE}${BOLD}[3/5] Checking and installing required packages...${NC}"
 REQUIRED_PACKAGES=(
@@ -78,6 +116,9 @@ REQUIRED_PACKAGES=(
     create_ap wtype gnome-keyring ttf-cascadia-code-nerd
     oh-my-zsh-git zsh-theme-powerlevel10k zsh-autosuggestions
     zsh-syntax-highlighting zsh-completions
+    wl-clipboard qt5-graphicaleffects qt5-quickcontrols qt5-quickcontrols2
+    seahorse networkmanager zenity fastfetch bibata-cursor-theme-bin
+    psmisc python dnsmasq hostapd iw
 )
 
 # Install packages
@@ -2091,6 +2132,47 @@ if [ ! -f /etc/modprobe.d/r8188eu.conf ] || ! grep -q "blacklist r8188eu" /etc/m
     echo -e "${GREEN}[OK] Blacklisted staging r8188eu driver successfully!${NC}"
 else
     echo -e "${GREEN}[OK] staging r8188eu driver is already blacklisted.${NC}"
+fi
+
+# Compile and Patch the RTL8188EUS USB Wi-Fi driver if needed
+echo -e "\n${BLUE}${BOLD}Checking and patching RTL8188EUS USB Wi-Fi driver for modern kernels...${NC}"
+# Find driver directory in /usr/src/
+SRC_DIRS=(/usr/src/8188eu-*)
+if [ -d "${SRC_DIRS[0]}" ]; then
+    DRIVER_DIR="${SRC_DIRS[0]}"
+    DRIVER_VER=$(basename "$DRIVER_DIR" | sed 's/8188eu-//')
+    echo -e "Found driver source directory: ${CYAN}$DRIVER_DIR${NC} (Version: ${CYAN}$DRIVER_VER${NC})"
+    
+    # Locate patch_driver.py
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    if [ -f "$SCRIPT_DIR/patch_driver.py" ]; then
+        PATCH_SCRIPT="$SCRIPT_DIR/patch_driver.py"
+    else
+        # If script is run via curl or in a temp location, fetch patch_driver.py from remote repo
+        echo -e "${CYAN}Downloading patch_driver.py from GitHub repository...${NC}"
+        curl -sSL -o /tmp/patch_driver.py https://raw.githubusercontent.com/omarahmed321/cachyos-restore/main/patch_driver.py || wget -q -O /tmp/patch_driver.py https://raw.githubusercontent.com/omarahmed321/cachyos-restore/main/patch_driver.py
+        PATCH_SCRIPT="/tmp/patch_driver.py"
+    fi
+    
+    # Run patch script
+    if [ -f "$PATCH_SCRIPT" ]; then
+        echo -e "${CYAN}Running driver source patch script on $DRIVER_DIR...${NC}"
+        sudo python3 "$PATCH_SCRIPT" "$DRIVER_DIR"
+        
+        # Trigger DKMS to rebuild and reinstall the patched driver
+        echo -e "${CYAN}Rebuilding and reinstalling patched 8188eu driver using DKMS...${NC}"
+        sudo dkms remove -m 8188eu -v "$DRIVER_VER" --all || true
+        sudo dkms add -m 8188eu -v "$DRIVER_VER" || true
+        if sudo dkms install -m 8188eu -v "$DRIVER_VER"; then
+            echo -e "${GREEN}[OK] RTL8188EUS USB Wi-Fi driver patched and installed successfully via DKMS!${NC}"
+        else
+            echo -e "${RED}[ERROR] Failed to compile and install RTL8188EUS USB Wi-Fi driver via DKMS.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}[WARNING] Could not locate or download patch_driver.py. Skipping patch step.${NC}"
+    fi
+else
+    echo -e "${YELLOW}[WARNING] No RTL8188EUS driver source found in /usr/src/8188eu-*. Skipping driver patch.${NC}"
 fi
 
 # --- Nvidia PowerMizer & Firefox Loop Fix configuration ---
