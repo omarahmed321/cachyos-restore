@@ -245,10 +245,10 @@ mkdir -p "$HOME/.config/hyde"
 mkdir -p "$HOME/.config/cava"
 
 # Deploy custom Arabic keyboard layout
-echo -e "${CYAN}Writing custom Arabic layout to /usr/share/X11/xkb/symbols/ara-custom...${NC}"
-sudo tee /usr/share/X11/xkb/symbols/ara-custom >/dev/null << 'XKBEOF'
-// Custom Arabic layout variant with ذ (Arabic_thal) on the backslash key
+echo -e "${CYAN}Writing custom Arabic layout to /usr/share/X11/xkb/symbols/ara...${NC}"
+sudo bash -c 'if ! grep -q "xkb_symbols \"thal_bksl\"" /usr/share/X11/xkb/symbols/ara; then tee -a /usr/share/X11/xkb/symbols/ara >/dev/null << "XKBEOF"
 
+// Custom Arabic layout variant with ذ (Arabic_thal) on the backslash key
 partial alphanumeric_keys
 xkb_symbols "thal_bksl" {
     include "ara(basic)"
@@ -259,6 +259,7 @@ xkb_symbols "thal_bksl" {
     key <BKSL> {[     Arabic_thal,        Arabic_shadda,           backslash,             bar ]};
 };
 XKBEOF
+fi'
 
 # --- WRITE ~/.local/bin/double-pageup.sh ---
 echo -e "${CYAN}Writing ~/.local/bin/double-pageup.sh...${NC}"
@@ -1247,7 +1248,7 @@ env = XCURSOR_SIZE,20
 # See https://wiki.hyprland.org/Configuring/Variables/
 
 input {
-    kb_layout = us,ara-custom
+    kb_layout = us,ara
     kb_variant = ,thal_bksl
     kb_options = grp:alt_shift_toggle
     follow_mouse = 1
@@ -1354,7 +1355,7 @@ decoration {
 }
 
 input {
-    kb_layout = us,ara-custom
+    kb_layout = us,ara
     kb_variant = ,thal_bksl
     kb_options = grp:alt_shift_toggle
     sensitivity = -0.5
