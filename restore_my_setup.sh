@@ -2028,12 +2028,18 @@ echo -e "${CYAN}Writing ~/.config/hypr/reset_cursor.sh...${NC}"
 cat << 'EOF' > "$HOME/.config/hypr/reset_cursor.sh"
 #!/bin/bash
 # Wait for the session to fully initialize
-sleep 4
+LOG_FILE="/tmp/reset_cursor.log"
+echo "--- Reset Cursor Script Started at $(date) ---" > "$LOG_FILE"
+
+sleep 6
+echo "Sleeping done. Current cursorpos: $(hyprctl cursorpos)" >> "$LOG_FILE"
 
 # Save original cursor position
 orig=$(hyprctl cursorpos | tr -d ' ')
 orig_x=$(echo "$orig" | cut -d',' -f1)
 orig_y=$(echo "$orig" | cut -d',' -f2)
+
+echo "Saved original position: $orig_x, $orig_y" >> "$LOG_FILE"
 
 # Touch the four corners of each monitor to force cursor plane redraw
 hyprctl monitors -j | jq -r '.[] | "\(.x) \(.y) \(.width) \(.height) \(.transform)"' | while read -r mx my mw mh mt; do
@@ -2058,19 +2064,24 @@ hyprctl monitors -j | jq -r '.[] | "\(.x) \(.y) \(.width) \(.height) \(.transfor
     c4_x=$((mx + w - 10))
     c4_y=$((my + h - 10))
     
+    echo "Monitor: x=$mx, y=$my, w=$w, h=$h. Moving to corners: ($c1_x, $c1_y), ($c2_x, $c2_y), ($c3_x, $c3_y), ($c4_x, $c4_y)" >> "$LOG_FILE"
+    
     # Move cursor to all 4 corners
-    hyprctl dispatch movecursor "$c1_x" "$c1_y"
-    sleep 0.02
-    hyprctl dispatch movecursor "$c2_x" "$c2_y"
-    sleep 0.02
-    hyprctl dispatch movecursor "$c3_x" "$c3_y"
-    sleep 0.02
-    hyprctl dispatch movecursor "$c4_x" "$c4_y"
-    sleep 0.02
+    hyprctl dispatch movecursor "$c1_x" "$c1_y" >> "$LOG_FILE" 2>&1
+    sleep 0.05
+    hyprctl dispatch movecursor "$c2_x" "$c2_y" >> "$LOG_FILE" 2>&1
+    sleep 0.05
+    hyprctl dispatch movecursor "$c3_x" "$c3_y" >> "$LOG_FILE" 2>&1
+    sleep 0.05
+    hyprctl dispatch movecursor "$c4_x" "$c4_y" >> "$LOG_FILE" 2>&1
+    sleep 0.05
 done
 
 # Restore original cursor position
-hyprctl dispatch movecursor "$orig_x" "$orig_y"
+echo "Restoring to original position: $orig_x, $orig_y" >> "$LOG_FILE"
+hyprctl dispatch movecursor "$orig_x" "$orig_y" >> "$LOG_FILE" 2>&1
+
+echo "--- Reset Cursor Script Finished at $(date) ---" >> "$LOG_FILE"
 EOF
 chmod +x "$HOME/.config/hypr/reset_cursor.sh"
 
