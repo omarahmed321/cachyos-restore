@@ -41,14 +41,13 @@ fi
 
 # --- Check Prerequisites ---
 if ! command -v create_ap &> /dev/null; then
-    echo -e "${RED}[-] Error: create_ap is not installed.${NC}"
-    echo -e "${YELLOW}[*] Please install it first (e.g., yay -S create_ap).${NC}"
-    exit 1
+    echo -e "${YELLOW}[*] Installing create_ap and its dependencies (hostapd, dnsmasq, etc.)...${NC}"
+    pacman -S --needed --noconfirm create_ap
 fi
 
 if ! command -v qrencode &> /dev/null; then
     echo -e "${YELLOW}[*] Installing qrencode for QR code generation...${NC}"
-    pacman -S --needed --noconfirm qrencode &>/dev/null
+    pacman -S --needed --noconfirm qrencode
 fi
 
 if ! ip link show "$WIFI_INT" &> /dev/null; then
