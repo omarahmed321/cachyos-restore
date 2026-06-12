@@ -527,9 +527,12 @@ def get_mouse_sensitivity():
     return 0.0
 
 def set_mouse_sensitivity(value):
-    if not os.path.exists(USERPREFS_CONF):
-        return False
     try:
+        os.makedirs(os.path.dirname(USERPREFS_CONF), exist_ok=True)
+        if not os.path.exists(USERPREFS_CONF):
+            with open(USERPREFS_CONF, 'w') as f:
+                f.write("# User Preferences\ninput {\n    sensitivity = 0.00\n}\n")
+        
         with open(USERPREFS_CONF, 'r') as f:
             content = f.read()
         
@@ -550,9 +553,12 @@ def set_mouse_sensitivity(value):
         return False
 
 def update_monitor_config(name, resolution, hz, scale, extra):
-    if not os.path.exists(MONITORS_CONF):
-        return False
     try:
+        os.makedirs(os.path.dirname(MONITORS_CONF), exist_ok=True)
+        if not os.path.exists(MONITORS_CONF):
+            with open(MONITORS_CONF, 'w') as f:
+                f.write("# Monitor Rules\n")
+                
         with open(MONITORS_CONF, 'r') as f:
             lines = f.readlines()
         
@@ -816,6 +822,21 @@ if __name__ == "__main__":
     app.mainloop()
 DYEOF
 chmod +x "$HOME/.local/share/bin/hypr-display-settings.py"
+
+# --- Create Display & Mouse Settings Desktop Entry ---
+echo -e "${CYAN}Creating ~/.local/share/applications/hypr-display-settings.desktop...${NC}"
+mkdir -p "$HOME/.local/share/applications"
+cat << DEEOF > "$HOME/.local/share/applications/hypr-display-settings.desktop"
+[Desktop Entry]
+Name=Display & Mouse Settings
+Comment=Adjust screen resolution, refresh rate, system zoom, and mouse sensitivity
+Exec=python3 $HOME/.local/share/bin/hypr-display-settings.py
+Icon=video-display
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;
+DEEOF
+chmod +x "$HOME/.local/share/applications/hypr-display-settings.desktop"
 
 
 echo -e "${CYAN}Ensuring gnome-keyring-daemon systemd services are unmasked...${NC}"
@@ -2781,6 +2802,12 @@ if [ -f "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" ];
     if [ -f "$HOME/.local/share/bin/swwwallpaper.sh" ]; then
         "$HOME/.local/share/bin/swwwallpaper.sh" -s "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" &>/dev/null || true
     fi
+fi
+
+# Launch Display & Mouse Settings Manager GUI if running in a graphical session
+if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then
+    echo -e "\n${BLUE}${BOLD}Launching Display & Mouse Settings GUI...${NC}"
+    python3 "$HOME/.local/share/bin/hypr-display-settings.py" || true
 fi
 
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
