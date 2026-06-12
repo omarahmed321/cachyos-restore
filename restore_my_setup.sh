@@ -505,7 +505,7 @@ def get_monitor_info():
             with open(MONITORS_CONF, 'r') as f:
                 content = f.read()
             for name in monitors:
-                match_line = re.search(r'^\s*monitor\s*=\s*' + re.escape(name) + r'\s*,\s*[^,]+\s*,\s*[^,]+\s*,\s*[^,]+(.*)$', content, re.MULTILINE)
+                match_line = re.search(r'^\s*monitor\s*=\s*' + re.escape(name) + r'\s*,\s*[^,\n]+\s*,\s*[^,\n]+\s*,\s*[^,\n]+(.*)$', content, re.MULTILINE)
                 if match_line:
                     monitors[name]['extra'] = match_line.group(1).strip()
         except Exception:
@@ -564,7 +564,7 @@ def update_monitor_config(name, resolution, hz, scale, extra):
         
         updated = False
         for i, line in enumerate(lines):
-            match = re.match(r'^\s*monitor\s*=\s*([\w\-]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)(.*)$', line)
+            match = re.match(r'^\s*monitor\s*=\s*([\w\-]+)\s*,\s*([^,\n]+)\s*,\s*([^,\n]+)\s*,\s*([^,\n]+)(.*)$', line)
             if match and match.group(1) == name:
                 res_hz = f"{resolution}@{hz}"
                 pos = match.group(3).strip()
