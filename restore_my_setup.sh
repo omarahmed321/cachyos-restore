@@ -1321,10 +1321,6 @@ source = ~/.config/hypr/themes/common.conf # shared theme settings
 source = ~/.config/hypr/themes/theme.conf # theme specific settings
 # hyprlang noerror false
 
-# Setup cursor theme environment variables dynamically based on active theme
-env = XCURSOR_THEME,$CURSOR_THEME
-env = XCURSOR_SIZE,$CURSOR_SIZE
-
 # Dynamically synchronize GTK and default cursor configurations with the active theme
 exec = ~/.config/hypr/sync_cursor.sh $CURSOR_THEME $CURSOR_SIZE
 source = ~/.config/hypr/themes/colors.conf # wallbash color override
@@ -1352,7 +1348,7 @@ cat << 'EOF' > "$HOME/.config/hypr/userprefs.conf"
 
 decoration {
     shadow {
-        enabled = true
+        enabled = false
         range = 18
         render_power = 4
         color = rgba(8ec07cff)
@@ -3126,30 +3122,28 @@ else
     echo -e "${YELLOW}[WARNING] No RTL8188EUS driver source found in /usr/src/8188eu-*. Skipping driver patch.${NC}"
 fi
 
-# --- Nvidia PowerMizer & Firefox Loop Fix configuration ---
-echo -e "\n${BLUE}${BOLD}Configuring Nvidia PowerMizer options for Firefox stability...${NC}"
-if [ ! -f /etc/modprobe.d/nvidia.conf ] || ! grep -q "PowerMizerDefaultAC" /etc/modprobe.d/nvidia.conf; then
-    echo -e "${CYAN}Creating PowerMizer registry configuration in /etc/modprobe.d/nvidia.conf...${NC}"
-    sudo tee /etc/modprobe.d/nvidia.conf >/dev/null << 'NVIEOF'
-options nvidia_drm modeset=1 fbdev=1
-options nvidia NVreg_RegistryDwords="PowerMizerEnable=0x1; PerfLevelSrc=0x3322; PowerMizerDefaultAC=0x3"
+# --- Nvidia DRM Configuration ---
+echo -e "\n${BLUE}${BOLD}Configuring Nvidia DRM modesetting...${NC}"
+echo -e "${CYAN}Setting clean default in /etc/modprobe.d/nvidia.conf...${NC}"
+sudo tee /etc/modprobe.d/nvidia.conf >/dev/null << 'NVIEOF'
+options nvidia_drm modeset=1
 NVIEOF
-    echo -e "${GREEN}[OK] Nvidia PowerMizer configured successfully!${NC}"
-else
-    echo -e "${GREEN}[OK] Nvidia PowerMizer configuration already exists.${NC}"
-fi
+echo -e "${GREEN}[OK] Nvidia DRM configured successfully!${NC}"
 
 # Robustly clone and patch preset HyDE themes to ensure Waybar theme switches work perfectly out-of-the-box
 if [ -f "$HOME/hyde/Scripts/themepatcher.lst" ] && [ -f "$HOME/hyde/Scripts/themepatcher.sh" ]; then
-    echo -e "\n${BLUE}${BOLD}Installing and patching all preset HyDE themes...${NC}"
-    echo -e "${YELLOW}Note: This ensures the theme switcher button on your Waybar works flawlessly out-of-the-box!${NC}"
+    echo -e "\n${BLUE}${BOLD}Installing and patching missing preset HyDE themes...${NC}"
     while IFS='"' read -r null1 themeName null2 themeRepo; do
         if [ -n "$themeName" ] && [ -n "$themeRepo" ]; then
-            echo -e "  - Patching theme: ${CYAN}$themeName${NC}..."
-            "$HOME/hyde/Scripts/themepatcher.sh" "$themeName" "$themeRepo" --skipcaching false &>/dev/null || true
+            if [ ! -d "$HOME/.config/hyde/themes/$themeName" ]; then
+                echo -e "  - Patching missing theme: ${CYAN}$themeName${NC}..."
+                "$HOME/hyde/Scripts/themepatcher.sh" "$themeName" "$themeRepo" --skipcaching false &>/dev/null || true
+            else
+                echo -e "  - Theme ${GREEN}$themeName${NC} is already installed. Skipping patch."
+            fi
         fi
     done < "$HOME/hyde/Scripts/themepatcher.lst"
-    echo -e "${GREEN}[OK] All preset HyDE themes installed and patched successfully!${NC}"
+    echo -e "${GREEN}[OK] All preset HyDE themes checked successfully!${NC}"
 fi
 
 # Clean up hardcoded cursor theme lines in common.conf to prevent theme conflicts
