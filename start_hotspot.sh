@@ -17,15 +17,46 @@ WIFI_INT="wlan0"
 INTERNET_INT="enp37s0"
 CHANNEL="11"
 
+# --- True User Configuration Path ---
+if [ -n "$SUDO_USER" ]; then
+    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+else
+    USER_HOME="$HOME"
+fi
+CONFIG_DIR="${USER_HOME}/.config"
+CONFIG_FILE="${CONFIG_DIR}/hotspot_config"
+
+# --- Load Saved Configurations ---
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+fi
+SSID="${SAVED_SSID:-$DEFAULT_SSID}"
+PASSPHRASE="${SAVED_PASS:-$DEFAULT_PASS}"
+
 # --- Root Check & Auto-Sudo ---
 if [ "$EUID" -ne 0 ]; then
     echo -e "${YELLOW}[!] This script needs root privileges. Rerunning with sudo...${NC}"
     exec sudo "$0" "$@"
 fi
 
-# --- Parameter Parsing ---
-SSID="${1:-$DEFAULT_SSID}"
-PASSPHRASE="${2:-$DEFAULT_PASS}"
+# --- Check Prerequisites ---
+if ! command -v create_ap &> /dev/null; then
+    echo -e "${RED}[-] Error: create_ap is not installed.${NC}"
+    echo -e "${YELLOW}[*] Please install it first (e.g., yay -S create_ap).${NC}"
+    exit 1
+fi
+
+if ! command -v qrencode &> /dev/null; then
+    echo -e "${YELLOW}[*] Installing qrencode for QR code generation...${NC}"
+    pacman -S --needed --noconfirm qrencode &>/dev/null
+fi
+
+if ! ip link show "$WIFI_INT" &> /dev/null; then
+    echo -e "${RED}[-] Error: Wi-Fi interface '$WIFI_INT' not found!${NC}"
+    echo -e "${YELLOW}[*] Available interfaces:${NC}"
+    ip link show | grep -E "^[0-9]+: "
+    exit 1
+fi
 
 # --- Banner ---
 show_banner() {
@@ -41,21 +72,44 @@ show_banner() {
     echo -e "${CYAN}----------------------------------------------------${NC}"
 }
 
-# Show configurations
-show_banner
+# --- Prompt configuration ---
+echo -e "${CYAN}${BOLD}====================================================${NC}"
+echo -e "${MAGENTA}${BOLD}     TP-Link TL-WN722N v2 Hotspot Configuration     ${NC}"
+echo -e "${CYAN}${BOLD}====================================================${NC}"
+echo -e "Saved Default: SSID: ${YELLOW}${SSID}${NC} | Password: ${YELLOW}${PASSPHRASE}${NC}"
+echo -e "1) Start with Saved Default"
+echo -e "2) Configure New Name/Password"
+read -p "Choose option [1-2] (Default 1): " choice
+choice="${choice:-1}"
 
-# --- Check Prerequisites ---
-if ! command -v create_ap &> /dev/null; then
-    echo -e "${RED}[-] Error: create_ap is not installed.${NC}"
-    echo -e "${YELLOW}[*] Please install it first (e.g., yay -S create_ap).${NC}"
-    exit 1
+if [ "$choice" -eq 2 ]; then
+    read -p "Enter new SSID (Press Enter for default '$SSID'): " new_ssid
+    read -p "Enter new Password (min 8 chars, Press Enter for default): " new_pass
+    SSID="${new_ssid:-$SSID}"
+    PASSPHRASE="${new_pass:-$PASSPHRASE}"
+    
+    read -p "Save this new configuration as default? (y/n) [y]: " save_choice
+    save_choice="${save_choice:-y}"
+    if [[ "$save_choice" =~ ^[Yy]$ ]]; then
+        mkdir -p "$CONFIG_DIR"
+        echo "SAVED_SSID=\"$SSID\"" > "$CONFIG_FILE"
+        echo "SAVED_PASS=\"$PASSPHRASE\"" >> "$CONFIG_FILE"
+        if [ -n "$SUDO_USER" ]; then
+            chown -R "$SUDO_USER:" "$CONFIG_DIR" 2>/dev/null || true
+        fi
+        echo -e "${GREEN}[+] Configuration saved as default!${NC}"
+        sleep 1
+    fi
 fi
 
-if ! ip link show "$WIFI_INT" &> /dev/null; then
-    echo -e "${RED}[-] Error: Wi-Fi interface '$WIFI_INT' not found!${NC}"
-    echo -e "${YELLOW}[*] Available interfaces:${NC}"
-    ip link show | grep -E "^[0-9]+: "
-    exit 1
+# Show configurations banner
+show_banner
+
+# --- Display QR Code ---
+if command -v qrencode &> /dev/null; then
+    echo -e "${GREEN}[+] Scan this QR Code to connect instantly:${NC}"
+    qrencode -t utf8 "WIFI:S:${SSID};T:WPA;P:${PASSPHRASE};;"
+    echo -e "${CYAN}----------------------------------------------------${NC}"
 fi
 
 # --- Cleanup Function ---
