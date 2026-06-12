@@ -56,8 +56,13 @@ else
     echo -e "${GREEN}[OK] Successfully installed yay.${NC}"
 fi
 
+# Synchronize package databases to prevent 404 download errors
+echo -e "\n${BLUE}${BOLD}[1.5/5] Synchronizing package databases...${NC}"
+sudo pacman -Sy
+
 # Ensure git and zsh are installed
 echo -e "\n${BLUE}${BOLD}[2/5] Ensuring Core packages (git, zsh) are installed...${NC}"
+
 if ! pacman -Qi git &>/dev/null || ! pacman -Qi zsh &>/dev/null; then
     sudo pacman -S --needed --noconfirm git zsh
 else
@@ -112,7 +117,8 @@ REQUIRED_PACKAGES=(
     network-manager-applet brightnessctl pamixer playerctl udiskie
     nwg-look kvantum kvantum-qt5 qt5ct qt6ct qt5-wayland qt6-wayland
     awww parallel pacman-contrib imagemagick ffmpegthumbs kde-cli-tools
-    bc 8188eu-dkms-git antigravity antigravity-ide prismlauncher cava
+    bc 8188eu-dkms-git antigravity antigravity-ide prismlauncher cava tk
+
     create_ap wtype gnome-keyring ttf-cascadia-code-nerd
     oh-my-zsh-git zsh-theme-powerlevel10k zsh-autosuggestions
     zsh-syntax-highlighting zsh-completions
@@ -402,6 +408,415 @@ gradient_color_3 = '#00c9ff'
 gradient_color_4 = '#00f2fe'
 gradient_color_5 = '#0072ff'
 EOF
+
+# --- Write ~/.local/share/bin/hypr-display-settings.py ---
+echo -e "${CYAN}Writing ~/.local/share/bin/hypr-display-settings.py...${NC}"
+mkdir -p "$HOME/.local/share/bin"
+cat << 'DYEOF' > "$HOME/.local/share/bin/hypr-display-settings.py"
+#!/usr/bin/env python3
+import os
+import re
+import sys
+import subprocess
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+# --- CONFIG PATHS ---
+MONITORS_CONF = os.path.expanduser('~/.config/hypr/monitors.conf')
+USERPREFS_CONF = os.path.expanduser('~/.config/hypr/userprefs.conf')
+
+# --- HELPERS ---
+def get_monitor_info():
+    try:
+        output = subprocess.check_output(['hyprctl', 'monitors'], text=True)
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to run 'hyprctl monitors': {e}")
+        sys.exit(1)
+
+    monitors = {}
+    chunks = output.split('Monitor ')[1:]
+    for chunk in chunks:
+        lines = chunk.strip().split('\n')
+        if not lines:
+            continue
+        
+        match_name = re.match(r'^(\S+)\s+\(ID', lines[0])
+        if not match_name:
+            continue
+        name = match_name.group(1)
+        
+        info = {
+            'name': name,
+            'model': 'Unknown',
+            'current_mode': '',
+            'position': '0x0',
+            'scale': '1.00',
+            'available_modes': {},
+            'extra': ''
+        }
+        
+        if len(lines) > 1:
+            match_mode = re.search(r'(\d+x\d+@\d+\.\d+)\s+at\s+(\d+x\d+)', lines[1])
+            if match_mode:
+                info['current_mode'] = match_mode.group(1)
+                info['position'] = match_mode.group(2)
+        
+        for line in lines:
+            line_str = line.strip()
+            if line_str.startswith('model:'):
+                info['model'] = line_str.split('model:')[1].strip()
+            elif line_str.startswith('scale:'):
+                info['scale'] = line_str.split('scale:')[1].strip()
+            elif line_str.startswith('availableModes:'):
+                modes_str = line_str.split('availableModes:')[1].strip()
+                modes_list = modes_str.split()
+                
+                # Group modes by resolution
+                grouped = {}
+                for mode in modes_list:
+                    m = re.match(r'^(\d+x\d+)@([\d\.]+(?:Hz)?)$', mode)
+                    if m:
+                        res = m.group(1)
+                        hz = m.group(2).replace('Hz', '')
+                        try:
+                            hz_float = float(hz)
+                            hz_str = str(int(hz_float)) if hz_float.is_integer() else f"{hz_float:.2f}"
+                        except ValueError:
+                            hz_str = hz
+                        
+                        if res not in grouped:
+                            grouped[res] = []
+                        if hz_str not in grouped[res]:
+                            grouped[res].append(hz_str)
+                
+                # Sort resolutions and refresh rates descending
+                sorted_res = sorted(grouped.keys(), key=lambda r: [int(x) for x in r.split('x')], reverse=True)
+                sorted_grouped = {}
+                for r in sorted_res:
+                    sorted_grouped[r] = sorted(grouped[r], key=float, reverse=True)
+                
+                info['available_modes'] = sorted_grouped
+                
+        monitors[name] = info
+    
+    # Parse existing monitors.conf to preserve extra options (like transform, mirror, etc.)
+    if os.path.exists(MONITORS_CONF):
+        try:
+            with open(MONITORS_CONF, 'r') as f:
+                content = f.read()
+            for name in monitors:
+                match_line = re.search(r'^\s*monitor\s*=\s*' + re.escape(name) + r'\s*,\s*[^,]+\s*,\s*[^,]+\s*,\s*[^,]+(.*)$', content, re.MULTILINE)
+                if match_line:
+                    monitors[name]['extra'] = match_line.group(1).strip()
+        except Exception:
+            pass
+
+    return monitors
+
+def get_mouse_sensitivity():
+    if not os.path.exists(USERPREFS_CONF):
+        return 0.0
+    try:
+        with open(USERPREFS_CONF, 'r') as f:
+            content = f.read()
+        match = re.search(r'^\s*sensitivity\s*=\s*([-\d\.]+)', content, re.MULTILINE)
+        if match:
+            return float(match.group(1))
+    except Exception:
+        pass
+    return 0.0
+
+def set_mouse_sensitivity(value):
+    if not os.path.exists(USERPREFS_CONF):
+        return False
+    try:
+        with open(USERPREFS_CONF, 'r') as f:
+            content = f.read()
+        
+        pattern = r'^(\s*sensitivity\s*=\s*)[-\d\.]+'
+        if re.search(pattern, content, re.MULTILINE):
+            new_content = re.sub(pattern, rf'\g<1>{value:.2f}', content, flags=re.MULTILINE)
+        else:
+            input_pattern = r'(input\s*\{[^}]*)'
+            if re.search(input_pattern, content):
+                new_content = re.sub(input_pattern, rf'\g<1>\n    sensitivity = {value:.2f}', content)
+            else:
+                new_content = content + f"\ninput {{\n    sensitivity = {value:.2f}\n}}\n"
+                
+        with open(USERPREFS_CONF, 'w') as f:
+            f.write(new_content)
+        return True
+    except Exception:
+        return False
+
+def update_monitor_config(name, resolution, hz, scale, extra):
+    if not os.path.exists(MONITORS_CONF):
+        return False
+    try:
+        with open(MONITORS_CONF, 'r') as f:
+            lines = f.readlines()
+        
+        updated = False
+        for i, line in enumerate(lines):
+            match = re.match(r'^\s*monitor\s*=\s*([\w\-]+)\s*,\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^,]+)(.*)$', line)
+            if match and match.group(1) == name:
+                res_hz = f"{resolution}@{hz}"
+                pos = match.group(3).strip()
+                lines[i] = f"monitor = {name},{res_hz},{pos},{scale}{extra}\n"
+                updated = True
+                break
+                
+        if not updated:
+            insert_idx = len(lines)
+            for idx, line in enumerate(lines):
+                if 'Workspace Rules' in line:
+                    insert_idx = idx
+                    break
+            lines.insert(insert_idx, f"monitor = {name},{resolution}@{hz},auto,{scale}{extra}\n")
+            
+        with open(MONITORS_CONF, 'w') as f:
+            f.writelines(lines)
+        return True
+    except Exception:
+        return False
+
+# --- GUI APP ---
+class DisplaySettingsApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        
+        self.title("CachyOS Display & Mouse Settings")
+        self.geometry("450x450")
+        self.configure(bg='#272727')
+        
+        # Load data
+        self.monitors = get_monitor_info()
+        self.current_sens = get_mouse_sensitivity()
+        
+        # Style
+        self.setup_styles()
+        
+        # Build UI
+        self.build_ui()
+        
+    def setup_styles(self):
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        style.configure('.', background='#272727', foreground='#ebdbb2', font=('JetBrains Mono', 10))
+        style.configure('TLabel', background='#272727', foreground='#ebdbb2')
+        style.configure('TFrame', background='#272727')
+        
+        style.configure('TNotebook', background='#272727', borderwidth=0)
+        style.configure('TNotebook.Tab', background='#3c3836', foreground='#a89984', padding=[12, 6])
+        style.map('TNotebook.Tab', background=[('selected', '#272727')], foreground=[('selected', '#ebdbb2')])
+        
+        style.configure('TCombobox', fieldbackground='#3c3836', background='#504945', foreground='#ebdbb2')
+        style.map('TCombobox', fieldbackground=[('readonly', '#3c3836')], foreground=[('readonly', '#ebdbb2')])
+        
+        style.configure('TButton', background='#3c3836', foreground='#ebdbb2', borderwidth=1, focuscolor='none', padding=[10, 5])
+        style.map('TButton', background=[('active', '#504945')])
+
+    def build_ui(self):
+        # Notebook for Tabs
+        notebook = ttk.Notebook(self)
+        notebook.pack(fill='both', expand=True, padx=15, pady=15)
+        
+        # --- TAB 1: DISPLAY ---
+        display_frame = ttk.Frame(notebook)
+        notebook.add(display_frame, text="Display Settings")
+        
+        # Monitor Select
+        ttk.Label(display_frame, text="Monitor:").grid(row=0, column=0, sticky='w', pady=10, padx=10)
+        self.monitor_names = list(self.monitors.keys())
+        self.monitor_display_names = [f"{name} ({self.monitors[name]['model']})" for name in self.monitor_names]
+        
+        self.monitor_combo = ttk.Combobox(display_frame, values=self.monitor_display_names, state="readonly", width=30)
+        self.monitor_combo.grid(row=0, column=1, sticky='w', pady=10, padx=10)
+        self.monitor_combo.bind("<<ComboboxSelected>>", self.on_monitor_select)
+        
+        # Resolution Select
+        ttk.Label(display_frame, text="Resolution:").grid(row=1, column=0, sticky='w', pady=10, padx=10)
+        self.res_combo = ttk.Combobox(display_frame, state="readonly", width=20)
+        self.res_combo.grid(row=1, column=1, sticky='w', pady=10, padx=10)
+        self.res_combo.bind("<<ComboboxSelected>>", self.on_res_select)
+        
+        # Refresh Rate Select
+        ttk.Label(display_frame, text="Refresh Rate (Hz):").grid(row=2, column=0, sticky='w', pady=10, padx=10)
+        self.hz_combo = ttk.Combobox(display_frame, state="readonly", width=15)
+        self.hz_combo.grid(row=2, column=1, sticky='w', pady=10, padx=10)
+        
+        # Scaling Select
+        ttk.Label(display_frame, text="System Zoom (Scale):").grid(row=3, column=0, sticky='w', pady=10, padx=10)
+        self.scale_values = ["1", "1.25", "1.5", "1.75", "2"]
+        self.scale_combo = ttk.Combobox(display_frame, values=self.scale_values, state="readonly", width=10)
+        self.scale_combo.grid(row=3, column=1, sticky='w', pady=10, padx=10)
+        
+        # --- TAB 2: MOUSE ---
+        mouse_frame = ttk.Frame(notebook)
+        notebook.add(mouse_frame, text="Mouse Sensitivity")
+        
+        ttk.Label(mouse_frame, text="Adjust Pointer Sensitivity:", font=('JetBrains Mono', 11, 'bold')).pack(anchor='w', pady=15, padx=15)
+        ttk.Label(mouse_frame, text="Slide left to slow down, right to speed up (-1.00 to +1.00):").pack(anchor='w', pady=5, padx=15)
+        
+        # Sens Slider Frame
+        slider_frame = ttk.Frame(mouse_frame)
+        slider_frame.pack(fill='x', padx=15, pady=20)
+        
+        self.sens_val_var = tk.StringVar(value=f"{self.current_sens:.2f}")
+        
+        self.sens_slider = tk.Scale(
+            slider_frame, from_=-1.0, to=1.0, resolution=0.05, orient='horizontal',
+            bg='#3c3836', fg='#ebdbb2', troughcolor='#272727', highlightbackground='#272727',
+            activebackground='#504945', showvalue=False, command=self.on_slider_move
+        )
+        self.sens_slider.set(self.current_sens)
+        self.sens_slider.pack(side='left', fill='x', expand=True, padx=5)
+        
+        sens_label = ttk.Label(slider_frame, textvariable=self.sens_val_var, font=('JetBrains Mono', 12, 'bold'), width=6, anchor='center')
+        sens_label.pack(side='right', padx=10)
+        
+        # Accel Note
+        ttk.Label(mouse_frame, text="* Accel profile is forced to 'flat' to ensure raw mouse precision.", foreground='#a89984').pack(anchor='w', padx=15, pady=10)
+
+        # --- BOTTOM ACTION PANEL ---
+        btn_frame = ttk.Frame(self)
+        btn_frame.pack(fill='x', side='bottom', padx=15, pady=15)
+        
+        cancel_btn = ttk.Button(btn_frame, text="Close", command=self.destroy)
+        cancel_btn.pack(side='left', padx=5)
+        
+        apply_btn = ttk.Button(btn_frame, text="Apply & Save Settings", command=self.apply_settings)
+        apply_btn.pack(side='right', padx=5)
+        
+        # Set defaults if monitors exist
+        if self.monitor_names:
+            self.monitor_combo.current(0)
+            self.on_monitor_select(None)
+
+    def on_monitor_select(self, event):
+        m_idx = self.monitor_combo.current()
+        m_name = self.monitor_names[m_idx]
+        m_info = self.monitors[m_name]
+        
+        # Update resolutions
+        resolutions = list(m_info['available_modes'].keys())
+        self.res_combo.configure(values=resolutions)
+        
+        # Pre-select current or highest resolution
+        current_res = m_info['current_mode'].split('@')[0]
+        if current_res in resolutions:
+            self.res_combo.set(current_res)
+        elif resolutions:
+            self.res_combo.current(0)
+            
+        self.on_res_select(None)
+        
+        # Pre-select current scale
+        curr_scale = m_info['scale']
+        try:
+            curr_scale_float = float(curr_scale)
+            if curr_scale_float.is_integer():
+                curr_scale_str = str(int(curr_scale_float))
+            else:
+                curr_scale_str = f"{curr_scale_float:.2f}".rstrip('0').rstrip('.')
+        except ValueError:
+            curr_scale_str = curr_scale
+            
+        if curr_scale_str in self.scale_values:
+            self.scale_combo.set(curr_scale_str)
+        else:
+            self.scale_combo.set("1")
+
+    def on_res_select(self, event):
+        m_idx = self.monitor_combo.current()
+        m_name = self.monitor_names[m_idx]
+        m_info = self.monitors[m_name]
+        
+        selected_res = self.res_combo.get()
+        if selected_res in m_info['available_modes']:
+            refresh_rates = m_info['available_modes'][selected_res]
+            self.hz_combo.configure(values=refresh_rates)
+            
+            # Match current refresh rate
+            current_hz = m_info['current_mode'].split('@')[1] if '@' in m_info['current_mode'] else ''
+            try:
+                curr_hz_val = float(current_hz)
+                curr_hz_str = str(int(curr_hz_val)) if curr_hz_val.is_integer() else f"{curr_hz_val:.2f}"
+            except ValueError:
+                curr_hz_str = current_hz
+            
+            matched = False
+            for rate in refresh_rates:
+                try:
+                    if abs(float(rate) - float(curr_hz_str)) < 1.0:
+                        self.hz_combo.set(rate)
+                        matched = True
+                        break
+                except ValueError:
+                    pass
+            
+            if not matched and refresh_rates:
+                self.hz_combo.current(0)
+
+    def on_slider_move(self, value):
+        self.sens_val_var.set(f"{float(value):+.2f}")
+
+    def apply_settings(self):
+        m_idx = self.monitor_combo.current()
+        if m_idx < 0:
+            messagebox.showerror("Error", "No monitor selected.")
+            return
+            
+        m_name = self.monitor_names[m_idx]
+        m_info = self.monitors[m_name]
+        
+        selected_res = self.res_combo.get()
+        selected_hz = self.hz_combo.get()
+        selected_scale = self.scale_combo.get()
+        
+        if not selected_res or not selected_hz or not selected_scale:
+            messagebox.showerror("Error", "Please make sure resolution, refresh rate, and scaling are selected.")
+            return
+            
+        # 1. Update Monitor Configuration
+        extra = m_info['extra']
+        if extra and not extra.startswith(','):
+            extra = ',' + extra
+            
+        position = m_info['position']
+        res_hz = f"{selected_res}@{selected_hz}"
+        try:
+            subprocess.run(['hyprctl', 'keyword', 'monitor', f"{m_name},{res_hz},{position},{selected_scale}{extra}"], check=True)
+            update_monitor_config(m_name, selected_res, selected_hz, selected_scale, extra)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to apply display settings: {e}")
+            return
+            
+        # 2. Update Mouse Sensitivity
+        sens_value = self.sens_slider.get()
+        try:
+            subprocess.run(['hyprctl', 'keyword', 'input:sensitivity', f"{sens_value:.2f}"], check=True)
+            set_mouse_sensitivity(sens_value)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to apply mouse sensitivity: {e}")
+            return
+            
+        messagebox.showinfo("Success", "Settings applied and saved successfully!")
+        
+        self.monitors = get_monitor_info()
+        self.current_sens = get_mouse_sensitivity()
+
+if __name__ == "__main__":
+    if not os.environ.get('WAYLAND_DISPLAY'):
+        print("Error: Wayland display not found. This tool is designed for Hyprland.")
+        sys.exit(1)
+    
+    app = DisplaySettingsApp()
+    app.mainloop()
+DYEOF
+chmod +x "$HOME/.local/share/bin/hypr-display-settings.py"
+
 
 echo -e "${CYAN}Ensuring gnome-keyring-daemon systemd services are unmasked...${NC}"
 systemctl --user unmask gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
@@ -800,6 +1215,7 @@ bind = $mainMod+Shift, V, exec, pkill -x rofi || $scrPath/cliphist.sh # launch c
 bind = $mainMod, K, exec, $scrPath/keyboardswitch.sh # switch keyboard layout
 bind = $mainMod, slash, exec, pkill -x rofi || $scrPath/keybinds_hint.sh c # launch keybinds hint
 bind = $mainMod+Alt, A, exec, pkill -x rofi || $scrPath/animations.sh # launch animations Manager
+bind = $mainMod+Alt, D, exec, $HOME/.local/share/bin/hypr-display-settings.py # launch Display & Mouse Settings GUI
 
 # Move/Change window focus
 bind = $mainMod, Left, movefocus, l
