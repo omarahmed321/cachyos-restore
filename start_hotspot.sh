@@ -39,15 +39,61 @@ if [ "$EUID" -ne 0 ]; then
     exec sudo "$0" "$@"
 fi
 
-# --- Check Prerequisites ---
-if ! command -v create_ap &> /dev/null; then
-    echo -e "${YELLOW}[*] Installing create_ap and its dependencies (hostapd, dnsmasq, etc.)...${NC}"
-    pacman -S --needed --noconfirm create_ap
+# --- Check & Install Prerequisites ---
+echo -e "${CYAN}[*] Checking prerequisites...${NC}"
+
+# 1. Packages from official repositories
+OFFICIAL_DEPS=()
+if ! command -v qrencode &> /dev/null; then
+    OFFICIAL_DEPS+=("qrencode")
+fi
+if ! command -v hostapd &> /dev/null; then
+    OFFICIAL_DEPS+=("hostapd")
+fi
+if ! command -v dnsmasq &> /dev/null; then
+    OFFICIAL_DEPS+=("dnsmasq")
+fi
+if ! command -v iw &> /dev/null; then
+    OFFICIAL_DEPS+=("iw")
+fi
+if ! command -v killall &> /dev/null; then
+    OFFICIAL_DEPS+=("psmisc")
+fi
+if ! pacman -Qi iptables &> /dev/null && ! pacman -Qi nftables &> /dev/null; then
+    OFFICIAL_DEPS+=("iptables")
+fi
+if ! pacman -Qi haveged &> /dev/null; then
+    OFFICIAL_DEPS+=("haveged")
 fi
 
-if ! command -v qrencode &> /dev/null; then
-    echo -e "${YELLOW}[*] Installing qrencode for QR code generation...${NC}"
-    pacman -S --needed --noconfirm qrencode
+if [ ${#OFFICIAL_DEPS[@]} -gt 0 ]; then
+    echo -e "${YELLOW}[*] Installing missing official dependencies: ${OFFICIAL_DEPS[*]}...${NC}"
+    pacman -S --needed --noconfirm "${OFFICIAL_DEPS[@]}"
+fi
+
+# 2. AUR Packages (create_ap)
+if ! command -v create_ap &> /dev/null; then
+    echo -e "${YELLOW}[*] 'create_ap' is missing. Installing from AUR...${NC}"
+    if [ -n "$SUDO_USER" ]; then
+        if sudo -u "$SUDO_USER" command -v yay &> /dev/null; then
+            echo -e "${GREEN}[+] Using yay to install create_ap...${NC}"
+            sudo -u "$SUDO_USER" yay -S --noconfirm create_ap
+        elif sudo -u "$SUDO_USER" command -v paru &> /dev/null; then
+            echo -e "${GREEN}[+] Using paru to install create_ap...${NC}"
+            sudo -u "$SUDO_USER" paru -S --noconfirm create_ap
+        else
+            echo -e "${YELLOW}[*] No AUR helper found. Building create_ap manually...${NC}"
+            tmp_dir=$(sudo -u "$SUDO_USER" mktemp -d)
+            sudo -u "$SUDO_USER" git clone "https://aur.archlinux.org/create_ap.git" "$tmp_dir/create_ap"
+            cd "$tmp_dir/create_ap" || exit 1
+            sudo -u "$SUDO_USER" makepkg -si --noconfirm
+            cd - || exit 1
+            rm -rf "$tmp_dir"
+        fi
+    else
+        echo -e "${RED}[-] Error: Cannot install create_ap from AUR without SUDO_USER context. Run script using sudo from a normal user account.${NC}"
+        exit 1
+    fi
 fi
 
 if ! ip link show "$WIFI_INT" &> /dev/null; then
