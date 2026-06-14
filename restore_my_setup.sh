@@ -48,7 +48,9 @@ fi
 
 # Optional: Temporarily disable pam_faillock account lockout policy during install
 DISABLE_FAILLOCK_OPTION="n"
-read -p "Do you want to temporarily disable the pam_faillock account lockout policy during this installation? (y/n) [n]: " faillock_choice
+echo -e "\n${YELLOW}[INFO] Background sudo commands during installation can trigger user lockout (pam_faillock)"
+echo -e "which locks the user account for 10 minutes if authentication fails multiple times.${NC}"
+read -p "Wanna temporarily disable account lockouts during this setup? (Restored automatically at the end) (y/n) [n]: " faillock_choice
 if [[ "$faillock_choice" =~ ^[Yy]$ ]]; then
     DISABLE_FAILLOCK_OPTION="y"
 fi
