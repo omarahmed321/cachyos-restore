@@ -3737,6 +3737,19 @@ if [ -f "$HOME/.config/hypr/themes/common.conf" ]; then
     sed -i '/exec = gsettings set org.gnome.desktop.interface cursor-size/d' "$HOME/.config/hypr/themes/common.conf"
 fi
 
+# --- Initialize and compile Hyprland Plugins ---
+if command -v hyprpm &>/dev/null; then
+    echo -e "\n${BLUE}${BOLD}Initializing Hyprland Plugin Manager (hyprpm)...${NC}"
+    echo -e "${CYAN}Running hyprpm update (may ask for sudo password)...${NC}"
+    hyprpm update || true
+    echo -e "${CYAN}Adding hyprland-plugins repository...${NC}"
+    hyprpm add https://github.com/hyprwm/hyprland-plugins || true
+    echo -e "${CYAN}Enabling hyprtrails plugin...${NC}"
+    hyprpm enable hyprtrails || true
+    echo -e "${CYAN}Reloading plugins...${NC}"
+    hyprpm reload || true
+fi
+
 # 5. Apply Settings and Refresh
 echo -e "\n${BLUE}${BOLD}Refreshing themes, icon caches, and font caches...${NC}"
 fc-cache -f
