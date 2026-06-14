@@ -1938,6 +1938,17 @@ input {
 # --- Keyring Fix ---
 # Start gnome-keyring-daemon for managing credentials and secrets securely in Electron/VSCode applications
 exec-once = gnome-keyring-daemon --start --components=secrets
+
+# --- Motion Trails (Motion Blur Effect) ---
+# Configuration for the hyprtrails plugin (Install/enable it by running the commands in the instructions)
+exec-once = hyprpm reload
+
+plugin {
+    hyprlang noerror true
+    hyprtrails {
+        color = rgba(8ec07cff) # Matches the active green shadow color
+    }
+}
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
