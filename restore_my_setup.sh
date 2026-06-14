@@ -46,17 +46,17 @@ if [ -n "$XDG_CURRENT_DESKTOP" ] && [ "$XDG_CURRENT_DESKTOP" != "Hyprland" ]; th
     fi
 fi
 
-# Optional: Temporarily disable pam_faillock account lockout policy during install
+# Optional: Permanently disable pam_faillock account lockout policy on the system
 DISABLE_FAILLOCK_OPTION="n"
-echo -e "\n${YELLOW}[INFO] Background sudo commands during installation can trigger user lockout (pam_faillock)"
-echo -e "which locks the user account for 10 minutes if authentication fails multiple times.${NC}"
-read -p "Wanna temporarily disable account lockouts during this setup? (Restored automatically at the end) (y/n) [n]: " faillock_choice
+echo -e "\n${YELLOW}[INFO] Entering a wrong sudo password multiple times can trigger user lockout (pam_faillock)"
+echo -e "which locks your account for 10 minutes. You can permanently disable this policy.${NC}"
+read -p "Do you want to permanently disable account lockouts on this system? (y/n) [n]: " faillock_choice
 if [[ "$faillock_choice" =~ ^[Yy]$ ]]; then
     DISABLE_FAILLOCK_OPTION="y"
 fi
 
 if [ "$DISABLE_FAILLOCK_OPTION" = "y" ]; then
-    echo -e "\n${BLUE}${BOLD}Temporarily disabling pam_faillock lockout policy (setting deny = 0)...${NC}"
+    echo -e "\n${BLUE}${BOLD}Permanently disabling pam_faillock lockout policy (setting deny = 0)...${NC}"
     FAILLOCK_CONF="/etc/security/faillock.conf"
     if [ -f "$FAILLOCK_CONF" ]; then
         if [ ! -f "${FAILLOCK_CONF}.bak" ]; then
@@ -3910,23 +3910,7 @@ if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then
     python3 "$HOME/.local/share/bin/nightlight-gui.py" --setup || true
 fi
 
-# --- Restore pam_faillock settings if they were temporarily disabled ---
-if [ "$DISABLE_FAILLOCK_OPTION" = "y" ]; then
-    echo -e "\n${BLUE}${BOLD}Restoring pam_faillock lockout security settings from backups...${NC}"
-    FAILLOCK_CONF="/etc/security/faillock.conf"
-    if [ -f "${FAILLOCK_CONF}.bak" ]; then
-        echo "Restoring $FAILLOCK_CONF..."
-        sudo mv "${FAILLOCK_CONF}.bak" "$FAILLOCK_CONF"
-    fi
-    PAM_FILES=("/etc/pam.d/system-auth" "/etc/pam.d/common-auth" "/etc/pam.d/password-auth")
-    for PAM_FILE in "${PAM_FILES[@]}"; do
-        if [ -f "${PAM_FILE}.bak" ]; then
-            echo "Restoring $PAM_FILE..."
-            sudo mv "${PAM_FILE}.bak" "$PAM_FILE"
-        fi
-    done
-    echo -e "${GREEN}[OK] pam_faillock lockout security policy restored successfully.${NC}"
-fi
+
 
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
 echo -e "${GREEN}${BOLD}   CONGRATULATIONS! Replicator script generation is complete!        ${NC}"
