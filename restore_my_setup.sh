@@ -2246,35 +2246,34 @@ cat << 'EOF' > "$HOME/.config/hypr/animations/animations-velocity.conf"
 # ▄▀█ █▄░█ █ █▀▄▀█ ▄▀█ ▀█▀ █ █▀█ █▄░█
 # █▀█ █░▀█ █ █░▀░█ █▀█ ░█░ █ █▄█ █░▀█
 #
-# name "Velocity (Snappy & Fluid)"
+# name "Fluid Slide (Snappy & Elegant)"
 # ----------------------------------------------------- 
 
 animations {
     enabled = yes
     
-    # snappiest deceleration curve: explosive start, silky-smooth finish
-    bezier = snappy_decel, 0.05, 0.9, 0.05, 1.0
-    bezier = snappy_ease, 0.15, 0.85, 0.1, 1.0
-    bezier = micro_bounce, 0.15, 1.1, 0.1, 1.0
+    # Ultra-smooth easeOutExpo (starts instantly, silky smooth deceleration)
+    bezier = easeOutExpo, 0.16, 1.0, 0.3, 1.0
+    bezier = easeOutQuint, 0.22, 1.0, 0.36, 1.0
     
-    # Windows: Pop-in from 85% scale with a snappy deceleration curve
-    animation = windows, 1, 2.2, snappy_decel, popin 85%
-    animation = windowsIn, 1, 2.0, micro_bounce, popin 85%
-    animation = windowsOut, 1, 1.8, snappy_decel, popin 85%
-    animation = windowsMove, 1, 2.2, snappy_decel, slide
+    # Windows: snappy and elegant slide transitions (no popin/zoom)
+    animation = windows, 1, 2.2, easeOutExpo, slide
+    animation = windowsIn, 1, 2.2, easeOutExpo, slide
+    animation = windowsOut, 1, 1.8, easeOutQuint, slide
+    animation = windowsMove, 1, 2.0, easeOutExpo, slide
     
-    # Fade transitions: ultra snappy
-    animation = fade, 1, 1.5, snappy_ease
-    animation = fadeLayersIn, 1, 1.5, snappy_ease
-    animation = fadeLayersOut, 1, 1.8, snappy_ease
+    # Fade transitions
+    animation = fade, 1, 1.8, easeOutExpo
+    animation = fadeLayersIn, 1, 1.8, easeOutExpo
+    animation = fadeLayersOut, 1, 1.8, easeOutExpo
     
-    # Workspaces: snappiest horizontal slide & fade
-    animation = workspaces, 1, 2.4, snappy_decel, slidefade 15%
-    animation = specialWorkspace, 1, 2.2, snappy_decel, slidevert
+    # Workspaces: smooth slide and fade
+    animation = workspaces, 1, 2.4, easeOutExpo, slidefade 20%
+    animation = specialWorkspace, 1, 2.2, easeOutExpo, slidefadevert 15%
     
-    # Border & borderangle
+    # Border
     animation = border, 1, 1, default
-    animation = borderangle, 1, 20, snappy_decel, once
+    animation = borderangle, 1, 20, easeOutExpo, once
 }
 EOF
 
