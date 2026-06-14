@@ -134,7 +134,7 @@ REQUIRED_PACKAGES=(
     zsh-syntax-highlighting zsh-completions
     wl-clipboard qt5-graphicaleffects qt5-quickcontrols qt5-quickcontrols2
     seahorse networkmanager zenity fastfetch bibata-cursor-theme-bin
-    psmisc python dnsmasq hostapd iw sddm
+    psmisc python dnsmasq hostapd iw sddm ananicy-cpp
 )
 
 # Install packages
@@ -183,8 +183,8 @@ else
 fi
 
 # Enable system services
-echo -e "\n${BLUE}${BOLD}[4/5] Enabling and starting system services (bluetooth, NetworkManager)...${NC}"
-for svc in bluetooth NetworkManager sddm; do
+echo -e "\n${BLUE}${BOLD}[4/5] Enabling and starting system services (bluetooth, NetworkManager, ananicy-cpp)...${NC}"
+for svc in bluetooth NetworkManager sddm ananicy-cpp; do
     if systemctl is-active --quiet "$svc"; then
         echo -e "  - ${GREEN}[Active]${NC} $svc service is running."
     else
