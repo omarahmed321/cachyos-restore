@@ -2238,45 +2238,6 @@ layerrule = ignore_alpha 1, match:namespace swaync-control-center
 layerrule = blur 1, match:namespace logout_dialog
 EOF
 
-# --- WRITE ~/.config/hypr/animations/animations-velocity.conf ---
-echo -e "${CYAN}Writing ~/.config/hypr/animations/animations-velocity.conf...${NC}"
-mkdir -p "$HOME/.config/hypr/animations"
-cat << 'EOF' > "$HOME/.config/hypr/animations/animations-velocity.conf"
-# ----------------------------------------------------- 
-# ▄▀█ █▄░█ █ █▀▄▀█ ▄▀█ ▀█▀ █ █▀█ █▄░█
-# █▀█ █░▀█ █ █░▀░█ █▀█ ░█░ █ █▄█ █░▀█
-#
-# name "Fluid Slide (Snappy & Elegant)"
-# ----------------------------------------------------- 
-
-animations {
-    enabled = yes
-    
-    # Ultra-smooth fluid deceleration curves
-    bezier = smooth_open, 0.1, 0.9, 0.15, 1.0
-    bezier = smooth_close, 0.15, 0.85, 0.15, 1.0
-    
-    # Windows: slightly longer duration (3.0) for increased fluidity on open
-    animation = windows, 1, 3.0, smooth_open, slide
-    animation = windowsIn, 1, 3.0, smooth_open, slide
-    animation = windowsOut, 1, 2.5, smooth_close, slide
-    animation = windowsMove, 1, 2.6, smooth_open, slide
-    
-    # Fade transitions
-    animation = fade, 1, 2.0, smooth_open
-    animation = fadeLayersIn, 1, 2.0, smooth_open
-    animation = fadeLayersOut, 1, 2.0, smooth_open
-    
-    # Workspaces: smooth slide and fade
-    animation = workspaces, 1, 2.6, smooth_open, slidefade 20%
-    animation = specialWorkspace, 1, 2.4, smooth_open, slidefadevert 15%
-    
-    # Border
-    animation = border, 1, 1, default
-    animation = borderangle, 1, 20, smooth_open, once
-}
-EOF
-
 # --- WRITE ~/.config/hypr/animations.conf ---
 echo -e "${CYAN}Writing ~/.config/hypr/animations.conf...${NC}"
 cat << 'EOF' > "$HOME/.config/hypr/animations.conf"
@@ -2290,7 +2251,7 @@ cat << 'EOF' > "$HOME/.config/hypr/animations.conf"
 layerrule = no_anim on, match:namespace hyprpicker
 layerrule = no_anim on, match:namespace selection
 
-source = ~/.config/hypr/animations/animations-velocity.conf
+source = ~/.config/hypr/animations/animations-default.conf
 EOF
 
 # --- WRITE ~/.config/hypr/monitors.conf (DYNAMIC DETECTION) ---
