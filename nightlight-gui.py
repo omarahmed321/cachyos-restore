@@ -221,7 +221,6 @@ scale slider:active {
     font-size: 12px;
     font-weight: 700;
     color: #4caf50;
-    text-align: center;
 }
 """
 
