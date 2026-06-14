@@ -1947,6 +1947,9 @@ exec-once = hyprpm reload
 plugin {
     hyprtrails {
         color = rgba(8ec07cff) # Matches the active green shadow color
+        history_points = 80    # Max trail length (default was 20)
+        points_per_step = 5    # Max trail density (default was 2)
+        bezier_step = 0.01     # Smoother curve interpolation (default was 0.025)
     }
 }
 # hyprlang noerror false
