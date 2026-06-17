@@ -1823,7 +1823,9 @@ cat << 'EOF' > "$HOME/.config/Code/User/settings.json"
   "tailwindCSS.includeLanguages": {
     "javascript": "javascriptreact",
     "typescript": "typescriptreact"
-  }
+  },
+  "editor.formatOnSave": false,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
 EOF
 
