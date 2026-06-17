@@ -1829,6 +1829,17 @@ cat << 'EOF' > "$HOME/.config/Code/User/settings.json"
 }
 EOF
 
+echo -e "${CYAN}Writing VS Code keybindings.json...${NC}"
+cat << 'EOF' > "$HOME/.config/Code/User/keybindings.json"
+[
+    {
+        "key": "ctrl+shift+i",
+        "command": "editor.action.formatDocument",
+        "when": "editorHasDocumentFormattingProvider && editorTextFocus && !editorReadonly"
+    }
+]
+EOF
+
 # Install extensions if code CLI is available
 if command -v code &>/dev/null; then
     echo -e "${CYAN}Installing VS Code extensions...${NC}"
