@@ -3,6 +3,17 @@ import sys
 import os
 import glob
 
+def find_file(target_dir, filename, subdirs=None):
+    """Finds a file in target_dir or in one of the subdirs."""
+    if os.path.exists(os.path.join(target_dir, filename)):
+        return os.path.join(target_dir, filename)
+    if subdirs:
+        for sd in subdirs:
+            path = os.path.join(target_dir, sd, filename)
+            if os.path.exists(path):
+                return path
+    return None
+
 def patch_file(filepath):
     print(f"Patching {filepath}...")
     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
@@ -44,14 +55,42 @@ static int cfg80211_rtw_set_wiphy_params(struct wiphy *wiphy, u32 changed)
         content = content.replace(target2, replacement2)
         print("  - Applied set_txpower patch")
     else:
-        # Try variation with different indentation
         target2_var = target2.replace('\t', '    ')
         if target2_var in content:
             content = content.replace(target2_var, replacement2)
             print("  - Applied set_txpower patch (spaces variant)")
 
-    # Patch 3: get_txpower
-    target3 = """static int cfg80211_rtw_get_txpower(struct wiphy *wiphy,
+    # Patch 3: get_txpower (supporting both versions of the body)
+    target3_original = """static int cfg80211_rtw_get_txpower(struct wiphy *wiphy,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+	struct wireless_dev *wdev,
+#endif
+	int *dbm)
+{
+	_adapter *padapter = wiphy_to_adapter(wiphy);
+
+	*dbm = padapter->mppriv.txpoweridx;
+
+	return 0;
+}"""
+
+    replacement3_original = """static int cfg80211_rtw_get_txpower(struct wiphy *wiphy,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+	struct wireless_dev *wdev,
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+	int link_id, unsigned int type,
+#endif
+	int *dbm)
+{
+	_adapter *padapter = wiphy_to_adapter(wiphy);
+
+	*dbm = padapter->mppriv.txpoweridx;
+
+	return 0;
+}"""
+
+    target3_other = """static int cfg80211_rtw_get_txpower(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	struct wireless_dev *wdev,
 #endif
@@ -68,7 +107,7 @@ static int cfg80211_rtw_set_wiphy_params(struct wiphy *wiphy, u32 changed)
 	return 0;
 }"""
 
-    replacement3 = """static int cfg80211_rtw_get_txpower(struct wiphy *wiphy,
+    replacement3_other = """static int cfg80211_rtw_get_txpower(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	struct wireless_dev *wdev,
 #endif
@@ -88,14 +127,18 @@ static int cfg80211_rtw_set_wiphy_params(struct wiphy *wiphy, u32 changed)
 	return 0;
 }"""
 
-    if target3 in content:
-        content = content.replace(target3, replacement3)
-        print("  - Applied get_txpower patch")
-    else:
-        target3_var = target3.replace('\t', '    ')
-        if target3_var in content:
-            content = content.replace(target3_var, replacement3)
-            print("  - Applied get_txpower patch (spaces variant)")
+    if target3_original in content:
+        content = content.replace(target3_original, replacement3_original)
+        print("  - Applied get_txpower patch (original variant)")
+    elif target3_original.replace('\t', '    ') in content:
+        content = content.replace(target3_original.replace('\t', '    '), replacement3_original)
+        print("  - Applied get_txpower patch (original spaces variant)")
+    elif target3_other in content:
+        content = content.replace(target3_other, replacement3_other)
+        print("  - Applied get_txpower patch (other variant)")
+    elif target3_other.replace('\t', '    ') in content:
+        content = content.replace(target3_other.replace('\t', '    '), replacement3_other)
+        print("  - Applied get_txpower patch (other spaces variant)")
 
     # Patch 4: set_monitor_channel
     target4 = """static int cfg80211_rtw_set_monitor_channel(struct wiphy *wiphy
@@ -147,94 +190,170 @@ def patch_makefile(makefile_path):
     with open(makefile_path, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
 
-    # Add header search paths to ccflags-y/EXTRA_CFLAGS to resolve relative includes on newer kernels
-    target_inc_c = "ccflags-y += -I$(src)/include -I$(src) -I$(srctree)/$(src)/include"
-    target_inc_e = "EXTRA_CFLAGS += -I$(src)/include -I$(src) -I$(srctree)/$(src)/include"
-    addition = " -I$(srctree)/include/linux -I$(srctree)/arch/x86/include/uapi/asm -I$(srctree)/include/net -I$(src)/include/cmn_info"
+    # Comment out old ccflags-y declarations at the top of the file to prevent recursion/looping
+    old_ccflags_decl = """ccflags-y += $(EXTRA_CFLAGS)
+ccflags-y += -I$(src) -isystem $(src) -Wno-quoted-include-in-angled-header -Wno-error=quoted-include-in-angled-header"""
+    
+    old_ccflags_decl_alt = """ccflags-y += $(EXTRA_CFLAGS)
+ccflags-y += -I$(src) -isystem $(src)"""
+    
+    if old_ccflags_decl in content:
+        commented = "\n".join(["# " + line for line in old_ccflags_decl.splitlines()])
+        content = content.replace(old_ccflags_decl, commented)
+        print("  - Commented out ccflags-y at the top of Makefile")
+    elif old_ccflags_decl_alt in content:
+        commented = "\n".join(["# " + line for line in old_ccflags_decl_alt.splitlines()])
+        content = content.replace(old_ccflags_decl_alt, commented)
+        print("  - Commented out ccflags-y (alt) at the top of Makefile")
 
-    if target_inc_e in content:
-        content = content.replace(target_inc_e, target_inc_e + addition)
-        print("  - Added additional header search paths to EXTRA_CFLAGS")
-    elif target_inc_c in content:
-        content = content.replace(target_inc_c, target_inc_c + addition)
-        print("  - Added additional header search paths to ccflags-y")
+    # Add the clean, non-recursive ccflags-y definition right before SUBARCH := ...
+    subarch_decl = "SUBARCH := $(shell uname -m"
+    new_ccflags = """ccflags-y := $(EXTRA_CFLAGS)
+ccflags-y += -I$(src) -isystem $(src) -Wno-quoted-include-in-angled-header -Wno-error=quoted-include-in-angled-header
 
-    # Replace EXTRA_CFLAGS with ccflags-y
-    if "EXTRA_CFLAGS" in content:
-        content = content.replace("EXTRA_CFLAGS", "ccflags-y")
-        print("  - Replaced EXTRA_CFLAGS with ccflags-y")
+SUBARCH := $(shell uname -m"""
+
+    if subarch_decl in content and "ccflags-y :=" not in content:
+        content = content.replace(subarch_decl, new_ccflags)
+        print("  - Added clean ccflags-y evaluation before SUBARCH")
 
     with open(makefile_path, 'w', encoding='utf-8') as f:
         f.write(content)
     print("Makefile patching completed.")
 
-def patch_version_h(target_dir):
-    print("Patching version.h includes and timer compatibility...")
-    # 1. Patch osdep_service_linux.h with timer compatibility
-    osdep_path = os.path.join(target_dir, "include", "osdep_service_linux.h")
-    if os.path.exists(osdep_path):
-        print(f"  - Patching {osdep_path}...")
+def patch_headers(target_dir):
+    # 1. Patch osdep_service_linux.h
+    osdep_path = find_file(target_dir, "osdep_service_linux.h", ["include", "os_dep/linux"])
+    if osdep_path:
+        print(f"Patching {osdep_path}...")
         with open(osdep_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
-        if '#include "version.h"' in content:
-            replacement = """#include <linux/version.h>
-#include <linux/timer.h>
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
+        
+        # Normalize line endings
+        content = content.replace('\r\n', '\n')
+        
+        # Include timer.h and declare from_timer wrapper
+        if "#include <linux/version.h>" in content and "undef del_timer_sync" not in content:
+            # Remove any previous partial patch if it was applied
+            content = content.replace("""#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
+#ifndef from_timer
+#define from_timer timer_container_of
+#endif
+#endif""", "")
+            # Remove the previous attempt at del_timer_sync patch if it exists
+            content = content.replace("""#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
 #ifndef del_timer_sync
 #define del_timer_sync timer_delete_sync
 #endif
 #ifndef del_timer
 #define del_timer timer_delete
 #endif
+#endif""", "")
+            if "#include <linux/timer.h>" in content:
+                content = content.replace("#include <linux/timer.h>\n", "")
+                content = content.replace("#include <linux/timer.h>", "")
+            
+            replacement = """#include <linux/version.h>
+#include <linux/timer.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+#undef del_timer_sync
+#define del_timer_sync timer_delete_sync
+#undef del_timer
+#define del_timer timer_delete
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
 #ifndef from_timer
 #define from_timer timer_container_of
 #endif
 #endif"""
-            content = content.replace('#include "version.h"', replacement)
-            print("    - Replaced #include \"version.h\" with <linux/version.h> and timer compatibility definitions")
-        with open(osdep_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+            content = content.replace("#include <linux/version.h>", replacement)
+            print("  - Added timer/delete compatibility patch to osdep_service_linux.h")
+            with open(osdep_path, 'w', encoding='utf-8') as f:
+                f.write(content)
 
-    # 2. Patch platform_aml_s905_sdio.h
-    platform_path = os.path.join(target_dir, "platform", "platform_aml_s905_sdio.h")
-    if os.path.exists(platform_path):
-        print(f"  - Patching {platform_path}...")
+    # 2. Patch rtw_security.h to rename sha256_* functions
+    security_path = find_file(target_dir, "rtw_security.h", ["include", "core"])
+    if security_path:
+        print(f"Patching {security_path}...")
+        with open(security_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+            
+        if "struct sha256_state_rtk" in content and "rtw_sha256_init" not in content:
+            replacement = """#define sha256_init rtw_sha256_init
+#define sha256_process rtw_sha256_process
+#define sha256_done rtw_sha256_done
+#define sha256_vector rtw_sha256_vector
+#define sha256_compress rtw_sha256_compress
+#define sha256_prf rtw_sha256_prf
+
+struct sha256_state_rtk"""
+            content = content.replace("struct sha256_state_rtk", replacement)
+            print("  - Added sha256 rename macros to rtw_security.h")
+            with open(security_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+    # 3. Patch rtw_debug.h for RTW_LOG_LEVEL fallback when debug is disabled
+    debug_path = find_file(target_dir, "rtw_debug.h", ["include", "core"])
+    if debug_path:
+        print(f"Patching {debug_path}...")
+        with open(debug_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+            
+        if "#ifdef CONFIG_RTW_DEBUG" in content and "RTW_LOG_LEVEL" not in content[:content.find("#ifdef CONFIG_RTW_DEBUG")]:
+            replacement = """#ifndef CONFIG_RTW_DEBUG
+#ifndef RTW_LOG_LEVEL
+#define RTW_LOG_LEVEL 0
+#endif
+#ifndef rtw_drv_log_level
+#define rtw_drv_log_level 0
+#endif
+#endif
+
+#ifdef CONFIG_RTW_DEBUG"""
+            content = content.replace("#ifdef CONFIG_RTW_DEBUG", replacement)
+            print("  - Added debug level fallbacks to rtw_debug.h")
+            with open(debug_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+    # 4. Patch platform_aml_s905_sdio.h (if present)
+    platform_path = find_file(target_dir, "platform_aml_s905_sdio.h", ["platform"])
+    if platform_path:
+        print(f"Patching {platform_path}...")
         with open(platform_path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
         if '#include "version.h"' in content:
             content = content.replace('#include "version.h"', '#include <linux/version.h>')
-            print("    - Replaced #include \"version.h\" with <linux/version.h>")
-        with open(platform_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-    print("version.h patching completed.")
+            print("  - Replaced #include \"version.h\" with <linux/version.h> in platform header")
+            with open(platform_path, 'w', encoding='utf-8') as f:
+                f.write(content)
 
 def main():
     if len(sys.argv) > 1:
         target_dir = sys.argv[1]
     else:
-        # Search in /usr/src
         src_dirs = glob.glob('/usr/src/8188eu-*')
         if not src_dirs:
             print("No driver directory found in /usr/src/8188eu-*")
             sys.exit(1)
         target_dir = src_dirs[0]
 
-    file_to_patch = os.path.join(target_dir, "os_dep", "linux", "ioctl_cfg80211.c")
-    if not os.path.exists(file_to_patch):
-        print(f"File not found: {file_to_patch}")
+    # Find ioctl_cfg80211.c
+    file_to_patch = find_file(target_dir, "ioctl_cfg80211.c", ["os_dep/linux"])
+    if not file_to_patch:
+        print(f"File not found: ioctl_cfg80211.c in {target_dir}")
         sys.exit(1)
 
     patch_file(file_to_patch)
 
+    # Find Makefile
     makefile_to_patch = os.path.join(target_dir, "Makefile")
     if os.path.exists(makefile_to_patch):
         patch_makefile(makefile_to_patch)
 
-    patch_version_h(target_dir)
+    # Patch headers
+    patch_headers(target_dir)
 
 if __name__ == "__main__":
     main()
