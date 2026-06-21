@@ -267,6 +267,13 @@ mkdir -p "$HOME/.config/waybar"
 mkdir -p "$HOME/.config/hyde"
 mkdir -p "$HOME/.config/cava"
 
+# Move default CachyOS Hyprland Lua config out of the way if it exists,
+# so Hyprland falls back to the legacy hyprland.conf/hyprdots format.
+if [ -f "$HOME/.config/hypr/hyprland.lua" ]; then
+    echo -e "${YELLOW}[INFO] Found default CachyOS hyprland.lua. Moving it to hyprland.lua.bak to allow hyprland.conf to load...${NC}"
+    mv "$HOME/.config/hypr/hyprland.lua" "$HOME/.config/hypr/hyprland.lua.bak"
+fi
+
 # Deploy custom Arabic keyboard layout
 echo -e "${CYAN}Writing custom Arabic layout to /usr/share/X11/xkb/symbols/ara...${NC}"
 sudo bash -c 'if ! grep -q "xkb_symbols \"thal_bksl\"" /usr/share/X11/xkb/symbols/ara; then tee -a /usr/share/X11/xkb/symbols/ara >/dev/null << "XKBEOF"
@@ -889,6 +896,12 @@ class DisplaySettingsApp(tk.Tk):
         self.scale_values = ["1", "1.25", "1.5", "1.75", "2"]
         self.scale_combo = ttk.Combobox(display_frame, values=self.scale_values, state="readonly", width=10)
         self.scale_combo.grid(row=3, column=1, sticky='w', pady=10, padx=10)
+
+        # Orientation Select
+        ttk.Label(display_frame, text="Orientation:").grid(row=4, column=0, sticky='w', pady=10, padx=10)
+        self.rot_values = ["Landscape (Normal)", "Portrait (90°)", "Flipped Landscape (180°)", "Flipped Portrait (270°)"]
+        self.rot_combo = ttk.Combobox(display_frame, values=self.rot_values, state="readonly", width=25)
+        self.rot_combo.grid(row=4, column=1, sticky='w', pady=10, padx=10)
         
         # --- TAB 2: MOUSE ---
         mouse_frame = ttk.Frame(notebook)
@@ -978,6 +991,18 @@ class DisplaySettingsApp(tk.Tk):
         else:
             self.scale_combo.set("1")
 
+        # Pre-select current transform/rotation
+        extra = m_info['extra']
+        match_trans = re.search(r'transform\s*,\s*([0-7])', extra)
+        if match_trans:
+            trans_val = int(match_trans.group(1))
+            if trans_val < len(self.rot_values):
+                self.rot_combo.current(trans_val)
+            else:
+                self.rot_combo.current(0)
+        else:
+            self.rot_combo.current(0)
+
     def on_res_select(self, event):
         m_idx = self.monitor_combo.current()
         m_name = self.monitor_names[m_idx]
@@ -1031,14 +1056,22 @@ class DisplaySettingsApp(tk.Tk):
             
         # 1. Update Monitor Configuration
         extra = m_info['extra']
-        if extra and not extra.startswith(','):
-            extra = ',' + extra
+        extra_clean = re.sub(r',?\s*transform\s*,\s*\d', '', extra).strip()
+        
+        selected_rotation = self.rot_combo.current()
+        if selected_rotation > 0:
+            if extra_clean and not extra_clean.startswith(','):
+                extra_clean = ',' + extra_clean
+            extra_clean = f",transform,{selected_rotation}" + extra_clean
+            
+        if extra_clean and not extra_clean.startswith(','):
+            extra_clean = ',' + extra_clean
             
         position = m_info['position']
         res_hz = f"{selected_res}@{selected_hz}"
         try:
-            subprocess.run(['hyprctl', 'keyword', 'monitor', f"{m_name},{res_hz},{position},{selected_scale}{extra}"], check=True)
-            update_monitor_config(m_name, selected_res, selected_hz, selected_scale, extra)
+            subprocess.run(['hyprctl', 'keyword', 'monitor', f"{m_name},{res_hz},{position},{selected_scale}{extra_clean}"], check=True)
+            update_monitor_config(m_name, selected_res, selected_hz, selected_scale, extra_clean)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to apply display settings: {e}")
             return
@@ -1908,17 +1941,45 @@ else
     echo -e "${YELLOW}[WARNING] VS Code command line 'code' not found. Skipping extension installation.${NC}"
 fi
 
-# Robustly copy default themes and animations from the cloned HyDE repo if they exist
-if [ -d "$HOME/hyde/Configs/.config/hypr" ]; then
-    echo -e "${CYAN}Deploying animations and theme configuration directories from HyDE...${NC}"
-    cp -r "$HOME/hyde/Configs/.config/hypr/animations" "$HOME/.config/hypr/"
-    cp -r "$HOME/hyde/Configs/.config/hypr/themes/." "$HOME/.config/hypr/themes/"
-fi
+# Robustly copy all default configurations, scripts, and dotfiles from the cloned HyDE repo if they exist
+if [ -d "$HOME/hyde/Configs" ]; then
+    echo -e "${CYAN}Deploying default configurations and scripts from HyDE...${NC}"
+    
+    # Create required destination folders
+    mkdir -p "$HOME/.config"
+    mkdir -p "$HOME/.local/share/bin"
+    mkdir -p "$HOME/.icons"
+    
+    # Copy all configurations and scripts (no-clobber to preserve custom configs)
+    cp -rn "$HOME/hyde/Configs/.config/"* "$HOME/.config/"
+    cp -rn "$HOME/hyde/Configs/.local/share/bin/"* "$HOME/.local/share/bin/"
+    
+    # Copy dotfiles (no-clobber)
+    cp -rn "$HOME/hyde/Configs/.gtkrc-2.0" "$HOME/"
+    cp -rn "$HOME/hyde/Configs/.p10k.zsh" "$HOME/"
+    cp -rn "$HOME/hyde/Configs/.icons/"* "$HOME/.icons/"
+    
+    # Copy animations.conf and fix outdated layerrule syntax for newer Hyprland versions
+    if [ -f "$HOME/hyde/Configs/.config/hypr/animations.conf" ]; then
+        cp "$HOME/hyde/Configs/.config/hypr/animations.conf" "$HOME/.config/hypr/"
+        sed -i 's/layerrule = noanim, hyprpicker/layerrule = no_anim 1, match:namespace hyprpicker/g' "$HOME/.config/hypr/animations.conf"
+        sed -i 's/layerrule = noanim, selection/layerrule = no_anim 1, match:namespace selection/g' "$HOME/.config/hypr/animations.conf"
+    else
+        echo -e "${YELLOW}[WARNING] animations.conf not found in HyDE Configs. Writing a default fallback...${NC}"
+        cat << 'EOF' > "$HOME/.config/hypr/animations.conf"
+# ▄▀█ █▄░█ █ █▀▄▀█ ▄▀█ ▀█▀ █ █▀█ █▄░█
+# █▀█ █░▀█ █ █░▀░█ █▀█ ░█░ █ █▄█ █░▀█
+#
+# See https://wiki.hyprland.org/Configuring/Animations/
+# this file can be edited manually or use animation selector to select animations
 
-# Robustly copy wallbash configuration directory from HyDE if it exists
-if [ -d "$HOME/hyde/Configs/.config/hyde" ]; then
-    echo -e "${CYAN}Deploying wallbash configuration directory from HyDE...${NC}"
-    cp -r "$HOME/hyde/Configs/.config/hyde/wallbash" "$HOME/.config/hyde/"
+# disable animations while in hyprpicker and selection screenshot
+layerrule = no_anim 1, match:namespace hyprpicker
+layerrule = no_anim 1, match:namespace selection
+
+source = $HOME/.config/hypr/animations/animations-default.conf
+EOF
+    fi
 fi
 
 # Deploy Bibata-Modern-Ice cursor theme locally (passwordless and robust)
@@ -2275,10 +2336,10 @@ bind = $mainMod+Ctrl+Alt, Left, movetoworkspace, r-1
 
 # Move active window around current workspace with mainMod + SHIFT + CTRL [←→↑↓]
 $moveactivewindow=grep -q "true" <<< $(hyprctl activewindow -j | jq -r .floating) && hyprctl dispatch moveactive
-binded = $mainMod SHIFT CTRL, left, Move activewindow left, exec, $moveactivewindow -30 0 || hyprctl dispatch movewindow l
-binded = $mainMod SHIFT CTRL, right, Move activewindow right, exec, $moveactivewindow 30 0 || hyprctl dispatch movewindow r
-binded = $mainMod SHIFT CTRL, up, Move activewindow up, exec, $moveactivewindow  0 -30 || hyprctl dispatch movewindow u
-binded = $mainMod SHIFT CTRL, down, Move activewindow down, exec, $moveactivewindow 0 30 || hyprctl dispatch movewindow d
+bindd = $mainMod SHIFT CTRL, left, Move activewindow left, exec, $moveactivewindow -30 0 || hyprctl dispatch movewindow l
+bindd = $mainMod SHIFT CTRL, right, Move activewindow right, exec, $moveactivewindow 30 0 || hyprctl dispatch movewindow r
+bindd = $mainMod SHIFT CTRL, up, Move activewindow up, exec, $moveactivewindow  0 -30 || hyprctl dispatch movewindow u
+bindd = $mainMod SHIFT CTRL, down, Move activewindow down, exec, $moveactivewindow 0 30 || hyprctl dispatch movewindow d
 
 # Scroll through existing workspaces
 bind = $mainMod, mouse_down, workspace, e+1
@@ -2441,6 +2502,8 @@ SIDE_NAME=""
 SIDE_WIDTH=1920
 SIDE_HEIGHT=1080
 SIDE_HZ=60
+SIDE_TRANSFORM=1
+MAIN_TRANSFORM=0
 OFFSET_X=0
 OFFSET_Y=0
 
@@ -2449,32 +2512,46 @@ if command -v hyprctl &>/dev/null && hyprctl monitors &>/dev/null; then
     echo -e "${GREEN}Hyprland is running. Using hyprctl for detection...${NC}"
     MONITORS_JSON=$(hyprctl monitors -j)
     
-    # Sort monitors by refreshRate so the main high-refresh one is last
-    NUM_MONITORS=$(echo "$MONITORS_JSON" | jq '. | length')
+    # Sort monitors by maximum supported refresh rate (from availableModes) so the main high-refresh one is last
+    SORTED_MONITORS=$(echo "$MONITORS_JSON" | jq 'map(. + {maxHz: ([.availableModes[] | capture("@(?<rate>[0-9.]+)Hz") | .rate | tonumber] | max | round)}) | sort_by(.maxHz)')
+    NUM_MONITORS=$(echo "$SORTED_MONITORS" | jq '. | length')
     
     if [ "$NUM_MONITORS" -gt 0 ]; then
-        MAIN_NAME=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | last | .name')
-        MAIN_HZ=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | last | .refreshRate | round')
-        MAIN_WIDTH=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | last | .width')
-        MAIN_HEIGHT=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | last | .height')
+        MAIN_NAME=$(echo "$SORTED_MONITORS" | jq -r 'last | .name')
+        MAIN_HZ=$(echo "$SORTED_MONITORS" | jq -r 'last | .maxHz')
+        MAIN_WIDTH=$(echo "$SORTED_MONITORS" | jq -r 'last | .width')
+        MAIN_HEIGHT=$(echo "$SORTED_MONITORS" | jq -r 'last | .height')
         
         if [ "$NUM_MONITORS" -gt 1 ]; then
             # We have a secondary monitor
-            SIDE_NAME=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | .[0] | .name')
-            SIDE_HZ=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | .[0] | .refreshRate | round')
-            SIDE_WIDTH=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | .[0] | .width')
-            SIDE_HEIGHT=$(echo "$MONITORS_JSON" | jq -r 'sort_by(.refreshRate) | .[0] | .height')
+            SIDE_NAME=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .name')
+            SIDE_HZ=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .maxHz')
+            SIDE_WIDTH=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .width')
+            SIDE_HEIGHT=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .height')
             
             # Write configurations for dual-monitor setup
-            # Side monitor (rotated portrait on the left)
-            MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,1\n"
-            # Main monitor (aligned to the right of the rotated side monitor)
-            # Offset X is the height of the side monitor (which becomes its width when rotated)
-            OFFSET_X=${SIDE_HEIGHT}
-            # Centered Y offset: (rotated_height - main_height) / 2 -> (SIDE_WIDTH - MAIN_HEIGHT) / 2
-            OFFSET_Y=$(( (SIDE_WIDTH - MAIN_HEIGHT) / 2 ))
+            if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                ROTATED_SIDE_WIDTH=${SIDE_HEIGHT}
+                ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+            else
+                ROTATED_SIDE_WIDTH=${SIDE_WIDTH}
+                ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+            fi
+            
+            if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
+                ROTATED_MAIN_WIDTH=${MAIN_HEIGHT}
+                ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+            else
+                ROTATED_MAIN_WIDTH=${MAIN_WIDTH}
+                ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+            fi
+            
+            OFFSET_X=${ROTATED_SIDE_WIDTH}
+            OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
             [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1"
+            
+            MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}\n"
+            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
             
             # Workspace rules for dual-monitor
             WORKSPACE_RULES="# Workspace Rules\n"
@@ -2533,12 +2610,28 @@ if [ -z "$MONITOR_CONFIGS" ]; then
             SIDE_WIDTH=${SIDE_WIDTH:-1920}
             SIDE_HEIGHT=${SIDE_HEIGHT:-1080}
             
-            # Rotated width is SIDE_HEIGHT, Y offset is centered relative to MAIN (default 1080 height)
-            OFFSET_X=${SIDE_HEIGHT}
-            OFFSET_Y=$(( (SIDE_WIDTH - 1080) / 2 ))
+            if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                ROTATED_SIDE_WIDTH=${SIDE_HEIGHT}
+                ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+            else
+                ROTATED_SIDE_WIDTH=${SIDE_WIDTH}
+                ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+            fi
+            
+            if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
+                ROTATED_MAIN_WIDTH=1080
+                ROTATED_MAIN_HEIGHT=1920
+            else
+                ROTATED_MAIN_WIDTH=1920
+                ROTATED_MAIN_HEIGHT=1080
+            fi
+            
+            OFFSET_X=${ROTATED_SIDE_WIDTH}
+            OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
             [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
             
-            MONITOR_CONFIGS="monitor = ${SIDE_NAME},preferred,0x0,1,transform,1\nmonitor = ${MAIN_NAME},preferred,${OFFSET_X}x${OFFSET_Y},1"
+            MONITOR_CONFIGS="monitor = ${SIDE_NAME},preferred,0x0,1,transform,${SIDE_TRANSFORM}\n"
+            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},preferred,${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
             
             WORKSPACE_RULES="# Workspace Rules\n"
             for w in {1..8}; do
@@ -2568,8 +2661,26 @@ if [ -z "$MONITOR_CONFIGS" ]; then
     fi
 fi
 
-# Override offsets if they already exist in the user's config (so we don't reset them)
+# Override offsets and transforms if they already exist in the user's config (so we don't reset them)
 if [ -n "$SIDE_NAME" ] && [ -f "$HOME/.config/hypr/monitors.conf" ]; then
+    # Match the side monitor config line to extract transform value if it exists
+    EXISTING_SIDE_LINE=$(grep -E "^\s*monitor\s*=\s*${SIDE_NAME}\s*," "$HOME/.config/hypr/monitors.conf" | head -n 1)
+    if [ -n "$EXISTING_SIDE_LINE" ]; then
+        if [[ "$EXISTING_SIDE_LINE" =~ transform,([0-7]) ]]; then
+            SIDE_TRANSFORM="${BASH_REMATCH[1]}"
+            echo -e "${GREEN}[INFO] Preserving existing monitor transform: ${SIDE_TRANSFORM}${NC}"
+        fi
+    fi
+
+    # Match the main monitor config line to extract transform value if it exists
+    EXISTING_MAIN_LINE=$(grep -E "^\s*monitor\s*=\s*${MAIN_NAME}\s*," "$HOME/.config/hypr/monitors.conf" | head -n 1)
+    if [ -n "$EXISTING_MAIN_LINE" ]; then
+        if [[ "$EXISTING_MAIN_LINE" =~ transform,([0-7]) ]]; then
+            MAIN_TRANSFORM="${BASH_REMATCH[1]}"
+            echo -e "${GREEN}[INFO] Preserving existing main monitor transform: ${MAIN_TRANSFORM}${NC}"
+        fi
+    fi
+
     # Match the main monitor config line to extract XxY coordinates
     EXISTING_LINE=$(grep -E "^\s*monitor\s*=\s*${MAIN_NAME}\s*," "$HOME/.config/hypr/monitors.conf" | head -n 1)
     if [ -n "$EXISTING_LINE" ]; then
@@ -2581,9 +2692,17 @@ if [ -n "$SIDE_NAME" ] && [ -f "$HOME/.config/hypr/monitors.conf" ]; then
             OFFSET_X=$EXISTING_X
             OFFSET_Y=$EXISTING_Y
             
-            # Re-generate MONITOR_CONFIGS with the preserved offsets
-            MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,1\n"
-            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1"
+            # Recalculate dimensions based on the transform
+            if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                ROTATED_SIDE_WIDTH=${SIDE_HEIGHT}
+            else
+                ROTATED_SIDE_WIDTH=${SIDE_WIDTH}
+            fi
+            OFFSET_X=${ROTATED_SIDE_WIDTH}
+            
+            # Re-generate MONITOR_CONFIGS with the preserved offsets and transform
+            MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}\n"
+            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
         fi
     fi
 fi
@@ -2610,16 +2729,35 @@ if [ -n "$SIDE_NAME" ]; then
         # Prompt the user if they want to calibrate
         if zenity --question \
             --title="Mouse Path Alignment Calibration" \
-            --text="Dual monitors detected.\nWould you like to calibrate the vertical alignment of the mouse path between your screens now?" \
+            --text="Dual monitors detected.\nWould you like to calibrate the vertical alignment of the mouse path or control screen orientations now?" \
             --ok-label="Calibrate Now" \
             --cancel-label="Skip" \
             --width=400 2>/dev/null; then
             
             # Loop for calibration
             while true; do
-                # Rewrite monitors.conf with current offsets
-                MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,1\n"
-                MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1"
+                # Recalculate dimensions based on current transforms
+                if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                    ROTATED_SIDE_WIDTH=${SIDE_HEIGHT}
+                    ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+                else
+                    ROTATED_SIDE_WIDTH=${SIDE_WIDTH}
+                    ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+                fi
+                
+                if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
+                    ROTATED_MAIN_WIDTH=${MAIN_HEIGHT}
+                    ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+                else
+                    ROTATED_MAIN_WIDTH=${MAIN_WIDTH}
+                    ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+                fi
+                
+                OFFSET_X=${ROTATED_SIDE_WIDTH}
+                
+                # Rewrite monitors.conf with current offsets and transforms
+                MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}\n"
+                MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
                 
                 cat << MONEOF > "$HOME/.config/hypr/monitors.conf"
 # █▀▄▀█ █▀█ █▄░█ █ ▀█▀ █▀█ █▀█ █▀
@@ -2631,37 +2769,142 @@ $(echo -e "$MONITOR_CONFIGS")
 $(echo -e "$WORKSPACE_RULES")
 MONEOF
                 
+                # Apply changes dynamically in Hyprland
+                if command -v hyprctl &>/dev/null; then
+                    if hyprctl activewindow -j 2>/dev/null | grep -q "lua"; then
+                        hyprctl eval "hl.monitor({ output = '${SIDE_NAME}', mode = '${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ}', position = '0x0', scale = 1, transform = ${SIDE_TRANSFORM} })" &>/dev/null
+                        hyprctl eval "hl.monitor({ output = '${MAIN_NAME}', mode = '${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ}', position = '${OFFSET_X}x${OFFSET_Y}', scale = 1, transform = ${MAIN_TRANSFORM} })" &>/dev/null
+                    else
+                        hyprctl reload &>/dev/null
+                    fi
+                fi
+
                 # Show list dialog
                 choice=$(zenity --list \
-                    --title="Mouse Alignment Calibration" \
-                    --text="Current offset: ${OFFSET_Y}px.\nTry moving your mouse between the screens.\nAdjust the position of the main monitor:" \
+                    --title="Monitor Setup & Alignment Calibration" \
+                    --text="Adjust orientation of the screens or alignment of the main screen.\nCurrent offset: ${OFFSET_Y}px." \
                     --column="Action" \
+                    "Rotate Secondary: Landscape (Normal)" \
+                    "Rotate Secondary: Portrait (90°)" \
+                    "Rotate Secondary: Flipped Landscape (180°)" \
+                    "Rotate Secondary: Flipped Portrait (270°)" \
+                    "Rotate Main: Landscape (Normal)" \
+                    "Rotate Main: Portrait (90°)" \
+                    "Rotate Main: Flipped Landscape (180°)" \
+                    "Rotate Main: Flipped Portrait (270°)" \
                     "Enter Custom Y-Offset Value" \
-                    "Shift Main Monitor Down (+50px) - enters lower on second screen" \
-                    "Shift Main Monitor Up (-50px) - enters higher on second screen" \
+                    "Shift Main Monitor Down (+50px)" \
+                    "Shift Main Monitor Up (-50px)" \
                     "Fine-tune Down (+10px)" \
                     "Fine-tune Up (-10px)" \
                     "Save and Exit" \
-                    --width=450 --height=320 2>/dev/null)
+                    --width=480 --height=550 2>/dev/null)
                     
                 # Parse choice
                 case "$choice" in
+                    "Rotate Secondary: Landscape (Normal)")
+                        SIDE_TRANSFORM=0
+                        ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
+                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+                        else
+                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+                        fi
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
+                    "Rotate Secondary: Portrait (90°)")
+                        SIDE_TRANSFORM=1
+                        ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
+                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+                        else
+                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+                        fi
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
+                    "Rotate Secondary: Flipped Landscape (180°)")
+                        SIDE_TRANSFORM=2
+                        ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
+                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+                        else
+                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+                        fi
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
+                    "Rotate Secondary: Flipped Portrait (270°)")
+                        SIDE_TRANSFORM=3
+                        ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
+                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+                        else
+                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+                        fi
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
+                    "Rotate Main: Landscape (Normal)")
+                        MAIN_TRANSFORM=0
+                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+                        else
+                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+                        fi
+                        ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
+                    "Rotate Main: Portrait (90°)")
+                        MAIN_TRANSFORM=1
+                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+                        else
+                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+                        fi
+                        ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
+                    "Rotate Main: Flipped Landscape (180°)")
+                        MAIN_TRANSFORM=2
+                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+                        else
+                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+                        fi
+                        ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
+                    "Rotate Main: Flipped Portrait (270°)")
+                        MAIN_TRANSFORM=3
+                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
+                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
+                        else
+                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
+                        fi
+                        ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
+                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
+                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
+                        ;;
                     "Enter Custom Y-Offset Value")
                         custom_val=$(zenity --entry \
                             --title="Custom Y-Offset" \
-                            --text="Enter custom Y-offset in pixels (e.g., 0, 100, 200...):\n(Higher values shift the main screen down / lower transition on side screen)" \
+                            --text="Enter custom Y-offset in pixels (e.g., 0, 100, 200...):\n(Higher values shift the main screen down)" \
                             --entry-text="$OFFSET_Y" 2>/dev/null)
-                        # Validate if input is a number (integer)
                         if [[ "$custom_val" =~ ^-?[0-9]+$ ]]; then
                             OFFSET_Y=$custom_val
                         elif [ -n "$custom_val" ]; then
                             zenity --error --title="Invalid Input" --text="Please enter a valid integer number." --width=300 2>/dev/null
                         fi
                         ;;
-                    "Shift Main Monitor Down (+50px) - enters lower on second screen")
+                    "Shift Main Monitor Down (+50px)")
                         OFFSET_Y=$((OFFSET_Y + 50))
                         ;;
-                    "Shift Main Monitor Up (-50px) - enters higher on second screen")
+                    "Shift Main Monitor Up (-50px)")
                         OFFSET_Y=$((OFFSET_Y - 50))
                         ;;
                     "Fine-tune Down (+10px)")
