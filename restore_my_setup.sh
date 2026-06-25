@@ -1808,7 +1808,7 @@ mkdir -p "$HOME/.config/Code/User"
 echo -e "${CYAN}Writing VS Code settings.json...${NC}"
 cat << 'EOF' > "$HOME/.config/Code/User/settings.json"
 {
-  "workbench.colorTheme": "wallbash",
+  "workbench.colorTheme": "Gruvbox Dark Medium",
   "window.menuBarVisibility": "toggle",
   "editor.fontSize": 12,
   "editor.scrollbar.vertical": "hidden",
