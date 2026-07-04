@@ -3154,9 +3154,9 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
 
 // positions generated based on config.ctl //
 
-	"modules-left": ["hyprland/workspaces"],
-	"modules-center": ["clock"],
-	"modules-right": ["pulseaudio", "memory", "cpu", "custom/power"],
+	"modules-left": ["custom/padd","custom/l_end","custom/power","custom/cliphist","custom/wbar","custom/theme","custom/wallchange","custom/r_end","custom/l_end","hyprland/workspaces","wlr/taskbar","custom/spotify","custom/r_end","custom/padd"],
+	"modules-center": ["custom/padd","custom/l_end","idle_inhibitor","clock","custom/r_end","custom/padd"],
+	"modules-right": ["custom/padd","custom/l_end","privacy","tray","battery","custom/r_end","custom/l_end","backlight","network","pulseaudio","pulseaudio#microphone","custom/keybindhint","custom/r_end","custom/padd"],
 
 
 // sourced from modules based on config.ctl //
@@ -3224,7 +3224,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
         "disable-scroll": false,
         "on-scroll-up": "hyprctl dispatch workspace -1",
         "on-scroll-down": "hyprctl dispatch workspace +1",
-        "format": "{name}",
+        "format": "{name} {windows}",
         "format-window-separator": " ",
         "window-rewrite-default": "",
         "window-rewrite": {
@@ -3253,7 +3253,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
 		"format": "{icon}",
 		"rotate": 0,
 		"icon-size": 22,
-		"icon-theme": "Gruvbox-Plus-Dark",
+		"icon-theme": "Tela-circle-dracula",
         "spacing": 0,
 		"tooltip-format": "{title}",
 		"on-click": "activate",
@@ -3294,7 +3294,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     },
 
     "clock": {
-        "format": "{:%I:%M:%S %p}",
+        "format": "{:%I:%M %p}",
         "rotate": 0,
         "format-alt": "{:%R 󰃭 %d·%m·%y}",
         "tooltip-format": "<span>{calendar}</span>",
@@ -3380,9 +3380,9 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     },
 
 "pulseaudio": {
-    "format": "VOL {volume}%",
+    "format": "{icon} {volume}",
     "rotate": 0,
-    "format-muted": "VOL MUTED",
+    "format-muted": "婢",
     "on-click": "pavucontrol -t 3",
     "on-click-right": "volumecontrol.sh -s ''",
     "on-click-middle": "volumecontrol.sh -o m",
@@ -3413,16 +3413,6 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     "tooltip-format": "{format_source} {source_desc} // {source_volume}%",
     "scroll-step": 5
 },
-
-    "cpu": {
-        "interval": 5,
-        "format": "CPU {usage}%"
-    },
-
-    "memory": {
-        "interval": 5,
-        "format": "RAM {percentage}%"
-    },
 
     "custom/keybindhint": {
         "format": " ",
@@ -3496,7 +3486,7 @@ cat << 'EOF' > "$HOME/.config/waybar/style.css"
 @import "theme.css";
 
 window#waybar {
-    background: @bar-bg;
+    background: @main-bg;
 }
 
 tooltip {
@@ -3663,6 +3653,7 @@ tooltip {
     margin-left: 11px;
     padding-left: 3px;
 }
+
 
 EOF
 cp "$HOME/.config/waybar/style.css" "$HOME/.config/waybar/modules/style.css"
