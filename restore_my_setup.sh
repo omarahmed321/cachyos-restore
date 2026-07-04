@@ -3753,6 +3753,7 @@ echo -e "${CYAN}Writing ~/.config/hyde/hyde.conf...${NC}"
 cat << 'EOF' > "$HOME/.config/hyde/hyde.conf"
 hydeTheme="Gruvbox Retro"
 rofiStyle="5"
+enableWallDcol="2"
 EOF
 
 # --- WRITE ~/.zshrc ---
