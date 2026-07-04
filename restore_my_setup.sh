@@ -4076,16 +4076,24 @@ if [ -f "$HOME/.local/share/bin/themeswitch.sh" ]; then
     "$HOME/.local/share/bin/themeswitch.sh" "Gruvbox Retro" &>/dev/null || true
 fi
 
-# Ensure default wallpaper is set to 'misty_forest.jpg' and cache is fully generated
-if [ -f "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" ]; then
-    echo -e "${CYAN}Setting default wallpaper to 'misty_forest.jpg'...${NC}"
-    # Ensure the theme's default wallpaper symlink is set to misty_forest.jpg
+# Copy default wallpaper from script directory to the theme wallpapers directory
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+if [ -f "$SCRIPT_DIR/wallpapers/background_for_me.jpg" ]; then
+    echo -e "${CYAN}Deploying custom wallpaper background_for_me.jpg...${NC}"
+    mkdir -p "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers"
+    cp "$SCRIPT_DIR/wallpapers/background_for_me.jpg" "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/background_for_me.jpg"
+fi
+
+# Ensure default wallpaper is set to 'background_for_me.jpg' and cache is fully generated
+if [ -f "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/background_for_me.jpg" ]; then
+    echo -e "${CYAN}Setting default wallpaper to 'background_for_me.jpg'...${NC}"
+    # Ensure the theme's default wallpaper symlink is set to background_for_me.jpg
     mkdir -p "$HOME/.config/hyde/themes/Gruvbox Retro"
-    ln -sf "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" "$HOME/.config/hyde/themes/Gruvbox Retro/wall.set"
+    ln -sf "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/background_for_me.jpg" "$HOME/.config/hyde/themes/Gruvbox Retro/wall.set"
     
     # Initialize the wallpaper using HyDE's wallpaper daemon script
     if [ -f "$HOME/.local/share/bin/swwwallpaper.sh" ]; then
-        "$HOME/.local/share/bin/swwwallpaper.sh" -s "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/misty_forest.jpg" &>/dev/null || true
+        "$HOME/.local/share/bin/swwwallpaper.sh" -s "$HOME/.config/hyde/themes/Gruvbox Retro/wallpapers/background_for_me.jpg" &>/dev/null || true
     fi
 fi
 
