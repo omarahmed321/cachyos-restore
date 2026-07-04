@@ -3154,9 +3154,9 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
 
 // positions generated based on config.ctl //
 
-	"modules-left": ["custom/padd","custom/l_end","custom/power","custom/cliphist","custom/wbar","custom/theme","custom/wallchange","custom/r_end","custom/l_end","hyprland/workspaces","wlr/taskbar","custom/spotify","custom/r_end","custom/padd"],
-	"modules-center": ["custom/padd","custom/l_end","idle_inhibitor","clock","custom/r_end","custom/padd"],
-	"modules-right": ["custom/padd","custom/l_end","privacy","tray","battery","custom/r_end","custom/l_end","backlight","network","pulseaudio","pulseaudio#microphone","custom/keybindhint","custom/r_end","custom/padd"],
+	"modules-left": ["hyprland/workspaces"],
+	"modules-center": ["clock"],
+	"modules-right": ["pulseaudio", "memory", "cpu", "custom/power"],
 
 
 // sourced from modules based on config.ctl //
@@ -3224,7 +3224,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
         "disable-scroll": false,
         "on-scroll-up": "hyprctl dispatch workspace -1",
         "on-scroll-down": "hyprctl dispatch workspace +1",
-        "format": "{name} {windows}",
+        "format": "{name}",
         "format-window-separator": " ",
         "window-rewrite-default": "",
         "window-rewrite": {
@@ -3249,7 +3249,6 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
             "3": []
         }
     },
-
 	"wlr/taskbar": {
 		"format": "{icon}",
 		"rotate": 0,
@@ -3295,7 +3294,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     },
 
     "clock": {
-        "format": "{:%I:%M %p}",
+        "format": "{:%I:%M:%S %p}",
         "rotate": 0,
         "format-alt": "{:%R 󰃭 %d·%m·%y}",
         "tooltip-format": "<span>{calendar}</span>",
@@ -3381,9 +3380,9 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     },
 
 "pulseaudio": {
-    "format": "{icon} {volume}",
+    "format": "VOL {volume}%",
     "rotate": 0,
-    "format-muted": "婢",
+    "format-muted": "VOL MUTED",
     "on-click": "pavucontrol -t 3",
     "on-click-right": "volumecontrol.sh -s ''",
     "on-click-middle": "volumecontrol.sh -o m",
@@ -3414,6 +3413,16 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     "tooltip-format": "{format_source} {source_desc} // {source_volume}%",
     "scroll-step": 5
 },
+
+    "cpu": {
+        "interval": 5,
+        "format": "CPU {usage}%"
+    },
+
+    "memory": {
+        "interval": 5,
+        "format": "RAM {percentage}%"
+    },
 
     "custom/keybindhint": {
         "format": " ",
@@ -3468,6 +3477,8 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     }
 
 }
+
+
 EOF
 
 # --- WRITE ~/.config/waybar/style.css ---
@@ -3605,11 +3616,11 @@ tooltip {
 #custom-rl_end,
 #custom-rr_end {
     color: @main-fg;
-    background: @main-bg;
+    background: transparent;
     opacity: 1;
     margin: 5px 0px 5px 0px;
-    padding-left: 5px;
-    padding-right: 5px;
+    padding-left: 12px;
+    padding-right: 12px;
 }
 
 #workspaces,
@@ -3652,6 +3663,7 @@ tooltip {
     margin-left: 11px;
     padding-left: 3px;
 }
+
 EOF
 cp "$HOME/.config/waybar/style.css" "$HOME/.config/waybar/modules/style.css"
 
@@ -4034,18 +4046,14 @@ else
     echo -e "[Theme]\nCurrent=sddm-astronaut-theme" | sudo tee /etc/sddm.conf >/dev/null
 fi
 
-# Set SDDM Astronaut theme configuration
+# Set SDDM Astronaut theme configuration to Jake the Dog variant
 if [ -d "/usr/share/sddm/themes/sddm-astronaut-theme" ]; then
-    echo -e "${CYAN}Customizing SDDM Astronaut theme configuration...${NC}"
-    # Ensure Themes/astronaut.conf uses the default astronaut artwork
-    if [ -f "/usr/share/sddm/themes/sddm-astronaut-theme/theme.conf" ]; then
-        sudo sed -i 's/^Background=.*/Background="Backgrounds\/astronaut.png"/' /usr/share/sddm/themes/sddm-astronaut-theme/theme.conf
-    fi
-    if [ -f "/usr/share/sddm/themes/sddm-astronaut-theme/Themes/astronaut.conf" ]; then
-        sudo sed -i 's/^Background=.*/Background="Backgrounds\/astronaut.png"/' /usr/share/sddm/themes/sddm-astronaut-theme/Themes/astronaut.conf
+    echo -e "${CYAN}Setting SDDM theme variant to Jake the Dog...${NC}"
+    if [ -f "/usr/share/sddm/themes/sddm-astronaut-theme/metadata.desktop" ]; then
+        sudo sed -i 's/^ConfigFile=.*/ConfigFile=Themes\/jake_the_dog.conf/' /usr/share/sddm/themes/sddm-astronaut-theme/metadata.desktop
     fi
 fi
-echo -e "${GREEN}[OK] SDDM Astronaut theme configured successfully!${NC}"
+echo -e "${GREEN}[OK] SDDM Astronaut theme (Jake the Dog variant) configured successfully!${NC}"
 
 # --- RTL8188EUS USB Wi-Fi Hotspot driver configuration ---
 echo -e "\n${BLUE}${BOLD}Configuring RTL8188EUS USB Wi-Fi driver and blacklisting conflicting drivers...${NC}"
