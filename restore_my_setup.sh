@@ -2169,11 +2169,9 @@ cat << 'EOF' > "$HOME/.config/hypr/userprefs.conf"
 
 decoration {
     shadow {
-        enabled = true
+        enabled = false
         range = 18
         render_power = 4
-        color = rgba(8ec07cff)
-        color_inactive = rgba(00000055)
         offset = 0 0
     }
 }
@@ -2196,6 +2194,13 @@ input {
 # --- Keyring Fix ---
 # Start gnome-keyring-daemon for managing credentials and secrets securely in Electron/VSCode applications
 exec-once = gnome-keyring-daemon --start --components=secrets
+
+# Source pywal colors
+source = ~/.cache/wal/colors-hyprland.conf
+
+general {
+    border_size = 0
+}
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -3102,9 +3107,9 @@ bold_italic_font auto
 enable_audio_bell no
 font_size 9.0
 window_padding_width 25
-include theme.conf
+include ~/.cache/wal/colors-kitty.conf
 cursor_trail 1
-#background_opacity 0.60
+background_opacity 0.85
 #hide_window_decorations yes
 #confirm_os_window_close 0
 
@@ -4145,6 +4150,45 @@ if [ "$DISABLE_FAILLOCK_OPTION" = "y" ]; then
         fi
     done
     echo -e "${GREEN}[OK] pam_faillock lockout policy disabled successfully.${NC}"
+fi
+
+# --- CONFIGURE PYWAL INTEGRATION ---
+echo -e "\n${BLUE}${BOLD}Configuring pywal templates and hooks...${NC}"
+mkdir -p "$HOME/.config/wal/templates"
+
+cat << 'EOF' > "$HOME/.config/wal/templates/colors-hyprland.conf"
+general {{
+    col.active_border = rgba({color4.strip}ff) rgba({color2.strip}ff) 45deg
+    col.inactive_border = rgba({color1.strip}ff) rgba({color0.strip}ff) 45deg
+}}
+
+decoration {{
+    shadow {{
+        color = rgba({color4.strip}ff)
+        color_inactive = rgba({color0.strip}55)
+    }}
+}}
+EOF
+
+cat << 'EOF' > "$HOME/.config/wal/templates/theme.css"
+@define-color bar-bg rgba({color0.rgb}, 0.85);
+@define-color main-bg rgba({color0.rgb}, 0.8);
+@define-color main-fg {foreground};
+@define-color wb-act-bg rgba({color1.rgb}, 0.4);
+@define-color wb-act-fg {foreground};
+@define-color wb-hvr-bg rgba({color2.rgb}, 0.4);
+@define-color wb-hvr-fg {foreground};
+EOF
+
+# Patch swwwallbash.sh if not already patched
+SWWWALLBASH_BIN="$HOME/.local/share/bin/swwwallbash.sh"
+if [ -f "$SWWWALLBASH_BIN" ]; then
+    if ! grep -q "wal -i" "$SWWWALLBASH_BIN"; then
+        echo -e "${CYAN}Adding pywal automatic hook to swwwallbash.sh...${NC}"
+        echo "" >> "$SWWWALLBASH_BIN"
+        echo "# Trigger pywal automatically on wallpaper change" >> "$SWWWALLBASH_BIN"
+        echo "wal -i \"\${wallbashImg}\"" >> "$SWWWALLBASH_BIN"
+    fi
 fi
 
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
