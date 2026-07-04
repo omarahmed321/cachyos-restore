@@ -3354,6 +3354,14 @@ window#waybar {
     background: @main-bg;
 }
 
+.modules-left {
+    margin-left: 15px;
+}
+
+.modules-right {
+    margin-right: 15px;
+}
+
 tooltip {
     background: @main-bg;
     color: @main-fg;
