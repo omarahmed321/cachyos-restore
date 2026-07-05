@@ -3979,6 +3979,21 @@ cat << 'EOF' > "$HOME/.config/fastfetch/config.jsonc"
       "type": "custom",
       "format": "└──────────────────────────────────────────┘"
     },
+    "break",
+    {
+      "type": "custom",
+      "format": "┌───────────────   Tasks ────────────────┐"
+    },
+    {
+      "type": "command",
+      "key": "  Todo",
+      "keyColor": "cyan",
+      "text": "cat ~/.config/fastfetch/tasks.txt 2>/dev/null || echo 'No active tasks'"
+    },
+    {
+      "type": "custom",
+      "format": "└──────────────────────────────────────────┘"
+    },
     {
       "type": "colors",
       "paddingLeft": 2,
@@ -3987,6 +4002,16 @@ cat << 'EOF' > "$HOME/.config/fastfetch/config.jsonc"
   ]
 }
 EOF
+
+# --- WRITE ~/.config/fastfetch/tasks.txt ---
+echo -e "${CYAN}Writing ~/.config/fastfetch/tasks.txt...${NC}"
+mkdir -p "$HOME/.config/fastfetch"
+if [ ! -f "$HOME/.config/fastfetch/tasks.txt" ]; then
+    cat << 'EOF' > "$HOME/.config/fastfetch/tasks.txt"
+- Finish system setup
+- Customize your desktop
+EOF
+fi
 
 # --- SDDM Theme Configuration ---
 echo -e "\n${BLUE}${BOLD}Configuring SDDM Astronaut theme...${NC}"
