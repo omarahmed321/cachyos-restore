@@ -2206,7 +2206,7 @@ decoration {
     rounding = 8
 }
 
-windowrule = opacity 0.50 0.50, match:class ^(antigravity)$
+windowrule = opacity 0.80 0.80, match:class ^(antigravity)$
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
