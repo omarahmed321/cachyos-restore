@@ -4046,7 +4046,6 @@ if [ ! -f "$HOME/.config/fastfetch/tasks.txt" ]; then
     cat << 'EOF' > "$HOME/.config/fastfetch/tasks.txt"
 - Finish system setup
 - Use commands: todo, doing, done <task>
-- Enjoy the beautiful setup!
 EOF
 fi
 
