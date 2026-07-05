@@ -133,7 +133,7 @@ echo -e "Detected GPU Vendor: ${CYAN}${GPU_VENDOR}${NC}"
 
 REQUIRED_PACKAGES=(
     hyprland waybar dunst rofi-wayland kitty firefox code dolphin yazi sddm-astronaut-theme
-    swaylock-effects-git wlogout cliphist hyprpicker hyprsunset
+    swaylock-effects-git wlogout cliphist hyprpicker hyprsunset hyprlock
     grimblast-git slurp jq polkit-kde-agent eza awesome-terminal-fonts
     ttf-meslo-nerd ttf-jetbrains-mono-nerd blueman bluez bluez-utils
     network-manager-applet brightnessctl pamixer playerctl udiskie
@@ -145,7 +145,7 @@ REQUIRED_PACKAGES=(
     zsh-syntax-highlighting zsh-completions
     wl-clipboard qt5-graphicaleffects qt5-quickcontrols qt5-quickcontrols2
     seahorse networkmanager zenity fastfetch bibata-cursor-theme-bin
-    psmisc python dnsmasq hostapd iw sddm ananicy-cpp
+    psmisc python dnsmasq hostapd iw sddm ananicy-cpp gammastep
 )
 
 # Dynamically add GPU drivers based on detected hardware
@@ -2231,7 +2231,7 @@ bind = $mainMod, Delete, exit, # kill hyprland session
 bind = $mainMod, W, togglefloating, # toggle the window between focus and float
 bind = $mainMod, G, togglegroup, # toggle the window between focus and group
 bind = Alt, Return, fullscreen, # toggle the window between focus and fullscreen
-bind = $mainMod, L, exec, swaylock # launch lock screen
+bind = $mainMod, L, exec, hyprlock # launch lock screen
 bind = $mainMod+Shift, F, exec, $scrPath/windowpin.sh # toggle pin on focused window
 bind = $mainMod, Backspace, exec, $scrPath/logoutlaunch.sh # launch logout menu
 bind = Ctrl+Alt, W, exec, killall waybar || (env reload_flag=1 $scrPath/wbarconfgen.sh) # toggle waybar and reload config
@@ -3161,7 +3161,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
 // positions generated based on config.ctl //
 
 	"modules-left": ["custom/padd","hyprland/workspaces","custom/padd"],
-	"modules-center": ["custom/padd","clock","custom/padd"],
+	"modules-center": ["custom/padd","clock","custom/prayer","custom/padd"],
 	"modules-right": ["custom/padd","pulseaudio","custom/separator","memory","custom/separator","cpu","custom/padd"],
 
 
@@ -3224,6 +3224,13 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
             "on-scroll-up": "shift_up",
             "on-scroll-down": "shift_down"
         }
+    },
+
+    "custom/prayer": {
+        "format": "{}",
+        "exec": "/home/omar/.local/share/bin/prayer_times.py",
+        "interval": 60,
+        "tooltip": false
     },
 
 "pulseaudio": {
@@ -4181,14 +4188,246 @@ decoration {{
 EOF
 
 cat << 'EOF' > "$HOME/.config/wal/templates/theme.css"
-@define-color bar-bg rgba({color0.rgb}, 0.55);
-@define-color main-bg rgba({color0.rgb}, 0.5);
+@define-color bar-bg rgba({color0.rgb}, 0.45);
+@define-color main-bg rgba({color0.rgb}, 0.4);
 @define-color main-fg {foreground};
 @define-color wb-act-bg rgba({color1.rgb}, 0.4);
 @define-color wb-act-fg {foreground};
 @define-color wb-hvr-bg rgba({color2.rgb}, 0.4);
 @define-color wb-hvr-fg {foreground};
 EOF
+
+cat << 'EOF' > "$HOME/.config/wal/templates/colors-hyprlock.conf"
+$background = rgb({background.strip})
+$foreground = rgb({foreground.strip})
+$color0 = rgb({color0.strip})
+$color1 = rgb({color1.strip})
+$color2 = rgb({color2.strip})
+$color3 = rgb({color3.strip})
+$color4 = rgb({color4.strip})
+$color5 = rgb({color5.strip})
+$color6 = rgb({color6.strip})
+$color7 = rgb({color7.strip})
+$color8 = rgb({color8.strip})
+$color9 = rgb({color9.strip})
+$color10 = rgb({color10.strip})
+$color11 = rgb({color11.strip})
+$color12 = rgb({color12.strip})
+$color13 = rgb({color13.strip})
+$color14 = rgb({color14.strip})
+$color15 = rgb({color15.strip})
+EOF
+
+# --- WRITE HYPRLOCK CONFIG ---
+echo -e "${CYAN}Writing ~/.config/hypr/hyprlock.conf...${NC}"
+mkdir -p "$HOME/.config/hypr"
+cat << 'EOF' > "$HOME/.config/hypr/hyprlock.conf"
+source = ~/.cache/wal/colors-hyprlock.conf
+
+general {
+    hide_cursor = true
+}
+
+background {
+    monitor =
+    path = /home/omar/.config/hyde/themes/Gruvbox Retro/wallpapers/background_for_me.jpg
+    blur_passes = 3
+    blur_size = 8
+    noise = 0.0117
+    contrast = 0.8916
+    brightness = 0.8172
+    vibrancy = 0.1696
+    vibrancy_darkness = 0.0
+}
+
+# Time (Clock)
+label {
+    monitor =
+    text = cmd[update:1000] echo -e "$(date +"%I:%M %p")"
+    color = $foreground
+    font_size = 94
+    font_family = CaskaydiaCove Nerd Font Mono Bold
+    position = 0, 100
+    halign = center
+    valign = center
+    shadow_passes = 2
+    shadow_size = 4
+}
+
+# Date
+label {
+    monitor =
+    text = cmd[update:1000] echo -e "$(date +"%A, %d %B")"
+    color = $foreground
+    font_size = 22
+    font_family = CaskaydiaCove Nerd Font Mono
+    position = 0, 20
+    halign = center
+    valign = center
+    shadow_passes = 2
+    shadow_size = 4
+}
+
+# Input Field (Password Box)
+input-field {
+    monitor =
+    size = 260, 50
+    outline_thickness = 2
+    dots_size = 0.28
+    dots_spacing = 0.15
+    dots_center = true
+    outer_color = $color4
+    inner_color = rgba(0, 0, 0, 0.4)
+    font_color = $foreground
+    fade_on_empty = true
+    placeholder_text = <i>Enter Password...</i>
+    hide_input = false
+    position = 0, -100
+    halign = center
+    valign = center
+}
+EOF
+
+# --- WRITE PRAYER TIMES SCRIPT ---
+echo -e "${CYAN}Writing ~/.local/share/bin/prayer_times.py...${NC}"
+mkdir -p "$HOME/.local/share/bin"
+cat << 'EOF' > "$HOME/.local/share/bin/prayer_times.py"
+#!/usr/bin/env python3
+import urllib.request
+import json
+import datetime
+import os
+import sys
+
+CACHE_FILE = "/tmp/prayer_times.json"
+
+def get_location():
+    try:
+        req = urllib.request.Request(
+            "http://ip-api.com/json",
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            return data.get("lat"), data.get("lon"), data.get("city")
+    except Exception:
+        return 30.0444, 31.2357, "Cairo"
+
+def get_prayer_timings(lat, lon):
+    today = datetime.date.today().isoformat()
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r') as f:
+                cached = json.load(f)
+                if cached.get("date") == today:
+                    return cached.get("timings")
+        except Exception:
+            pass
+
+    try:
+        url = f"http://api.aladhan.com/v1/timings?latitude={lat}&longitude={lon}&method=5"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            res = json.loads(response.read().decode())
+            timings = res["data"]["timings"]
+            with open(CACHE_FILE, 'w') as f:
+                json.dump({"date": today, "timings": timings}, f)
+            return timings
+    except Exception:
+        if os.path.exists(CACHE_FILE):
+            try:
+                with open(CACHE_FILE, 'r') as f:
+                    return json.load(f).get("timings")
+            except Exception:
+                pass
+        return None
+
+def parse_time(time_str):
+    parts = time_str.split(":")
+    return int(parts[0]), int(parts[1])
+
+def main():
+    lat, lon, city = get_location()
+    timings = get_prayer_timings(lat, lon)
+    if not timings:
+        print("No timings")
+        sys.exit(0)
+
+    prayers = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
+    now = datetime.datetime.now()
+    
+    prayer_times = []
+    for p in prayers:
+        t_str = timings.get(p)
+        if not t_str:
+            continue
+        h, m = parse_time(t_str)
+        p_time = now.replace(hour=h, minute=m, second=0, microsecond=0)
+        prayer_times.append((p, p_time))
+
+    next_p = None
+    next_p_time = None
+
+    for name, p_time in prayer_times:
+        if p_time > now:
+            next_p = name
+            next_p_time = p_time
+            break
+
+    if not next_p:
+        next_p = "Fajr"
+        f_str = timings.get("Fajr")
+        h, m = parse_time(f_str)
+        next_p_time = now.replace(hour=h, minute=m, second=0, microsecond=0) + datetime.timedelta(days=1)
+
+    diff = next_p_time - now
+    diff_seconds = diff.total_seconds()
+    hours = int(diff_seconds // 3600)
+    minutes = int((diff_seconds % 3600) // 60)
+
+    print(f"{next_p} in {hours}:{minutes:02d}")
+
+if __name__ == "__main__":
+    main()
+EOF
+chmod +x "$HOME/.local/share/bin/prayer_times.py"
+
+# --- WRITE SDDM XSETUP SCRIPT ---
+echo -e "${CYAN}Writing /usr/share/sddm/scripts/Xsetup...${NC}"
+sudo mkdir -p /usr/share/sddm/scripts
+sudo tee /usr/share/sddm/scripts/Xsetup >/dev/null << 'XSEOF'
+#!/bin/sh
+# Xsetup - run as root before the login dialog appears
+
+# 1. Configure monitors (turn off secondary DP-1, keep main DP-2)
+if xrandr | grep -q "DP-2 connected" && xrandr | grep -q "DP-1 connected"; then
+    xrandr --output DP-2 --auto --primary --output DP-1 --off
+fi
+
+# 2. Set mouse sensitivity and flat acceleration profile
+for id in $(xinput list --id-only 2>/dev/null); do
+    xinput set-prop "$id" "libinput Accel Profile Enabled" 0 1 0 2>/dev/null || true
+    xinput set-prop "$id" "libinput Accel Speed" -0.5 2>/dev/null || true
+done
+
+# 3. Start gammastep for SDDM night light
+CONF="/home/omar/.config/hypr/nightlight.conf"
+TEMP=3500
+ENABLED=true
+
+if [ -f "$CONF" ]; then
+    t=$(grep -oP 'temperature=\K\d+' "$CONF" 2>/dev/null)
+    e=$(grep -oP 'enabled=\K\w+'     "$CONF" 2>/dev/null)
+    [ -n "$t" ] && TEMP=$t
+    [ "$e" = "false" ] && ENABLED=false
+fi
+
+if [ "$ENABLED" = "true" ]; then
+    pkill -x gammastep 2>/dev/null || true
+    gammastep -O "$TEMP" -P &
+fi
+XSEOF
+sudo chmod +x /usr/share/sddm/scripts/Xsetup
 
 # Patch swwwallbash.sh if not already patched
 SWWWALLBASH_BIN="$HOME/.local/share/bin/swwwallbash.sh"
