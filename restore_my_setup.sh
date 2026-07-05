@@ -2222,6 +2222,9 @@ animations {
 
 # Wipe clipboard history on startup to prevent database bloat
 exec-once = cliphist wipe
+
+# Force cursor to primary landscape monitor on startup
+exec-once = ~/.config/hypr/sync_cursor.sh
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -4870,6 +4873,24 @@ hyprlock
 EOF
 chmod +x "$HOME/.local/share/bin/lockscreen.sh"
 echo -e "${GREEN}lockscreen wrapper script written.${NC}"
+
+# --- WRITE CURSOR SYNC SCRIPT ---
+echo -e "${CYAN}Writing ~/.config/hypr/sync_cursor.sh...${NC}"
+mkdir -p "$HOME/.config/hypr"
+cat << 'EOF' > "$HOME/.config/hypr/sync_cursor.sh"
+#!/usr/bin/env bash
+# sync_cursor.sh - Warp cursor and focus to the monitor with the highest refresh rate (144Hz primary monitor) on startup
+
+sleep 3
+primary_mon=$(hyprctl monitors -j | jq -r 'sort_by(.refreshRate) | last | .name' 2>/dev/null)
+
+if [ -n "$primary_mon" ]; then
+    hyprctl dispatch focusmonitor "$primary_mon"
+fi
+EOF
+chmod +x "$HOME/.config/hypr/sync_cursor.sh"
+echo -e "${GREEN}sync_cursor script written.${NC}"
+
 
 
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
