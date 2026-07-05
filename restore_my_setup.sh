@@ -4812,12 +4812,6 @@ for f in "${files[@]}"; do
     echo "Added '$filename' to $hydeTheme wallpapers."
     last_added="$DEST_DIR/$filename"
 done
-
-# Apply the last added wallpaper
-if [ -n "$last_added" ]; then
-    echo "Applying new wallpaper: $(basename "$last_added")"
-    swwwallpaper.sh -s "$last_added"
-fi
 EOF
 chmod +x "$HOME/.local/share/bin/addwallpaper"
 echo -e "${GREEN}addwallpaper utility script written.${NC}"
