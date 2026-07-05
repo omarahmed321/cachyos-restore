@@ -3250,7 +3250,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
     "custom/prayer": {
         "format": "{}",
         "exec": "$HOME/.local/share/bin/prayer_times.py",
-        "interval": 60,
+        "interval": 1,
         "tooltip": false
     },
 
@@ -4553,8 +4553,9 @@ def main():
     diff_seconds = diff.total_seconds()
     hours = int(diff_seconds // 3600)
     minutes = int((diff_seconds % 3600) // 60)
+    seconds = int(diff_seconds % 60)
 
-    print(f"{next_p} in {hours}:{minutes:02d}")
+    print(f"{next_p} in {hours}:{minutes:02d}:{seconds:02d}")
 
 if __name__ == "__main__":
     main()
