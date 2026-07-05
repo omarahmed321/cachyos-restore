@@ -191,7 +191,7 @@ echo -e "${GREEN}[+] Starting Hotspot... (Press Ctrl+C to stop)${NC}"
 echo -e "${CYAN}----------------------------------------------------${NC}"
 
 # Run create_ap in the background so the trap can catch signals
-create_ap --no-virt --ieee80211n --ht_capab '[HT40-][SHORT-GI-20][SHORT-GI-40][DSSS_CCK-40]' -c "$CHANNEL" "$WIFI_INT" "$INTERNET_INT" "$SSID" "$PASSPHRASE" &
+create_ap --no-virt -c "$CHANNEL" "$WIFI_INT" "$INTERNET_INT" "$SSID" "$PASSPHRASE" &
 CREATE_AP_PID=$!
 
 # Wait for create_ap to finish
