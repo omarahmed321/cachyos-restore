@@ -3179,7 +3179,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
 // positions generated based on config.ctl //
 
 	"modules-left": ["custom/padd","hyprland/workspaces","custom/padd"],
-	"modules-center": ["custom/padd","clock","custom/prayer","custom/padd"],
+	"modules-center": ["custom/padd","clock","custom/separator","custom/prayer","custom/padd"],
 	"modules-right": ["custom/padd","pulseaudio","custom/separator","memory","custom/separator","cpu","custom/padd"],
 
 
