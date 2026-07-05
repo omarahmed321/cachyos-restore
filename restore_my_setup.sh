@@ -4555,7 +4555,8 @@ def main():
     minutes = int((diff_seconds % 3600) // 60)
     seconds = int(diff_seconds % 60)
 
-    print(f"{next_p} in {hours}:{minutes:02d}:{seconds:02d}")
+    next_p_time_str = next_p_time.strftime("%I:%M %p").lstrip('0')
+    print(f"{next_p} in {hours}:{minutes:02d}:{seconds:02d} ({next_p_time_str})")
 
 if __name__ == "__main__":
     main()
