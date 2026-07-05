@@ -4761,6 +4761,91 @@ if [ -f "$SWWWALLBASH_BIN" ]; then
     fi
 fi
 
+# --- WRITE PYWAL WATCHER SCRIPT ---
+echo -e "${CYAN}Writing ~/.local/share/bin/pywal_watcher.py...${NC}"
+mkdir -p "$HOME/.local/share/bin"
+cat << 'EOF' > "$HOME/.local/share/bin/pywal_watcher.py"
+#!/usr/bin/env python3
+import os
+import sys
+import time
+import subprocess
+import socket
+
+# Prevent duplicate execution
+try:
+    lock_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    lock_socket.bind('\0pywal_watcher_holder_lock')
+except socket.error:
+    sys.exit(0)
+
+def get_current_wallpaper():
+    # 1. Try ~/.cache/hyde/wall.set
+    wall_set = os.path.expanduser('~/.cache/hyde/wall.set')
+    if os.path.islink(wall_set):
+        try:
+            return os.path.realpath(wall_set)
+        except Exception:
+            pass
+            
+    # 2. Fallback to swww query
+    try:
+        res = subprocess.run(['swww', 'query'], capture_output=True, text=True, timeout=2)
+        if res.returncode == 0:
+            for line in res.stdout.splitlines():
+                if 'currently displaying: image:' in line:
+                    parts = line.split('currently displaying: image:')
+                    if len(parts) > 1:
+                        path = parts[1].strip()
+                        if os.path.exists(path):
+                            return path
+    except Exception:
+        pass
+        
+    return None
+
+def main():
+    last_wallpaper = None
+    while True:
+        try:
+            current = get_current_wallpaper()
+            if current and current != last_wallpaper:
+                subprocess.run(['wal', '-i', current], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                last_wallpaper = current
+        except Exception:
+            pass
+        time.sleep(2)
+
+if __name__ == '__main__':
+    time.sleep(2)
+    main()
+EOF
+chmod +x "$HOME/.local/share/bin/pywal_watcher.py"
+
+# --- CREATE PYWAL WATCHER SYSTEMD USER SERVICE ---
+echo -e "${CYAN}Creating pywal-watcher systemd user service...${NC}"
+mkdir -p "$HOME/.config/systemd/user"
+cat << 'EOF' > "$HOME/.config/systemd/user/pywal-watcher.service"
+[Unit]
+Description=Pywal Wallpaper Watcher Daemon
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/bin/pywal_watcher.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+EOF
+
+# Reload and enable the service
+systemctl --user daemon-reload
+systemctl --user enable pywal-watcher.service
+
+
+
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
 echo -e "${GREEN}${BOLD}   CONGRATULATIONS! System Restoration is Complete!                  ${NC}"
 echo -e "${GREEN}${BOLD}======================================================================${NC}"
