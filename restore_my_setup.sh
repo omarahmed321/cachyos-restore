@@ -2252,7 +2252,7 @@ bind = $mainMod, Delete, exit, # kill hyprland session
 bind = $mainMod, W, togglefloating, # toggle the window between focus and float
 bind = $mainMod, G, togglegroup, # toggle the window between focus and group
 bind = Alt, Return, fullscreen, # toggle the window between focus and fullscreen
-bind = $mainMod, L, exec, hyprlock # launch lock screen
+bind = $mainMod, L, exec, ~/.local/share/bin/lockscreen.sh # launch lock screen
 bind = $mainMod+Shift, F, exec, $scrPath/windowpin.sh # toggle pin on focused window
 bind = $mainMod, Backspace, exec, $scrPath/logoutlaunch.sh # launch logout menu
 bind = Ctrl+Alt, W, exec, killall waybar || (env reload_flag=1 $scrPath/wbarconfgen.sh) # toggle waybar and reload config
@@ -4827,6 +4827,39 @@ done
 EOF
 chmod +x "$HOME/.local/share/bin/addwallpaper"
 echo -e "${GREEN}addwallpaper utility script written.${NC}"
+
+# --- WRITE LOCKSCREEN WRAPPER SCRIPT ---
+echo -e "${CYAN}Writing ~/.local/share/bin/lockscreen.sh...${NC}"
+mkdir -p "$HOME/.local/share/bin"
+cat << 'EOF' > "$HOME/.local/share/bin/lockscreen.sh"
+#!/usr/bin/env bash
+# lockscreen.sh - Helper script to dynamically identify the active/focused monitor 
+# and lock the system showing the widgets only on that monitor.
+
+mkdir -p "$HOME/.cache/hypr"
+
+# Get active/focused monitor name
+focused_mon=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .name' 2>/dev/null)
+
+# Fallback to first monitor in list if not found
+if [ -z "$focused_mon" ]; then
+    focused_mon=$(hyprctl monitors -j | jq -r '.[0].name' 2>/dev/null)
+fi
+
+# Fallback to default if everything else fails
+if [ -z "$focused_mon" ]; then
+    focused_mon="DP-2"
+fi
+
+# Write monitor variable to be sourced by hyprlock.conf
+echo "\$main_monitor = $focused_mon" > "$HOME/.cache/hypr/lock_monitor.conf"
+
+# Launch hyprlock
+hyprlock
+EOF
+chmod +x "$HOME/.local/share/bin/lockscreen.sh"
+echo -e "${GREEN}lockscreen wrapper script written.${NC}"
+
 
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
 echo -e "${GREEN}${BOLD}   CONGRATULATIONS! System Restoration is Complete!                  ${NC}"
