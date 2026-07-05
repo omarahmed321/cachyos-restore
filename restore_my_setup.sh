@@ -2201,6 +2201,12 @@ source = ~/.cache/wal/colors-hyprland.conf
 general {
     border_size = 0
 }
+
+decoration {
+    rounding = 8
+}
+
+windowrulev2 = opacity 0.50 0.50, class:^(antigravity)$
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
