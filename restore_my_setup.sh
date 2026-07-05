@@ -3610,7 +3610,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.ctl"
 0|28|top|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( idle_inhibitor clock custom/spotify )|( wlr/taskbar )|( privacy tray ) ( backlight network pulseaudio pulseaudio#microphone )
 0|28|right|( custom/power custom/cliphist custom/wbar custom/theme custom/wallchange ) ( idle_inhibitor clock custom/spotify )|( wlr/taskbar )|( privacy tray ) ( backlight network pulseaudio pulseaudio#microphone )
 0|40|top|( hyprland/workspaces )|( custom/cava idle_inhibitor clock )|( backlight pulseaudio pulseaudio#microphone tray battery custom/keybindhint custom/cliphist custom/power )
-1|30|top|hyprland/workspaces|clock|pulseaudio custom/separator memory custom/separator cpu
+1|30|top|hyprland/workspaces wlr/taskbar|clock|custom/prayer custom/separator pulseaudio custom/separator memory custom/separator cpu
 
 EOF
 
@@ -3796,32 +3796,37 @@ zle -N select-all-line
 bindkey '^A' select-all-line
 
 # Task management functions
+# todo <text>   → add new task
+# doing         → pick with fzf → mark in-progress
+# donetask      → pick with fzf → mark done
+# rmtask        → pick with fzf → delete
+# edittask      → pick with fzf → edit text
 todo() {
+    if [[ -z "$*" ]]; then
+        echo "Usage: todo <task text>"
+        return 1
+    fi
     python3 ~/.local/share/bin/manage_tasks.py todo "$*"
     fastfetch
 }
 
 doing() {
-    python3 ~/.local/share/bin/manage_tasks.py doing "$*"
+    python3 ~/.local/share/bin/manage_tasks.py doing
     fastfetch
 }
 
-done() {
-    python3 ~/.local/share/bin/manage_tasks.py done "$*"
+donetask() {
+    python3 ~/.local/share/bin/manage_tasks.py done
     fastfetch
 }
 
 rmtask() {
-    python3 ~/.local/share/bin/manage_tasks.py remove "$*"
+    python3 ~/.local/share/bin/manage_tasks.py remove
     fastfetch
 }
 
 edittask() {
-    local editor_cmd=${EDITOR:-nano}
-    if ! command -v "$editor_cmd" &> /dev/null; then
-        editor_cmd="vi"
-    fi
-    $editor_cmd ~/.config/fastfetch/tasks.txt
+    python3 ~/.local/share/bin/manage_tasks.py edit
     fastfetch
 }
 EOF
@@ -4079,7 +4084,6 @@ mkdir -p "$HOME/.config/fastfetch"
 if [ ! -f "$HOME/.config/fastfetch/tasks.txt" ]; then
     cat << 'EOF' > "$HOME/.config/fastfetch/tasks.txt"
 - Finish system setup
-- Use commands: todo, doing, done <task>
 - niceRiceOmar
 EOF
 fi
