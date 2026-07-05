@@ -221,6 +221,36 @@ for svc in bluetooth NetworkManager sddm ananicy-cpp; do
     fi
 done
 
+
+# --- ENABLE EARLY KMS FOR SMOOTH FLICKER-FREE BOOT ---
+echo -e "\n${BLUE}${BOLD}Enabling early KMS for smooth, flicker-free display initialization...${NC}"
+if [ -f /etc/mkinitcpio.conf ] && command -v mkinitcpio &>/dev/null; then
+    KMS_MODULES=""
+    if [ "$GPU_VENDOR" = "nvidia" ]; then
+        KMS_MODULES="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
+    elif [ "$GPU_VENDOR" = "amd" ]; then
+        KMS_MODULES="amdgpu"
+    elif [ "$GPU_VENDOR" = "intel" ]; then
+        KMS_MODULES="i915"
+    fi
+    
+    if [ -n "$KMS_MODULES" ]; then
+        echo -e "${CYAN}Adding modules '$KMS_MODULES' to /etc/mkinitcpio.conf...${NC}"
+        sudo cp /etc/mkinitcpio.conf /etc/mkinitcpio.conf.bak
+        if grep -q "^MODULES=(" /etc/mkinitcpio.conf; then
+            sudo sed -i "s/^MODULES=(.*/MODULES=($KMS_MODULES)/" /etc/mkinitcpio.conf
+        else
+            echo "MODULES=($KMS_MODULES)" | sudo tee -a /etc/mkinitcpio.conf >/dev/null
+        fi
+        
+        echo -e "${CYAN}Regenerating initramfs with mkinitcpio...${NC}"
+        sudo mkinitcpio -P
+        echo -e "${GREEN}[OK] Early KMS enabled successfully!${NC}"
+    fi
+else
+    echo -e "${YELLOW}[INFO] mkinitcpio not detected or /etc/mkinitcpio.conf missing. Skipping early KMS configuration.${NC}"
+fi
+
 # 3. Clone and Run HyDE (Hyprdots) Installer
 echo -e "\n${BLUE}${BOLD}[5/5] Deploying HyDE Desktop Environment Framework...${NC}"
 if [ -d "$HOME/hyde" ]; then
@@ -4946,6 +4976,52 @@ fi
 EOF
 chmod +x "$HOME/.config/hypr/warp_cursor.sh"
 echo -e "${GREEN}warp_cursor script written.${NC}"
+
+# --- WRITE OMAR CUSTOM DOCUMENTATION TOOL ---
+echo -e "${CYAN}Writing ~/.local/share/bin/omar custom documentation helper...${NC}"
+mkdir -p "$HOME/.local/share/bin"
+cat << 'EOF' > "$HOME/.local/share/bin/omar"
+#!/usr/bin/env bash
+# omar - CLI Documentation for custom commands configured on this system
+
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}${BOLD}======================================================================${NC}"
+echo -e "          ${GREEN}${BOLD} Omar's Custom System Commands Documentation ${NC}"
+echo -e "${BLUE}${BOLD}======================================================================${NC}"
+echo -e "Here is a list of all custom scripts and commands configured on your system:\n"
+
+echo -e "🎨 ${CYAN}${BOLD}Wallpaper Management:${NC}"
+echo -e "  ${GREEN}${BOLD}addwallpaper${NC} : Open a GUI file picker (or pass file paths as arguments)"
+echo -e "                 to safely copy new wallpapers to the active theme folder"
+echo -e "                 without changing the current background automatically.\n"
+
+echo -e "📝 ${CYAN}${BOLD}Task Management (todo-list):${NC}"
+echo -e "  ${GREEN}${BOLD}todo <text>${NC}  : Add a new task to your todo list."
+echo -e "  ${GREEN}${BOLD}doing${NC}        : Pick a task using fzf and move it to active (doing) state."
+echo -e "  ${GREEN}${BOLD}donetask${NC}     : Pick an active task using fzf and mark it as completed."
+echo -e "  ${GREEN}${BOLD}rmtask${NC}       : Pick a task using fzf and delete it from the list."
+echo -e "  ${GREEN}${BOLD}edittask${NC}     : Open the raw tasks text file directly in your default editor"
+echo -e "                 for manual editing or rearranging.\n"
+
+echo -e "🔒 ${CYAN}${BOLD}Lock Screen & Monitors:${NC}"
+echo -e "  ${GREEN}${BOLD}Super + L${NC}    : Locks the screen dynamically, rendering widgets ONLY on your"
+echo -e "                 primary 144Hz screen and turning off/blanking the other screen.\n"
+
+echo -e "${BLUE}${BOLD}======================================================================${NC}"
+echo -e "Tip: You can edit or add more commands to this helper by modifying"
+echo -e "     the ${YELLOW}~/.local/share/bin/omar${NC} script."
+echo -e "${BLUE}${BOLD}======================================================================${NC}"
+EOF
+chmod +x "$HOME/.local/share/bin/omar"
+echo -e "${GREEN}omar custom documentation script written.${NC}"
+
 
 
 
