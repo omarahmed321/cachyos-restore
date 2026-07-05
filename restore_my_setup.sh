@@ -2207,6 +2207,15 @@ decoration {
 }
 
 windowrule = opacity 0.80 0.80, match:class ^(antigravity)$
+
+misc {
+    vrr = 1
+    no_direct_scanout = true
+}
+
+animations {
+    animation = workspaces, 1, 3, default, slide
+}
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -3793,12 +3802,12 @@ end
 set -gx EDITOR vim
 
 # Custom eza aliases to hide metadata
-alias l='eza -lh --icons=auto --no-permissions --no-user --no-filesize'
+alias l='eza -lh --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
 alias ls='eza -1 --icons=auto'
-alias ll='eza -lha --icons=auto --sort=name --group-directories-first --no-permissions --no-user --no-filesize'
-alias ld='eza -lhD --icons=auto --no-permissions --no-user --no-filesize'
-alias la='eza -lha --icons=auto --no-permissions --no-user --no-filesize'
-alias lsa='eza -lha --icons=auto --no-permissions --no-user --no-filesize'
+alias ll='eza -lha --icons=auto --sort=name --group-directories-first --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
+alias ld='eza -lhD --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
+alias la='eza -lha --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
+alias lsa='eza -lha --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
 EOF
 
 # --- WRITE ~/.config/yazi/yazi.toml ---
