@@ -2224,7 +2224,7 @@ animations {
 exec-once = cliphist wipe
 
 # Force cursor to primary landscape monitor on startup
-exec-once = ~/.config/hypr/sync_cursor.sh
+exec-once = ~/.config/hypr/warp_cursor.sh
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -2589,8 +2589,8 @@ if command -v hyprctl &>/dev/null && hyprctl monitors &>/dev/null; then
             OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
             [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
             
-            MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}\n"
-            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
+            MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
+            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}"
             
             # Workspace rules for dual-monitor
             WORKSPACE_RULES="# Workspace Rules\n"
@@ -2669,8 +2669,8 @@ if [ -z "$MONITOR_CONFIGS" ]; then
             OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
             [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
             
-            MONITOR_CONFIGS="monitor = ${SIDE_NAME},preferred,0x0,1,transform,${SIDE_TRANSFORM}\n"
-            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},preferred,${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
+            MONITOR_CONFIGS="monitor = ${MAIN_NAME},preferred,${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
+            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},preferred,0x0,1,transform,${SIDE_TRANSFORM}"
             
             WORKSPACE_RULES="# Workspace Rules\n"
             for w in {1..8}; do
@@ -2739,9 +2739,8 @@ if [ -n "$SIDE_NAME" ] && [ -f "$HOME/.config/hypr/monitors.conf" ]; then
             fi
             OFFSET_X=${ROTATED_SIDE_WIDTH}
             
-            # Re-generate MONITOR_CONFIGS with the preserved offsets and transform
-            MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}\n"
-            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
+            MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
+            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}"
         fi
     fi
 fi
@@ -2795,8 +2794,8 @@ if [ -n "$SIDE_NAME" ]; then
                 OFFSET_X=${ROTATED_SIDE_WIDTH}
                 
                 # Rewrite monitors.conf with current offsets and transforms
-                MONITOR_CONFIGS="monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}\n"
-                MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}"
+                MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
+                MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}"
                 
                 cat << MONEOF > "$HOME/.config/hypr/monitors.conf"
 # █▀▄▀█ █▀█ █▄░█ █ ▀█▀ █▀█ █▀█ █▀
@@ -4125,6 +4124,44 @@ if [ -d "/usr/share/sddm/themes/sddm-astronaut-theme" ]; then
 fi
 echo -e "${GREEN}[OK] SDDM Astronaut theme (Jake the Dog variant) configured successfully!${NC}"
 
+# --- CONFIGURE XORG TO IGNORE SECONDARY PORTRAIT MONITOR IN SDDM ---
+echo -e "\n${BLUE}${BOLD}Configuring Xorg to ignore secondary monitor in SDDM...${NC}"
+SECONDARY_MON=$(xrandr 2>/dev/null | grep " connected" | awk '{
+    split($3, res, "[x+]");
+    if (res[1] < res[2]) { # portrait monitor
+        print $1;
+        exit;
+    }
+}')
+if [ -z "$SECONDARY_MON" ]; then
+    PRIMARY_MON=$(xrandr 2>/dev/null | grep " connected" | awk '{
+        split($3, res, "[x+]");
+        if (res[1] > res[2]) {
+            print $1;
+            exit;
+        }
+    }')
+    SECONDARY_MON=$(xrandr 2>/dev/null | grep " connected" | awk -v prim="$PRIMARY_MON" '{
+        if ($1 != prim) {
+            print $1;
+            exit;
+        }
+    }')
+fi
+
+if [ -n "$SECONDARY_MON" ]; then
+    echo -e "${CYAN}Configuring Xorg to ignore secondary monitor $SECONDARY_MON during SDDM startup...${NC}"
+    sudo mkdir -p /etc/X11/xorg.conf.d
+    sudo tee /etc/X11/xorg.conf.d/10-sddm-monitor.conf >/dev/null << XORGEOF
+Section "Monitor"
+    Identifier "$SECONDARY_MON"
+    Option "Ignore" "true"
+EndSection
+XORGEOF
+    echo -e "${GREEN}[OK] Configured Xorg to ignore $SECONDARY_MON successfully!${NC}"
+fi
+
+
 # --- RTL8188EUS USB Wi-Fi Hotspot driver configuration ---
 echo -e "\n${BLUE}${BOLD}Configuring RTL8188EUS USB Wi-Fi driver and blacklisting conflicting drivers...${NC}"
 
@@ -4874,22 +4911,42 @@ EOF
 chmod +x "$HOME/.local/share/bin/lockscreen.sh"
 echo -e "${GREEN}lockscreen wrapper script written.${NC}"
 
-# --- WRITE CURSOR SYNC SCRIPT ---
-echo -e "${CYAN}Writing ~/.config/hypr/sync_cursor.sh...${NC}"
+# --- WRITE CURSOR WARP SCRIPT ---
+echo -e "${CYAN}Writing ~/.config/hypr/warp_cursor.sh...${NC}"
 mkdir -p "$HOME/.config/hypr"
-cat << 'EOF' > "$HOME/.config/hypr/sync_cursor.sh"
+cat << 'EOF' > "$HOME/.config/hypr/warp_cursor.sh"
 #!/usr/bin/env bash
-# sync_cursor.sh - Warp cursor and focus to the monitor with the highest refresh rate (144Hz primary monitor) on startup
+# warp_cursor.sh - Warp mouse cursor exactly to the center of the primary 144Hz monitor on startup
 
 sleep 3
-primary_mon=$(hyprctl monitors -j | jq -r 'sort_by(.refreshRate) | last | .name' 2>/dev/null)
 
-if [ -n "$primary_mon" ]; then
-    hyprctl dispatch focusmonitor "$primary_mon"
+# Get monitors JSON
+monitors_json=$(hyprctl monitors -j 2>/dev/null)
+
+if [ -n "$monitors_json" ]; then
+    # Parse the monitor with the highest refresh rate (primary monitor)
+    mon_info=$(echo "$monitors_json" | jq -r 'sort_by(.refreshRate) | last' 2>/dev/null)
+    
+    if [ -n "$mon_info" ] && [ "$mon_info" != "null" ]; then
+        name=$(echo "$mon_info" | jq -r '.name')
+        x=$(echo "$mon_info" | jq -r '.x')
+        y=$(echo "$mon_info" | jq -r '.y')
+        w=$(echo "$mon_info" | jq -r '.width')
+        h=$(echo "$mon_info" | jq -r '.height')
+        
+        # Calculate center coordinates
+        cx=$(( x + w / 2 ))
+        cy=$(( y + h / 2 ))
+        
+        # Focus monitor and move cursor to exact center
+        hyprctl dispatch focusmonitor "$name"
+        hyprctl dispatch movecursor $cx $cy
+    fi
 fi
 EOF
-chmod +x "$HOME/.config/hypr/sync_cursor.sh"
-echo -e "${GREEN}sync_cursor script written.${NC}"
+chmod +x "$HOME/.config/hypr/warp_cursor.sh"
+echo -e "${GREEN}warp_cursor script written.${NC}"
+
 
 
 
