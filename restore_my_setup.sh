@@ -222,35 +222,6 @@ for svc in bluetooth NetworkManager sddm ananicy-cpp; do
 done
 
 
-# --- ENABLE EARLY KMS FOR SMOOTH FLICKER-FREE BOOT ---
-echo -e "\n${BLUE}${BOLD}Enabling early KMS for smooth, flicker-free display initialization...${NC}"
-if [ -f /etc/mkinitcpio.conf ] && command -v mkinitcpio &>/dev/null; then
-    KMS_MODULES=""
-    if [ "$GPU_VENDOR" = "nvidia" ]; then
-        KMS_MODULES="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
-    elif [ "$GPU_VENDOR" = "amd" ]; then
-        KMS_MODULES="amdgpu"
-    elif [ "$GPU_VENDOR" = "intel" ]; then
-        KMS_MODULES="i915"
-    fi
-    
-    if [ -n "$KMS_MODULES" ]; then
-        echo -e "${CYAN}Adding modules '$KMS_MODULES' to /etc/mkinitcpio.conf...${NC}"
-        sudo cp /etc/mkinitcpio.conf /etc/mkinitcpio.conf.bak
-        if grep -q "^MODULES=(" /etc/mkinitcpio.conf; then
-            sudo sed -i "s/^MODULES=(.*/MODULES=($KMS_MODULES)/" /etc/mkinitcpio.conf
-        else
-            echo "MODULES=($KMS_MODULES)" | sudo tee -a /etc/mkinitcpio.conf >/dev/null
-        fi
-        
-        echo -e "${CYAN}Regenerating initramfs with mkinitcpio...${NC}"
-        sudo mkinitcpio -P
-        echo -e "${GREEN}[OK] Early KMS enabled successfully!${NC}"
-    fi
-else
-    echo -e "${YELLOW}[INFO] mkinitcpio not detected or /etc/mkinitcpio.conf missing. Skipping early KMS configuration.${NC}"
-fi
-
 # 3. Clone and Run HyDE (Hyprdots) Installer
 echo -e "\n${BLUE}${BOLD}[5/5] Deploying HyDE Desktop Environment Framework...${NC}"
 if [ -d "$HOME/hyde" ]; then
@@ -4153,44 +4124,6 @@ if [ -d "/usr/share/sddm/themes/sddm-astronaut-theme" ]; then
     fi
 fi
 echo -e "${GREEN}[OK] SDDM Astronaut theme (Jake the Dog variant) configured successfully!${NC}"
-
-# --- CONFIGURE XORG TO IGNORE SECONDARY PORTRAIT MONITOR IN SDDM ---
-echo -e "\n${BLUE}${BOLD}Configuring Xorg to ignore secondary monitor in SDDM...${NC}"
-SECONDARY_MON=$(xrandr 2>/dev/null | grep " connected" | awk '{
-    split($3, res, "[x+]");
-    if (res[1] < res[2]) { # portrait monitor
-        print $1;
-        exit;
-    }
-}')
-if [ -z "$SECONDARY_MON" ]; then
-    PRIMARY_MON=$(xrandr 2>/dev/null | grep " connected" | awk '{
-        split($3, res, "[x+]");
-        if (res[1] > res[2]) {
-            print $1;
-            exit;
-        }
-    }')
-    SECONDARY_MON=$(xrandr 2>/dev/null | grep " connected" | awk -v prim="$PRIMARY_MON" '{
-        if ($1 != prim) {
-            print $1;
-            exit;
-        }
-    }')
-fi
-
-if [ -n "$SECONDARY_MON" ]; then
-    echo -e "${CYAN}Configuring Xorg to ignore secondary monitor $SECONDARY_MON during SDDM startup...${NC}"
-    sudo mkdir -p /etc/X11/xorg.conf.d
-    sudo tee /etc/X11/xorg.conf.d/10-sddm-monitor.conf >/dev/null << XORGEOF
-Section "Monitor"
-    Identifier "$SECONDARY_MON"
-    Option "Ignore" "true"
-EndSection
-XORGEOF
-    echo -e "${GREEN}[OK] Configured Xorg to ignore $SECONDARY_MON successfully!${NC}"
-fi
-
 
 # --- RTL8188EUS USB Wi-Fi Hotspot driver configuration ---
 echo -e "\n${BLUE}${BOLD}Configuring RTL8188EUS USB Wi-Fi driver and blacklisting conflicting drivers...${NC}"
