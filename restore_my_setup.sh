@@ -222,6 +222,18 @@ for svc in bluetooth NetworkManager sddm ananicy-cpp; do
 done
 
 
+
+# --- CONFIGURE NETWORKMANAGER TO MANAGE WLAN0 (Required for native Hotspot) ---
+if [ -f /etc/NetworkManager/NetworkManager.conf ]; then
+    if grep -q "unmanaged-devices=interface-name:wlan0" /etc/NetworkManager/NetworkManager.conf; then
+        echo -e "${CYAN}Removing wlan0 block from NetworkManager.conf to allow native Hotspot...${NC}"
+        sudo sed -i 's/unmanaged-devices=interface-name:wlan0/# unmanaged-devices=interface-name:wlan0/' /etc/NetworkManager/NetworkManager.conf
+        if systemctl is-active --quiet NetworkManager; then
+            sudo systemctl restart NetworkManager
+        fi
+    fi
+fi
+
 # 3. Clone and Run HyDE (Hyprdots) Installer
 echo -e "\n${BLUE}${BOLD}[5/5] Deploying HyDE Desktop Environment Framework...${NC}"
 if [ -d "$HOME/hyde" ]; then
