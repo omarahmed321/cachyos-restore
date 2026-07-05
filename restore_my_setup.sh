@@ -4760,6 +4760,68 @@ if [ -f "$SWWWALLBASH_BIN" ]; then
         echo "wal -i \"\${wallbashImg}\"" >> "$SWWWALLBASH_BIN"
     fi
 fi
+
+# --- WRITE ADDWALLPAPER SCRIPT ---
+echo -e "${CYAN}Writing ~/.local/share/bin/addwallpaper...${NC}"
+mkdir -p "$HOME/.local/share/bin"
+cat << 'EOF' > "$HOME/.local/share/bin/addwallpaper"
+#!/usr/bin/env bash
+# addwallpaper - Add wallpapers to the active theme
+
+# Get current theme
+hydeTheme=$(grep '^hydeTheme=' "$HOME/.config/hyde/hyde.conf" | cut -d'"' -f2)
+if [ -z "$hydeTheme" ]; then
+    hydeTheme="Nordic Blue"
+fi
+
+DEST_DIR="$HOME/.config/hyde/themes/${hydeTheme}/wallpapers"
+mkdir -p "$DEST_DIR"
+
+files=()
+
+if [ $# -gt 0 ]; then
+    for arg in "$@"; do
+        if [ -f "$arg" ]; then
+            files+=("$arg")
+        else
+            echo "Error: File '$arg' does not exist."
+        fi
+    done
+else
+    # Use zenity to pick files
+    picked=$(zenity --file-selection --multiple --file-filter="Images (png, jpg, jpeg, gif) | *.png *.jpg *.jpeg *.gif" --title="Select Wallpapers to Add" 2>/dev/null)
+    if [ -n "$picked" ]; then
+        # Zenity returns files separated by '|'
+        IFS='|' read -ra ADDR <<< "$picked"
+        for file in "${ADDR[@]}"; do
+            if [ -f "$file" ]; then
+                files+=("$file")
+            fi
+        done
+    fi
+fi
+
+if [ ${#files[@]} -eq 0 ]; then
+    echo "No wallpapers selected."
+    exit 0
+fi
+
+for f in "${files[@]}"; do
+    filename=$(basename "$f")
+    cp "$f" "$DEST_DIR/$filename"
+    echo "Added '$filename' to $hydeTheme wallpapers."
+    last_added="$DEST_DIR/$filename"
+done
+
+# Apply the last added wallpaper
+if [ -n "$last_added" ]; then
+    echo "Applying new wallpaper: $(basename "$last_added")"
+    swwwallpaper.sh -s "$last_added"
+fi
+EOF
+chmod +x "$HOME/.local/share/bin/addwallpaper"
+echo -e "${GREEN}addwallpaper utility script written.${NC}"
+
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
 echo -e "${GREEN}${BOLD}   CONGRATULATIONS! System Restoration is Complete!                  ${NC}"
 echo -e "${GREEN}${BOLD}======================================================================${NC}"
