@@ -4045,7 +4045,8 @@ mkdir -p "$HOME/.config/fastfetch"
 if [ ! -f "$HOME/.config/fastfetch/tasks.txt" ]; then
     cat << 'EOF' > "$HOME/.config/fastfetch/tasks.txt"
 - Finish system setup
-- Customize your desktop
+- Use commands: todo, doing, done <task>
+- Enjoy the beautiful setup!
 EOF
 fi
 
