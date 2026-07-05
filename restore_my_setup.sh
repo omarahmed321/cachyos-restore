@@ -2219,6 +2219,9 @@ render {
 animations {
     animation = workspaces, 1, 3, default, slide
 }
+
+# Wipe clipboard history on startup to prevent database bloat
+exec-once = cliphist wipe
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -3480,6 +3483,7 @@ tooltip {
 #custom-cava,
 #custom-cliphist,
 #clock,
+#custom-prayer,
 #custom-cpuinfo,
 #cpu,
 #custom-github_hyprdots,
