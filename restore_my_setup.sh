@@ -4499,6 +4499,93 @@ if __name__ == "__main__":
 EOF
 chmod +x "$HOME/.local/share/bin/manage_tasks.py"
 
+# --- WRITE BGAPPS SCRIPTS (window switcher helper) ---
+echo -e "${CYAN}Writing ~/.local/share/bin/bgapps.sh...${NC}"
+mkdir -p "$HOME/.local/share/bin"
+cat << 'EOF' > "$HOME/.local/share/bin/bgapps.sh"
+#!/usr/bin/env python3
+"""Shows running Hyprland windows as icons for waybar."""
+import json, subprocess
+
+ICONS = {
+    "firefox": "󰈹", "firefox-esr": "󰈹", "chromium": "󰊯",
+    "google-chrome": "󰊯", "brave-browser": "󰖟", "antigravity": "󱪞",
+    "code": "󰨞", "code-oss": "󰨞", "vscodium": "󰨞", "discord": "󰙯",
+    "telegram-desktop": "󰔁", "spotify": "󰓇", "steam": "󰓓",
+    "nautilus": "󰉋", "thunar": "󰉋", "dolphin": "󰉋",
+    "kitty": "", "alacritty": "", "foot": "", "wezterm": "",
+    "obsidian": "󰂺", "gimp": "", "vlc": "󰕼", "mpv": "󰎁",
+    "pavucontrol": "󰕾", "libreoffice": "󰻫", "soffice": "󰻫",
+    "zoom": "󰹿", "slack": "󰒱", "bitwarden": "󰌾",
+}
+DEFAULT_ICON = "󰣆"
+
+try:
+    result = subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, text=True, timeout=2)
+    clients = json.loads(result.stdout)
+except Exception:
+    print(""); exit(0)
+
+if not clients:
+    print(""); exit(0)
+
+icons = [ICONS.get(c.get("class", "").lower(), DEFAULT_ICON) for c in clients]
+print(" ".join(icons))
+EOF
+
+cat << 'EOF' > "$HOME/.local/share/bin/bgapps_pick.sh"
+#!/usr/bin/env python3
+"""Rofi picker for running Hyprland windows. Use: Super+Tab"""
+import json, subprocess, sys
+
+ICONS = {
+    "firefox": "󰈹", "firefox-esr": "󰈹", "chromium": "󰊯",
+    "google-chrome": "󰊯", "brave-browser": "󰖟", "antigravity": "󱪞",
+    "code": "󰨞", "code-oss": "󰨞", "vscodium": "󰨞", "discord": "󰙯",
+    "telegram-desktop": "󰔁", "spotify": "󰓇", "steam": "󰓓",
+    "nautilus": "󰉋", "thunar": "󰉋", "dolphin": "󰉋",
+    "kitty": "", "alacritty": "", "foot": "", "wezterm": "",
+    "obsidian": "󰂺", "gimp": "", "vlc": "󰕼", "mpv": "󰎁",
+    "pavucontrol": "󰕾", "libreoffice": "󰻫", "soffice": "󰻫",
+    "zoom": "󰹿", "slack": "󰒱", "bitwarden": "󰌾",
+}
+DEFAULT_ICON = "󰣆"
+
+try:
+    result = subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, text=True, timeout=2)
+    clients = json.loads(result.stdout)
+except Exception:
+    sys.exit(0)
+
+if not clients:
+    sys.exit(0)
+
+entries, addresses = [], []
+for c in clients:
+    cls = c.get("class", "")
+    title = c.get("title", cls)[:50]
+    icon = ICONS.get(cls.lower(), DEFAULT_ICON)
+    entries.append(f"{icon}  {cls}  —  {title}")
+    addresses.append(c.get("address", ""))
+
+result = subprocess.run(
+    ["rofi", "-dmenu", "-i", "-p", "Switch to",
+     "-theme-str", "window { width: 50%; } listview { lines: 8; }",
+     "-font", "JetBrainsMono Nerd Font 12"],
+    input="\n".join(entries), capture_output=True, text=True
+)
+
+chosen = result.stdout.strip()
+for i, entry in enumerate(entries):
+    if entry == chosen:
+        subprocess.run(["hyprctl", "dispatch", "focuswindow", f"address:{addresses[i]}"])
+        break
+EOF
+
+chmod +x "$HOME/.local/share/bin/bgapps.sh" "$HOME/.local/share/bin/bgapps_pick.sh"
+echo -e "${GREEN}bgapps scripts written.${NC}"
+echo -e "${YELLOW}TIP: Use Super+Tab to switch between background apps via rofi${NC}"
+
 # --- WRITE PRAYER TIMES SCRIPT ---
 echo -e "${CYAN}Writing ~/.local/share/bin/prayer_times.py...${NC}"
 mkdir -p "$HOME/.local/share/bin"
