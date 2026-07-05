@@ -3810,6 +3810,20 @@ done() {
     python3 ~/.local/share/bin/manage_tasks.py done "$*"
     fastfetch
 }
+
+rmtask() {
+    python3 ~/.local/share/bin/manage_tasks.py remove "$*"
+    fastfetch
+}
+
+edittask() {
+    local editor_cmd=${EDITOR:-nano}
+    if ! command -v "$editor_cmd" &> /dev/null; then
+        editor_cmd="vi"
+    fi
+    $editor_cmd ~/.config/fastfetch/tasks.txt
+    fastfetch
+}
 EOF
 
 # --- WRITE ~/.config/fish/config.fish ---
@@ -3845,6 +3859,26 @@ end
 
 function done
     python3 ~/.local/share/bin/manage_tasks.py done "$argv"
+    fastfetch
+end
+
+function rmtask
+    python3 ~/.local/share/bin/manage_tasks.py remove "$argv"
+    fastfetch
+end
+
+function edittask
+    set -l editor_cmd $EDITOR
+    if test -z "$editor_cmd"
+        if type -q nano
+            set editor_cmd nano
+        else if type -q vim
+            set editor_cmd vim
+        else
+            set editor_cmd vi
+        end
+    end
+    eval $editor_cmd ~/.config/fastfetch/tasks.txt
     fastfetch
 end
 EOF
@@ -4024,7 +4058,7 @@ cat << 'EOF' > "$HOME/.config/fastfetch/config.jsonc"
       "type": "command",
       "key": "  Todo",
       "keyColor": "cyan",
-      "text": "cat ~/.config/fastfetch/tasks.txt 2>/dev/null || echo 'No active tasks'"
+      "text": "cat ~/.config/fastfetch/tasks.txt 2>/dev/null | sed '2,99s/^/                                     /'"
     },
     {
       "type": "custom",
