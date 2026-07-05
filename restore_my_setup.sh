@@ -2210,7 +2210,10 @@ windowrule = opacity 0.80 0.80, match:class ^(antigravity)$
 
 misc {
     vrr = 1
-    no_direct_scanout = true
+}
+
+render {
+    direct_scanout = false
 }
 
 animations {
@@ -3243,7 +3246,7 @@ cat << 'EOF' > "$HOME/.config/waybar/config.jsonc"
 
     "custom/prayer": {
         "format": "{}",
-        "exec": "/home/omar/.local/share/bin/prayer_times.py",
+        "exec": "$HOME/.local/share/bin/prayer_times.py",
         "interval": 60,
         "tooltip": false
     },
@@ -3737,12 +3740,12 @@ function in {
 
 # Helpful aliases
 alias c='clear' # clear terminal
-alias l='eza -lh --icons=auto --no-permissions --no-user --no-filesize' # long list
+alias l='eza -lh --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"' # long list
 alias ls='eza -1 --icons=auto' # short list
-alias ll='eza -lha --icons=auto --sort=name --group-directories-first --no-permissions --no-user --no-filesize' # long list all
-alias ld='eza -lhD --icons=auto --no-permissions --no-user --no-filesize' # long list dirs
-alias la='eza -lha --icons=auto --no-permissions --no-user --no-filesize'
-alias lsa='eza -lha --icons=auto --no-permissions --no-user --no-filesize'
+alias ll='eza -lha --icons=auto --sort=name --group-directories-first --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"' # long list all
+alias ld='eza -lhD --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"' # long list dirs
+alias la='eza -lha --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
+alias lsa='eza -lha --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
 alias lt='eza --icons=auto --tree' # list folder as tree
 alias un='$aurhelper -Rns' # uninstall package
 alias up='$aurhelper -Syu' # update system/package/aur
@@ -3867,7 +3870,7 @@ cat << 'EOF' > "$HOME/.config/fastfetch/config.jsonc"
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
-    "source": "/home/omar/.config/fastfetch/logo.txt",
+    "source": "~/.config/fastfetch/logo.txt",
     "width": 1,
     "padding": {
       "top": 2
@@ -4268,7 +4271,7 @@ general {
 
 background {
     monitor =
-    path = /home/omar/.config/hyde/themes/Gruvbox Retro/wallpapers/background_for_me.jpg
+    path = ~/.config/hyde/themes/Gruvbox Retro/wallpapers/background_for_me.jpg
     blur_passes = 3
     blur_size = 8
     noise = 0.0117
@@ -4437,9 +4440,28 @@ sudo tee /usr/share/sddm/scripts/Xsetup >/dev/null << 'XSEOF'
 #!/bin/sh
 # Xsetup - run as root before the login dialog appears
 
-# 1. Configure monitors (turn off secondary DP-1, keep main DP-2)
-if xrandr | grep -q "DP-2 connected" && xrandr | grep -q "DP-1 connected"; then
-    xrandr --output DP-2 --auto --primary --output DP-1 --off
+# 1. Configure monitors dynamically (keep landscape primary monitor, turn off others)
+CONNECTED_MONITORS=$(xrandr | grep " connected" | awk '{print $1}')
+MONITOR_COUNT=$(echo "$CONNECTED_MONITORS" | wc -l)
+if [ "$MONITOR_COUNT" -gt 1 ]; then
+    PRIMARY_MONITOR=$(xrandr | grep " connected" | awk '{
+        split($3, res, "[x+]");
+        if (res[1] > res[2]) {
+            print $1;
+            exit;
+        }
+    }')
+    if [ -z "$PRIMARY_MONITOR" ]; then
+        PRIMARY_MONITOR=$(echo "$CONNECTED_MONITORS" | head -n 1)
+    fi
+    
+    XRANDR_CMD="xrandr --output $PRIMARY_MONITOR --auto --primary"
+    for mon in $CONNECTED_MONITORS; do
+        if [ "$mon" != "$PRIMARY_MONITOR" ]; then
+            XRANDR_CMD="$XRANDR_CMD --output $mon --off"
+        fi
+    done
+    eval "$XRANDR_CMD"
 fi
 
 # 2. Set mouse sensitivity and flat acceleration profile
@@ -4449,7 +4471,9 @@ for id in $(xinput list --id-only 2>/dev/null); do
 done
 
 # 3. Start gammastep for SDDM night light
-CONF="/home/omar/.config/hypr/nightlight.conf"
+PRIMARY_USER=$(awk -F: '$3 >= 1000 && $3 < 60000 {print $1}' /etc/passwd | head -n 1)
+PRIMARY_HOME=$(getent passwd "$PRIMARY_USER" | cut -d: -f6)
+CONF="$PRIMARY_HOME/.config/hypr/nightlight.conf"
 TEMP=3500
 ENABLED=true
 
