@@ -4318,37 +4318,13 @@ browser,
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease !important;
 }
 
-/* When focused (Ctrl+L), slide the Zen navbar down into view smoothly */
+/* Revert background styles of nav-bar when active to transparent to prevent layout backgrounds */
 #zen-appcontent-navbar-container:focus-within {
     transform: translateY(0) !important;
     opacity: 1 !important;
     pointer-events: auto !important;
-    background: #090a09 !important; /* Dark theme background when active */
-}
-
-/* By default, push the urlbar itself off-screen and make it transparent so it never shows at the top left */
-#urlbar:not([focused="true"]):not([breakout-extend="true"]) {
-    opacity: 0 !important;
-    pointer-events: none !important;
-    transform: translateY(-200px) !important;
-}
-
-/* Revert the translation and make urlbar visible when focused or active */
-#urlbar[focused="true"],
-#urlbar[breakout-extend="true"] {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    transform: none !important; /* Reset transform to let native centering/floating style take effect */
-}
-
-/* Restrict the floating urlbar to a clean, centered width so it never stretches full-width */
-#urlbar[focused="true"],
-#urlbar[breakout-extend="true"],
-#urlbar[zen-floating-urlbar="true"] {
-    width: 680px !important;
-    max-width: 90vw !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 /* Ensure only the search bar and its dropdown results are visible when focused */
