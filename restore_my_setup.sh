@@ -4283,15 +4283,15 @@ browser,
     outline: none !important;
 }
 
-/* Hide navigator toolbox by default. It takes 0px height and is fully invisible. */
+/* Hide navigator toolbox by default (opacity 0, pointer-events none). It keeps its normal height so children remain focusable. */
 #navigator-toolbox {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 0px !important;
-    min-height: 0px !important;
-    overflow: visible !important; /* Allow centered urlbar to escape the 0px container */
+    height: 40px !important;
+    min-height: 40px !important;
+    overflow: visible !important; /* Allow centered urlbar to escape the container */
     z-index: 10000 !important;
     opacity: 0 !important;
     pointer-events: none !important;
@@ -4299,25 +4299,18 @@ browser,
     box-shadow: none !important;
     background: transparent !important;
     background-color: transparent !important;
+    transition: opacity 0.15s ease !important;
 }
 
-/* When focused (Ctrl+L), allow pointer events and show children, but keep height at 0px to prevent layout shift */
+/* When focused (Ctrl+L), display the toolbox containing the focused search bar */
 #navigator-toolbox:focus-within {
     opacity: 1 !important;
     pointer-events: auto !important;
-    height: 0px !important;
-    min-height: 0px !important;
     background: transparent !important;
     background-color: transparent !important;
 }
 
-/* By default, hide the urlbar visually but keep it focusable (do NOT use display:none or visibility:hidden) */
-#urlbar:not([focused="true"]) {
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-/* When focused (Ctrl+L), center the search bar as a floating popup in the middle of the viewport */
+/* When focused (Ctrl+L), center the search bar as a floating popup at the top of the viewport always */
 #urlbar[focused="true"],
 #urlbar[breakout-extend="true"] {
     display: block !important;
@@ -4325,9 +4318,9 @@ browser,
     opacity: 1 !important;
     pointer-events: auto !important;
     position: fixed !important;
-    top: 20% !important; /* Centered in the top-middle area of the screen */
+    top: 10px !important; /* Stay at the top of the screen always, never jump to the middle */
     left: 50% !important;
-    transform: translate(-50%, -50%) !important;
+    transform: translateX(-50%) !important;
     width: 680px !important;
     max-width: 90vw !important;
     z-index: 100000 !important;
