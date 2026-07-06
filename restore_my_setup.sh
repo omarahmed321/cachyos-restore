@@ -4403,27 +4403,30 @@ browser,
     visibility: collapse !important;
 }
 
-/* Sidebar hover effect: collapsed by default, expands to show tabs and close buttons on hover */
-#zen-sidebar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    height: 100% !important;
-    width: 10px !important; /* Extremely thin trigger area */
-    max-width: 10px !important;
-    min-width: 10px !important;
-    z-index: 10000 !important;
-    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease !important;
-    opacity: 0.02 !important; /* Almost invisible until hovered */
-    background-color: #090a09 !important;
+/* Hide sidebar and workspace panels by default when not expanded */
+:root:not([zen-sidebar-expanded="true"]) #zen-sidebar,
+:root:not([zen-sidebar-expanded="true"]) #zen-workspaces-wrapper,
+:root:not([zen-sidebar-expanded="true"]) #zen-workspaces-button,
+:root:not([zen-sidebar-expanded="true"]) .zen-current-workspace-indicator,
+:root:not([zen-sidebar-expanded="true"]) vbox.zen-workspace-tabs-section {
+    display: none !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
     overflow: hidden !important;
+    visibility: collapse !important;
+    opacity: 0 !important;
 }
 
-#zen-sidebar:hover {
-    width: 240px !important; /* Expand to normal sidebar width */
+/* When expanded via shortcut (Ctrl+Alt+S), show the sidebar cleanly */
+:root[zen-sidebar-expanded="true"] #zen-sidebar {
+    display: flex !important;
+    visibility: visible !important;
+    width: 240px !important;
     max-width: 240px !important;
     min-width: 240px !important;
     opacity: 1 !important;
+    background-color: #090a09 !important;
 }
 
 /* Hide status panel / status bar */
