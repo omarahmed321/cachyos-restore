@@ -2237,7 +2237,7 @@ animations {
 exec-once = cliphist wipe
 
 # Zen Browser - Zero UI / Frameless
-windowrule = opacity 0.90 0.90, match:class ^(zen)$
+windowrule = opacity 0.70 0.70, match:class ^(zen)$
 windowrule = border_size 0, match:class ^(zen)$
 EOF
 
