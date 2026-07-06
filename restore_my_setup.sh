@@ -2236,6 +2236,10 @@ animations {
 # Wipe clipboard history on startup to prevent database bloat
 exec-once = cliphist wipe
 
+# Zen Browser Glassy Mode Rules
+windowrulev2 = opacity 0.60 0.60, class:^(zen)$
+windowrulev2 = blur, class:^(zen)$
+windowrulev2 = ignorealpha 0.60, class:^(zen)$
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -2281,6 +2285,7 @@ bind = $mainMod, F, exec, $browser # launch web browser
 bind = Ctrl+Shift, Escape, exec, $scrPath/sysmonlaunch.sh # launch system monitor (htop/btop or fallback to top)
 
 # Rofi menus
+bindr = SUPER, Super_L, exec, pkill -x rofi || $scrPath/rofilaunch.sh d # launch application launcher using Super key alone
 bind = $mainMod, A, exec, pkill -x rofi || $scrPath/rofilaunch.sh d # launch application launcher
 bind = $mainMod, Tab, exec, pkill -x rofi || $scrPath/rofilaunch.sh w # launch window switcher
 bind = $mainMod+Shift, E, exec, pkill -x rofi || $scrPath/rofilaunch.sh f # launch file explorer
@@ -4238,6 +4243,107 @@ if [ -f "$HOME/.config/hypr/themes/common.conf" ]; then
 fi
 
 
+
+
+# --- CONFIGURE GLASSY ZEN BROWSER CUSTOM THEME ---
+echo -e "\n${BLUE}${BOLD}Configuring Glassy/Transparent Zen Browser profile UI...${NC}"
+ZEN_PROFILE_DIR=$(find "$HOME/.config/zen" -maxdepth 1 -type d -name "*.Default*" 2>/dev/null | head -n 1)
+if [ -n "$ZEN_PROFILE_DIR" ]; then
+    echo -e "Found Zen Browser profile: ${CYAN}$ZEN_PROFILE_DIR${NC}"
+    mkdir -p "$ZEN_PROFILE_DIR/chrome"
+    cat << 'ZENCHROME' > "$ZEN_PROFILE_DIR/chrome/userChrome.css"
+/*
+ * Zen Browser Clean Glassy UI
+ * Hides tabs and address bar by default, showing them on hover.
+ * Transparent window background.
+ */
+
+/* 1. Fully transparent background */
+:root,
+#main-window,
+#browser,
+browser,
+#appcontent,
+.browserSidebarContainer,
+#tabbrowser-tabpanels,
+.deck-selected {
+    background-color: transparent !important;
+    background: transparent !important;
+}
+
+/* 2. Auto-hide the top bar (navigator toolbox) */
+#navigator-toolbox {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    transition: transform 0.2s ease-in-out !important;
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
+#navigator-toolbox:hover,
+#navigator-toolbox:focus-within {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Add a tiny hover zone at the top of the window */
+#navigator-toolbox::after {
+    content: "";
+    position: absolute;
+    bottom: -15px;
+    left: 0;
+    width: 100%;
+    height: 15px;
+    background: transparent;
+    cursor: pointer;
+}
+
+/* 3. Auto-hide the sidebar (Zen vertical tabs) */
+#sidebar-box {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 99;
+    transition: transform 0.2s ease-in-out !important;
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+#sidebar-box:hover {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* Add a tiny hover zone on the left edge */
+#sidebar-box::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -15px;
+    width: 15px;
+    height: 100%;
+    background: transparent;
+    cursor: pointer;
+}
+ZENCHROME
+
+    # Enable legacy stylesheets option in prefs.js
+    PREFS_FILE="$ZEN_PROFILE_DIR/prefs.js"
+    if [ -f "$PREFS_FILE" ]; then
+        if grep -q "toolkit.legacyUserProfileCustomizations.stylesheets" "$PREFS_FILE"; then
+            sed -i 's/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets",.*/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);/' "$PREFS_FILE"
+        else
+            echo 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' >> "$PREFS_FILE"
+        fi
+    fi
+    echo -e "${GREEN}[OK] Glassy Zen Browser profile configurations applied successfully!${NC}"
+else
+    echo -e "${YELLOW}[INFO] No Zen Browser profile found in ~/.config/zen/. Skipping configuration.${NC}"
+fi
 
 # 5. Apply Settings and Refresh
 echo -e "\n${BLUE}${BOLD}Refreshing themes, icon caches, and font caches...${NC}"
