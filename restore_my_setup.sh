@@ -4283,8 +4283,37 @@ browser,
     outline: none !important;
 }
 
-/* Completely and unconditionally hide the entire top navigator toolbox (search bar, URL bar, top strip) */
-#navigator-toolbox,
+/* Hide navigator toolbox by default and expand ONLY on focus (Ctrl+L) */
+#navigator-toolbox {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 0px !important;
+    min-height: 0px !important;
+    overflow: hidden !important;
+    z-index: 10000 !important;
+    transition: opacity 0.15s ease, height 0.15s ease !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* When focused (Ctrl+L), display the clean floating search bar container */
+#navigator-toolbox:focus-within {
+    height: 60px !important;
+    min-height: 60px !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Ensure only the search bar and its dropdown results are visible when focused */
 #urlbar,
 #urlbar-container,
 #urlbar-input-container,
@@ -4295,12 +4324,31 @@ browser,
 .urlbarView-results,
 .urlbarView-row,
 #urlbar-input {
-    display: none !important;
-    visibility: collapse !important;
-    height: 0 !important;
-    min-height: 0 !important;
+    visibility: visible !important;
     border: none !important;
     box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Center and style the floating search bar in the middle of the screen */
+#urlbar-container {
+    width: 600px !important;
+    max-width: 90vw !important;
+    margin: 10px auto 0 auto !important;
+}
+
+#urlbar {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+#urlbar-background {
+    background-color: rgba(20, 20, 20, 0.9) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Hide the little title separator */
