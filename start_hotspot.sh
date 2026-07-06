@@ -184,14 +184,19 @@ echo -e "${CYAN}[*] Stopping any conflicting services...${NC}"
 killall -9 create_ap dnsmasq hostapd haveged 2>/dev/null || true
 sleep 1
 
-echo -e "${CYAN}[*] Disabling Wi-Fi Power Saving on $WIFI_INT...${NC}"
-iw dev "$WIFI_INT" set power_save off 2>/dev/null || true
+echo -e "${CYAN}[*] Setting regulatory domain to EG (Egypt) for maximum signal power...${NC}"
+iw reg set EG 2>/dev/null || true
+sleep 1
 
-echo -e "${GREEN}[+] Starting Hotspot... (Press Ctrl+C to stop)${NC}"
+echo -e "${CYAN}[*] Disabling Wi-Fi Power Saving and setting txpower to MAX...${NC}"
+iw dev "$WIFI_INT" set power_save off 2>/dev/null || true
+iw dev "$WIFI_INT" set txpower limit 3000 2>/dev/null || true
+
+echo -e "${GREEN}[+] Starting Hotspot in High-Speed 802.11n mode... (Press Ctrl+C to stop)${NC}"
 echo -e "${CYAN}----------------------------------------------------${NC}"
 
 # Run create_ap in the background so the trap can catch signals
-create_ap --no-virt -c "$CHANNEL" "$WIFI_INT" "$INTERNET_INT" "$SSID" "$PASSPHRASE" &
+create_ap --no-virt --ieee80211n -c "$CHANNEL" "$WIFI_INT" "$INTERNET_INT" "$SSID" "$PASSPHRASE" &
 CREATE_AP_PID=$!
 
 # Wait for create_ap to finish
