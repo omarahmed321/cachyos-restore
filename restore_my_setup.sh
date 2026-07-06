@@ -4330,6 +4330,23 @@ browser,
     display: none !important;
 }
 
+/* Hide all buttons/page-actions on the right side of the URL bar (including split view, workspaces, reader, bookmarks, etc.) */
+#page-action-buttons,
+#zen-split-views-box,
+.urlbar-page-action,
+#reader-mode-button,
+#star-button,
+#shopping-sidebar-button,
+#zen-current-workspace-indicator-container,
+#zen-workspaces-button {
+    display: none !important;
+    visibility: collapse !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
 /* Style the search bar input text to be bold, high contrast, and clear */
 #urlbar-input {
     font-size: 18px !important;
