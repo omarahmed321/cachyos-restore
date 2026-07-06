@@ -4283,7 +4283,7 @@ browser,
     outline: none !important;
 }
 
-/* Hide navigator toolbox by default and expand ONLY on focus (Ctrl+L) */
+/* Hide navigator toolbox by default. It takes 0px height and is fully invisible. */
 #navigator-toolbox {
     position: fixed !important;
     top: 0 !important;
@@ -4291,9 +4291,8 @@ browser,
     width: 100% !important;
     height: 0px !important;
     min-height: 0px !important;
-    overflow: hidden !important;
+    overflow: visible !important; /* Allow centered urlbar to escape the 0px container */
     z-index: 10000 !important;
-    transition: opacity 0.15s ease, height 0.15s ease !important;
     opacity: 0 !important;
     pointer-events: none !important;
     border: none !important;
@@ -4302,15 +4301,51 @@ browser,
     background-color: transparent !important;
 }
 
-/* When focused (Ctrl+L), display the clean floating search bar container */
+/* When focused (Ctrl+L), allow pointer events and show children, but keep height at 0px to prevent layout shift */
 #navigator-toolbox:focus-within {
-    height: 60px !important;
-    min-height: 60px !important;
-    overflow: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
+    height: 0px !important;
+    min-height: 0px !important;
     background: transparent !important;
     background-color: transparent !important;
+}
+
+/* By default, hide the urlbar completely when not focused to prevent it from showing at the top */
+#urlbar:not([focused="true"]) {
+    display: none !important;
+    visibility: collapse !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* When focused (Ctrl+L), center the search bar as a floating popup in the middle of the viewport */
+#urlbar[focused="true"],
+#urlbar[breakout-extend="true"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: 20% !important; /* Centered in the top-middle area of the screen */
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 680px !important;
+    max-width: 90vw !important;
+    z-index: 100000 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+#urlbar[focused="true"] #urlbar-background,
+#urlbar[breakout-extend="true"] #urlbar-background {
+    background-color: rgba(20, 20, 20, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8) !important;
 }
 
 /* Ensure only the search bar and its dropdown results are visible when focused */
@@ -4324,7 +4359,6 @@ browser,
 .urlbarView-results,
 .urlbarView-row,
 #urlbar-input {
-    visibility: visible !important;
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
