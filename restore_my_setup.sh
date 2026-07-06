@@ -4532,12 +4532,12 @@ user_pref("zen.tabs.show-newtab-vertical", false);
 // New tab = blank page
 user_pref("browser.newtabpage.enabled", false);
 user_pref("browser.startup.homepage", "about:blank");
-user_pref("browser.startup.page", 3);
+user_pref("browser.startup.page", 1);
 user_pref("zen.urlbar.replace-newtab", false);
 
-// Enable session restore
-user_pref("browser.sessionstore.resume_session_once", true);
-user_pref("browser.sessionstore.resume_from_crash", true);
+// Disable session restore
+user_pref("browser.sessionstore.resume_session_once", false);
+user_pref("browser.sessionstore.resume_from_crash", false);
 
 // Font optimizations - increase default/minimum size for better visibility
 user_pref("font.size.variable.x-western", 18);
