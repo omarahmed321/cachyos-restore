@@ -4301,44 +4301,33 @@ browser,
     background-color: transparent !important;
 }
 
-/* Hide the Zen navbar container off-screen by default using a negative Y translation */
+/* Hide the Zen navbar container off-screen using top coordinate instead of transform.
+   This prevents creating a containing block for fixed-position descendants like the floating search bar. */
 #zen-appcontent-navbar-container {
     position: fixed !important;
-    top: 0 !important;
+    top: -150px !important; /* Pushed completely out of the screen using top coordinate */
     left: 0 !important;
     width: 100% !important;
+    height: 0px !important;
+    min-height: 0px !important;
+    overflow: visible !important;
     z-index: 10000 !important;
-    transform: translateY(-300px) !important; /* Pushed completely out of the screen */
     opacity: 0 !important;
     pointer-events: none !important;
     border: none !important;
     box-shadow: none !important;
     background: transparent !important;
     background-color: transparent !important;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease !important;
+    transition: top 0.2s ease, opacity 0.15s ease !important;
 }
 
-/* When focused (Ctrl+L), slide the Zen navbar container back into position */
+/* When focused (Ctrl+L), slide the Zen navbar container back into position via top coordinate */
 #zen-appcontent-navbar-container:focus-within {
-    transform: translateY(0) !important;
+    top: 0 !important;
     opacity: 1 !important;
     pointer-events: auto !important;
     background: transparent !important;
     background-color: transparent !important;
-}
-
-/* Push the urlbar itself way off-screen when not focused to completely hide it from the top-left */
-#urlbar:not([focused="true"]):not([breakout-extend="true"]) {
-    transform: translateY(-300px) !important; /* Push it completely off-screen */
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-/* When active, show the urlbar, but do NOT override its transform so native floating centering works */
-#urlbar[focused="true"],
-#urlbar[breakout-extend="true"] {
-    opacity: 1 !important;
-    pointer-events: auto !important;
 }
 
 /* Ensure only the search bar and its dropdown results are visible when focused */
