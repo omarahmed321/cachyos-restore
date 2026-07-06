@@ -4308,7 +4308,7 @@ browser,
     left: 0 !important;
     width: 100% !important;
     z-index: 10000 !important;
-    transform: translateY(-120px) !important; /* Pushed completely out of the screen */
+    transform: translateY(-300px) !important; /* Pushed completely out of the screen */
     opacity: 0 !important;
     pointer-events: none !important;
     border: none !important;
@@ -4318,13 +4318,27 @@ browser,
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease !important;
 }
 
-/* Revert background styles of nav-bar when active to transparent to prevent layout backgrounds */
+/* When focused (Ctrl+L), slide the Zen navbar container back into position */
 #zen-appcontent-navbar-container:focus-within {
     transform: translateY(0) !important;
     opacity: 1 !important;
     pointer-events: auto !important;
     background: transparent !important;
     background-color: transparent !important;
+}
+
+/* Push the urlbar itself way off-screen when not focused to completely hide it from the top-left */
+#urlbar:not([focused="true"]):not([breakout-extend="true"]) {
+    transform: translateY(-300px) !important; /* Push it completely off-screen */
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* When active, show the urlbar, but do NOT override its transform so native floating centering works */
+#urlbar[focused="true"],
+#urlbar[breakout-extend="true"] {
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }
 
 /* Ensure only the search bar and its dropdown results are visible when focused */
