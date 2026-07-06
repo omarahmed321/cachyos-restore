@@ -4380,6 +4380,16 @@ browser,
     background-color: transparent !important;
 }
 
+/* Strip borders, shadows, and outlines from all children inside the top bar to kill any residual lines */
+#navigator-toolbox *,
+#nav-bar *,
+#titlebar *,
+#TabsToolbar * {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
 /* Hide all toolbar buttons to keep it clean */
 #back-button,
 #forward-button,
@@ -4404,11 +4414,11 @@ browser,
 }
 
 /* Hide sidebar and workspace panels by default when not expanded */
-:root:not([zen-sidebar-expanded="true"]) #zen-sidebar,
-:root:not([zen-sidebar-expanded="true"]) #zen-workspaces-wrapper,
-:root:not([zen-sidebar-expanded="true"]) #zen-workspaces-button,
-:root:not([zen-sidebar-expanded="true"]) .zen-current-workspace-indicator,
-:root:not([zen-sidebar-expanded="true"]) vbox.zen-workspace-tabs-section {
+:root:not(:has(#navigator-toolbox[zen-expanded="true"])) #zen-sidebar,
+:root:not(:has(#navigator-toolbox[zen-expanded="true"])) #zen-workspaces-wrapper,
+:root:not(:has(#navigator-toolbox[zen-expanded="true"])) #zen-workspaces-button,
+:root:not(:has(#navigator-toolbox[zen-expanded="true"])) .zen-current-workspace-indicator,
+:root:not(:has(#navigator-toolbox[zen-expanded="true"])) vbox.zen-workspace-tabs-section {
     display: none !important;
     width: 0 !important;
     max-width: 0 !important;
@@ -4419,7 +4429,7 @@ browser,
 }
 
 /* When expanded via shortcut (Ctrl+Alt+S), show the sidebar cleanly */
-:root[zen-sidebar-expanded="true"] #zen-sidebar {
+:root:has(#navigator-toolbox[zen-expanded="true"]) #zen-sidebar {
     display: flex !important;
     visibility: visible !important;
     width: 240px !important;
