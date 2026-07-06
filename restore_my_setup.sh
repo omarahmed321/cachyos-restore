@@ -2237,9 +2237,9 @@ animations {
 exec-once = cliphist wipe
 
 # Zen Browser Glassy Mode Rules
-windowrulev2 = opacity 0.60 0.60, class:^(zen)$
-windowrulev2 = blur, class:^(zen)$
-windowrulev2 = ignorealpha 0.60, class:^(zen)$
+windowrule = opacity 0.60 0.60, match:class ^(zen)$
+windowrule = blur, match:class ^(zen)$
+windowrule = ignorealpha 0.60, match:class ^(zen)$
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -2259,7 +2259,7 @@ $mainMod = Super # super / meta / windows key
 $term = kitty
 $editor = code
 $file = kitty -e yazi
-$browser = firefox
+$browser = zen-browser
 
 # Window/Session actions
 bindd = $mainMod+Shift, P,Color Picker , exec, hyprpicker -a # Pick color (Hex) >> clipboard# 
