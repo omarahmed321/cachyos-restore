@@ -4326,6 +4326,21 @@ browser,
     background: #090a09 !important; /* Dark theme background when active */
 }
 
+/* By default, push the urlbar itself off-screen and make it transparent so it never shows at the top left */
+#urlbar:not([focused="true"]):not([breakout-extend="true"]) {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(-200px) !important;
+}
+
+/* Revert the translation and make urlbar visible when focused or active */
+#urlbar[focused="true"],
+#urlbar[breakout-extend="true"] {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important; /* Reset transform to let native centering/floating style take effect */
+}
+
 /* Restrict the floating urlbar to a clean, centered width so it never stretches full-width */
 #urlbar[focused="true"],
 #urlbar[breakout-extend="true"],
