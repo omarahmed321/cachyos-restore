@@ -132,7 +132,7 @@ fi
 echo -e "Detected GPU Vendor: ${CYAN}${GPU_VENDOR}${NC}"
 
 REQUIRED_PACKAGES=(
-    hyprland waybar dunst rofi-wayland kitty firefox code dolphin yazi sddm-astronaut-theme
+    hyprland waybar dunst rofi-wayland kitty firefox zen-browser-bin code dolphin yazi sddm-astronaut-theme
     swaylock-effects-git wlogout cliphist hyprpicker hyprsunset hyprlock
     grimblast-git slurp jq polkit-kde-agent eza awesome-terminal-fonts
     ttf-meslo-nerd ttf-jetbrains-mono-nerd blueman bluez bluez-utils
@@ -2236,9 +2236,9 @@ animations {
 # Wipe clipboard history on startup to prevent database bloat
 exec-once = cliphist wipe
 
-# Zen Browser Glassy Mode Rules
-windowrule = opacity 0.60 0.60, match:class ^(zen)$
-windowrule = blur 1, match:class ^(zen)$
+# Zen Browser - Zero UI / Frameless
+windowrule = opacity 0.40 0.40, match:class ^(zen)$
+windowrule = border_size 0, match:class ^(zen)$
 EOF
 
 # --- WRITE ~/.config/hypr/keybindings.conf ---
@@ -3144,11 +3144,12 @@ bold_font        auto
 italic_font      auto
 bold_italic_font auto
 enable_audio_bell no
-font_size 9.0
+font_size 11.0
+text_composition_strategy legacy
 window_padding_width 25
 include ~/.cache/wal/colors-kitty.conf
 cursor_trail 1
-background_opacity 0.50
+background_opacity 0.40
 #hide_window_decorations yes
 #confirm_os_window_close 0
 
@@ -4246,58 +4247,219 @@ fi
 
 # --- CONFIGURE GLASSY ZEN BROWSER CUSTOM THEME ---
 echo -e "\n${BLUE}${BOLD}Configuring Glassy/Transparent Zen Browser profile UI...${NC}"
-ZEN_PROFILE_DIR=$(find "$HOME/.config/zen" -maxdepth 1 -type d -name "*.Default*" 2>/dev/null | head -n 1)
-if [ -n "$ZEN_PROFILE_DIR" ]; then
-    echo -e "Found Zen Browser profile: ${CYAN}$ZEN_PROFILE_DIR${NC}"
-    mkdir -p "$ZEN_PROFILE_DIR/chrome"
-    cat << 'ZENCHROME' > "$ZEN_PROFILE_DIR/chrome/userChrome.css"
+ZEN_PROFILES=()
+while IFS= read -r -d '' dir; do
+    ZEN_PROFILES+=("$dir")
+done < <(find "$HOME/.config/zen" -maxdepth 1 -type d -name "*Default*" -print0 2>/dev/null)
+
+if [ ${#ZEN_PROFILES[@]} -gt 0 ]; then
+    for profile in "${ZEN_PROFILES[@]}"; do
+        echo -e "Configuring Zen Browser profile: ${CYAN}$(basename "$profile")${NC}"
+        mkdir -p "$profile/chrome"
+        
+        # Write userChrome.css
+        cat << 'ZENCHROME' > "$profile/chrome/userChrome.css"
 /*
- * Zen Browser Completely Empty and Transparent UI
- * Hides all navigation bars, sidebars, and tab bars completely.
+ * Zen Browser - Minimal Zero UI
  */
 
-/* 1. Fully transparent background */
+/* Force terminal background color on the window and content area */
 :root,
 #main-window,
 #browser,
-browser,
 #appcontent,
+browser,
 .browserSidebarContainer,
-#tabbrowser-tabpanels,
-.deck-selected {
-    background-color: transparent !important;
-    background: transparent !important;
+#content-deck,
+#tabbrowser-deck,
+#tabbrowser-tabbox {
+    background-color: #090a09 !important;
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
-/* 2. Completely hide all top bars, sidebars, and tab toolboxes */
-#navigator-toolbox,
-#sidebar-box,
-#sidebar-select-box,
-#vertical-tabs,
+/* Hide the entire navigator toolbox (top bar) completely using visibility */
+#navigator-toolbox {
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Ensure only the search bar and its dropdown results are visible */
+#urlbar,
+#urlbar-container,
+#urlbar-input-container,
+#urlbar-background,
+#urlbar-results,
+.urlbarView,
+.urlbarView-body-outer,
+.urlbarView-results,
+.urlbarView-row,
+#urlbar-input {
+    visibility: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Hide the little title separator */
+.urlbarView-title-separator {
+    display: none !important;
+}
+
+/* Style the search bar input text to be bold, high contrast, and clear */
+#urlbar-input {
+    font-size: 18px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Style the search suggestions list */
+.urlbarView {
+    background: rgba(20, 20, 20, 0.85) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+/* Style suggestion items text to be bold and clear */
+.urlbarView-row {
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #e5e5e5 !important;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+.urlbarView-secondary {
+    color: #aaaaaa !important;
+    font-weight: 500 !important;
+}
+
+.urlbarView-row[selected] {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+/* Hide the expand/collapse sidebar arrow button at the top-left */
+#zen-expand-sidebar-button {
+    display: none !important;
+    visibility: collapse !important;
+}
+
+/* Hide all toolbar buttons to keep it clean */
+#back-button,
+#forward-button,
+#reload-button,
+#stop-button,
+#downloads-button,
+#fxa-toolbar-menu-button,
+#nav-bar-overflow-button,
+#unified-extensions-button,
+.webextension-browser-action {
+    display: none !important;
+}
+
+/* Hide splitters, sidebars, and workspaces panel */
+#zen-sidebar-splitter,
+#appcontent-splitter,
 #zen-sidebar,
-.sidebar-wrapper,
-#zen-tabs,
-#tabbrowser-tabs,
-.tabbrowser-tab,
-#browser-sidebar {
+#zen-workspaces-wrapper,
+#zen-workspaces-button,
+.zen-current-workspace-indicator,
+vbox.zen-workspace-tabs-section {
     display: none !important;
     width: 0 !important;
     max-width: 0 !important;
     min-width: 0 !important;
+    overflow: hidden !important;
+    visibility: collapse !important;
+}
+
+/* Hide status panel / status bar */
+#statuspanel,
+#browser-bottombox {
+    display: none !important;
     visibility: collapse !important;
 }
 ZENCHROME
 
-    # Enable legacy stylesheets option in prefs.js
-    PREFS_FILE="$ZEN_PROFILE_DIR/prefs.js"
-    if [ -f "$PREFS_FILE" ]; then
-        if grep -q "toolkit.legacyUserProfileCustomizations.stylesheets" "$PREFS_FILE"; then
-            sed -i 's/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets",.*/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);/' "$PREFS_FILE"
-        else
-            echo 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' >> "$PREFS_FILE"
+        # Write userContent.css
+        cat << 'ZENCONTENT' > "$profile/chrome/userContent.css"
+/*
+ * Zen Browser - Web Content Font & Color Optimization
+ */
+
+/* Force the exact terminal background color on all pages */
+@-moz-document url-prefix(http), url-prefix(https), url-prefix(about:) {
+    :root, body, html {
+        background-color: #090a09 !important;
+    }
+    body, p, span, a, li, h1, h2, h3, h4, h5, h6, input, textarea, button {
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        text-rendering: optimizeLegibility !important;
+    }
+}
+ZENCONTENT
+
+        # Write user.js
+        cat << 'ZENUSERJS' > "$profile/user.js"
+// Enable userChrome.css customizations
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+
+// Enable native Linux window transparency in Zen Browser
+user_pref("browser.tabs.allow_transparent_browser", true);
+user_pref("widget.transparent-windows", true);
+user_pref("zen.widget.linux.transparency", true);
+
+// Enable Compact Mode
+user_pref("zen.view.compact.enable-at-startup", true);
+user_pref("zen.view.compact.toolbar-flash-popup", false);
+
+// Disable the hover-to-reveal sidebar and toolbar in compact mode
+user_pref("zen.view.compact.show-sidebar-and-toolbar-on-hover", false);
+
+// Remove the default 8px frame/borders around the browser content
+user_pref("zen.theme.content-element-separation", 0);
+
+// Collapse sidebar and hide tabs
+user_pref("zen.view.sidebar-expanded", false);
+user_pref("zen.view.use-single-toolbar", true);
+user_pref("zen.tabs.show-newtab-vertical", false);
+
+// New tab = blank page
+user_pref("browser.newtabpage.enabled", false);
+user_pref("browser.startup.homepage", "about:blank");
+user_pref("browser.startup.page", 1);
+user_pref("zen.urlbar.replace-newtab", false);
+
+// Disable session restore
+user_pref("browser.sessionstore.resume_session_once", false);
+user_pref("browser.sessionstore.resume_from_crash", false);
+
+// Font optimizations - increase default/minimum size for better visibility
+user_pref("font.size.variable.x-western", 18);
+user_pref("font.size.fixed.x-western", 15);
+user_pref("font.minimum-size.x-western", 13);
+ZENUSERJS
+
+        # Also force legacy stylesheets option in prefs.js if it exists
+        PREFS_FILE="$profile/prefs.js"
+        if [ -f "$PREFS_FILE" ]; then
+            if grep -q "toolkit.legacyUserProfileCustomizations.stylesheets" "$PREFS_FILE"; then
+                sed -i 's/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets",.*/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);/' "$PREFS_FILE"
+            else
+                echo 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' >> "$PREFS_FILE"
+            fi
         fi
-    fi
-    echo -e "${GREEN}[OK] Glassy Zen Browser profile configurations applied successfully!${NC}"
+    done
+    echo -e "${GREEN}[OK] Glassy Zen Browser profile configurations applied successfully to all profiles!${NC}"
 else
     echo -e "${YELLOW}[INFO] No Zen Browser profile found in ~/.config/zen/. Skipping configuration.${NC}"
 fi
