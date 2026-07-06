@@ -24,6 +24,44 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
+# Self-healing helper: check and fix pacman database lock
+fix_pacman_lock() {
+    if [ -f "/var/lib/pacman/db.lck" ]; then
+        echo -e "${YELLOW}[!] Pacman database is locked. Attempting self-healing...${NC}"
+        # Check if any pacman/yay/paru process is actually running
+        if ! pgrep -x "pacman" >/dev/null && ! pgrep -x "yay" >/dev/null && ! pgrep -x "paru" >/dev/null; then
+            echo -e "${GREEN}[+] Removing stale lock file /var/lib/pacman/db.lck...${NC}"
+            sudo rm -f /var/lib/pacman/db.lck
+        else
+            echo -e "${YELLOW}[*] Waiting for other package manager process to finish...${NC}"
+            while pgrep -x "pacman" >/dev/null || pgrep -x "yay" >/dev/null || pgrep -x "paru" >/dev/null; do
+                sleep 2
+            done
+            sudo rm -f /var/lib/pacman/db.lck 2>/dev/null || true
+        fi
+    fi
+}
+
+# Self-healing helper: verify and start systemd services with auto-recovery fallbacks
+verify_and_start_service() {
+    local service_name="$1"
+    echo -e "${CYAN}[*] Enabling and starting service: $service_name...${NC}"
+    sudo systemctl daemon-reload 2>/dev/null || true
+    sudo systemctl reset-failed "$service_name" 2>/dev/null || true
+    if sudo systemctl enable --now "$service_name" 2>/dev/null; then
+        echo -e "  - ${GREEN}[Active]${NC} $service_name service started successfully."
+    else
+        echo -e "${RED}[!] Failed to enable $service_name. Retrying with explicit restart...${NC}"
+        if sudo systemctl restart "$service_name" 2>/dev/null; then
+            echo -e "  - ${GREEN}[Active]${NC} $service_name service started after retry."
+        else
+            echo -e "${RED}[WARNING] Service $service_name failed to start. Running self-diagnostic...${NC}"
+            # Check journalctl for hints or print warning
+            sudo journalctl -u "$service_name" -n 5 --no-pager 2>/dev/null || true
+        fi
+    fi
+}
+
 # Ensure script is NOT run directly as root, but can elevate when needed
 if [ "$EUID" -eq 0 ]; then
     echo -e "${RED}${BOLD}[ERROR] Please do NOT run this script as root directly. Use your normal user account. It will ask for sudo when required.${NC}"
@@ -57,6 +95,7 @@ elif command -v paru &>/dev/null; then
     echo -e "${GREEN}[OK] Found paru as AUR helper.${NC}"
 else
     echo -e "${YELLOW}[INFO] No AUR helper found. Installing yay...${NC}"
+    fix_pacman_lock
     sudo pacman -S --needed --noconfirm base-devel git
     git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin
     cd /tmp/yay-bin || exit
@@ -68,12 +107,14 @@ fi
 
 # Synchronize package databases to prevent 404 download errors
 echo -e "\n${BLUE}${BOLD}[1.5/5] Synchronizing package databases...${NC}"
+fix_pacman_lock
 sudo pacman -Sy
 
 # Ensure git and zsh are installed
 echo -e "\n${BLUE}${BOLD}[2/5] Ensuring Core packages (git, zsh) are installed...${NC}"
 
 if ! pacman -Qi git &>/dev/null || ! pacman -Qi zsh &>/dev/null; then
+    fix_pacman_lock
     sudo pacman -S --needed --noconfirm git zsh
 else
     echo -e "${GREEN}[OK] Core packages (git, zsh) are already installed.${NC}"
@@ -111,6 +152,7 @@ fi
 echo -e "Running kernel: ${CYAN}$KERNEL_NAME${NC}, selected headers package: ${CYAN}$HEADERS_PKG${NC}"
 if ! pacman -Qi "$HEADERS_PKG" &>/dev/null; then
     echo -e "Installing ${YELLOW}$HEADERS_PKG${NC}..."
+    fix_pacman_lock
     sudo pacman -S --needed --noconfirm "$HEADERS_PKG"
     echo -e "${GREEN}[OK] Installed kernel headers successfully.${NC}"
 else
@@ -181,11 +223,13 @@ done
 
 if [ ${#TO_INSTALL[@]} -gt 0 ]; then
     echo -e "${YELLOW}\nInstalling missing packages using $AUR_HELPER...${NC}"
+    fix_pacman_lock
     if ! $AUR_HELPER -S --noconfirm "${TO_INSTALL[@]}"; then
         echo -e "${YELLOW}[WARNING] Batch installation failed. Falling back to installing packages individually to ensure maximum coverage...${NC}"
         FAILED_PACKAGES=()
         for pkg in "${TO_INSTALL[@]}"; do
             echo -e "${CYAN}Installing $pkg...${NC}"
+            fix_pacman_lock
             if ! $AUR_HELPER -S --noconfirm "$pkg"; then
                 echo -e "${RED}[ERROR] Failed to install $pkg${NC}"
                 FAILED_PACKAGES+=("$pkg")
@@ -206,19 +250,9 @@ else
 fi
 
 # Enable system services
-echo -e "\n${BLUE}${BOLD}[4/5] Enabling and starting system services (bluetooth, NetworkManager, ananicy-cpp)...${NC}"
+echo -e "\n${BLUE}${BOLD}[4/5] Enabling and starting system services (bluetooth, NetworkManager, sddm, ananicy-cpp)...${NC}"
 for svc in bluetooth NetworkManager sddm ananicy-cpp; do
-    if systemctl is-active --quiet "$svc"; then
-        echo -e "  - ${GREEN}[Active]${NC} $svc service is running."
-    else
-        echo -e "  - ${YELLOW}[Inactive]${NC} Enabling and starting $svc..."
-        if sudo -n true &>/dev/null; then
-            sudo systemctl enable --now "$svc".service
-        else
-            echo -e "    ${YELLOW}[WARNING] Sudo requires a password. Skipping automatic service start for $svc.${NC}"
-            echo -e "    To enable, run: ${CYAN}sudo systemctl enable --now $svc.service${NC}"
-        fi
-    fi
+    verify_and_start_service "$svc"
 done
 
 
