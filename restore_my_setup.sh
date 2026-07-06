@@ -4439,6 +4439,28 @@ browser,
     background-color: #090a09 !important;
 }
 
+/* Unconditionally hide sidebar, top bar, and all gaps when in fullscreen mode to prevent black bars/empty space */
+:root[inFullscreen] #zen-sidebar,
+:root[inFullscreen] #navigator-toolbox,
+:root[inFullscreen] #zen-sidebar-splitter,
+:root[inFullscreen] #appcontent-splitter {
+    display: none !important;
+    visibility: collapse !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+}
+
+:root[inFullscreen] #browser,
+:root[inFullscreen] #appcontent,
+:root[inFullscreen] browser {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
 /* Hide status panel / status bar */
 #statuspanel,
 #browser-bottombox {
