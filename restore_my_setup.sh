@@ -4364,6 +4364,22 @@ browser,
     padding: 0 !important;
 }
 
+/* Completely remove any borders, shadows, backgrounds or lines from the top toolbox and nav-bar */
+#navigator-toolbox,
+#nav-bar,
+#titlebar,
+#TabsToolbar {
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
 /* Hide all toolbar buttons to keep it clean */
 #back-button,
 #forward-button,
