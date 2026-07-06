@@ -4283,15 +4283,15 @@ browser,
     outline: none !important;
 }
 
-/* Hide navigator toolbox by default (opacity 0, pointer-events none). It keeps its normal height so children remain focusable. */
+/* Hide navigator toolbox by default (height 0px, opacity 0, pointer-events none). */
 #navigator-toolbox {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    overflow: visible !important; /* Allow centered urlbar to escape the container */
+    height: 0px !important;
+    min-height: 0px !important;
+    overflow: visible !important; /* Allow native floating URL bar to render outside the collapsed container */
     z-index: 10000 !important;
     opacity: 0 !important;
     pointer-events: none !important;
@@ -4302,41 +4302,14 @@ browser,
     transition: opacity 0.15s ease !important;
 }
 
-/* When focused (Ctrl+L), display the toolbox containing the focused search bar */
+/* When focused (Ctrl+L), allow pointer events and show children, but keep height at 0px to prevent layout shift/black bars */
 #navigator-toolbox:focus-within {
     opacity: 1 !important;
     pointer-events: auto !important;
+    height: 0px !important;
+    min-height: 0px !important;
     background: transparent !important;
     background-color: transparent !important;
-}
-
-/* When focused (Ctrl+L), center the search bar as a floating popup at the top of the viewport always */
-#urlbar[focused="true"],
-#urlbar[breakout-extend="true"] {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    position: fixed !important;
-    top: 10px !important; /* Stay at the top of the screen always, never jump to the middle */
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 680px !important;
-    max-width: 90vw !important;
-    z-index: 100000 !important;
-    margin: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-}
-
-#urlbar[focused="true"] #urlbar-background,
-#urlbar[breakout-extend="true"] #urlbar-background {
-    background-color: rgba(20, 20, 20, 0.95) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8) !important;
 }
 
 /* Ensure only the search bar and its dropdown results are visible when focused */
