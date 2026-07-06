@@ -4301,17 +4301,17 @@ browser,
     background-color: transparent !important;
 }
 
-/* Hide the Zen navbar container off-screen using top coordinate instead of transform.
-   This prevents creating a containing block for fixed-position descendants like the floating search bar. */
+/* Hide the Zen navbar container way off-screen when not focused to prevent hover triggers and screenshot visibility */
 #zen-appcontent-navbar-container {
     position: fixed !important;
-    top: -150px !important; /* Pushed completely out of the screen using top coordinate */
+    top: -999px !important; /* Pushed completely out of reach */
+    margin-top: -999px !important;
     left: 0 !important;
     width: 100% !important;
     height: 0px !important;
     min-height: 0px !important;
     overflow: visible !important;
-    z-index: 10000 !important;
+    z-index: -100000 !important; /* Send to back when inactive */
     opacity: 0 !important;
     pointer-events: none !important;
     border: none !important;
@@ -4321,11 +4321,13 @@ browser,
     transition: top 0.2s ease, opacity 0.15s ease !important;
 }
 
-/* When focused (Ctrl+L), slide the Zen navbar container back into position via top coordinate */
+/* When focused (Ctrl+L), bring the Zen navbar container back into position instantly */
 #zen-appcontent-navbar-container:focus-within {
     top: 0 !important;
+    margin-top: 0 !important;
     opacity: 1 !important;
     pointer-events: auto !important;
+    z-index: 10000 !important;
     background: transparent !important;
     background-color: transparent !important;
 }
