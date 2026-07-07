@@ -84,6 +84,35 @@ if [ -n "$XDG_CURRENT_DESKTOP" ] && [ "$XDG_CURRENT_DESKTOP" != "Hyprland" ]; th
     fi
 fi
 
+# --- INTERACTIVE USER PREFERENCES & CONFIRMATIONS ---
+echo -e "\n${BLUE}${BOLD}==============================================================${NC}"
+echo -e "${BLUE}${BOLD}           CachyOS + Hyprland Installation Manager            ${NC}"
+echo -e "${BLUE}${BOLD}==============================================================${NC}"
+
+# 1. Confirm overall installation
+read -p "Do you want to run the full system restoration setup? (y/n) [y]: " main_confirm
+main_confirm="${main_confirm:-y}"
+if [[ ! "$main_confirm" =~ ^[Yy]$ ]]; then
+    echo -e "${RED}[INFO] Setup aborted by user.${NC}"
+    exit 0
+fi
+
+# 2. Package installation preference
+read -p "Do you want to install/upgrade required system packages? (y/n) [y]: " opt_install_pkgs
+opt_install_pkgs="${opt_install_pkgs:-y}"
+
+# 3. HyDE Desktop Environment framework deployment preference
+read -p "Do you want to deploy/upgrade the HyDE Desktop Environment framework? (y/n) [y]: " opt_deploy_hyde
+opt_deploy_hyde="${opt_deploy_hyde:-y}"
+
+# 4. Desktop Custom Dotfiles deployment preference
+read -p "Do you want to write/overwrite customized dotfiles (Hyprland, Waybar, Zsh, Kitty, Cava, VS Code, Zen)? (y/n) [y]: " opt_deploy_dots
+opt_deploy_dots="${opt_deploy_dots:-y}"
+
+# 5. Helper scripts (hotspot, nightlight, etc.) installation preference
+read -p "Do you want to write/overwrite custom helper scripts (starthotspot.sh, nightlight-gui, display settings)? (y/n) [y]: " opt_helper_scripts
+opt_helper_scripts="${opt_helper_scripts:-y}"
+
 # 1. Detect/Install AUR Helper (yay/paru)
 echo -e "\n${BLUE}${BOLD}[1/5] Checking for AUR helper (yay/paru)...${NC}"
 AUR_HELPER=""
@@ -105,6 +134,7 @@ else
     echo -e "${GREEN}[OK] Successfully installed yay.${NC}"
 fi
 
+if [[ "$opt_install_pkgs" =~ ^[Yy]$ ]]; then
 # Synchronize package databases to prevent 404 download errors
 echo -e "\n${BLUE}${BOLD}[1.5/5] Synchronizing package databases...${NC}"
 fix_pacman_lock
@@ -161,17 +191,39 @@ fi
 
 # 2. Check and Install Required Packages
 echo -e "\n${BLUE}${BOLD}[3/5] Checking and installing required packages...${NC}"
-# Detect GPU Vendor dynamically
+# Detect GPU Vendor dynamically with interactive override option
 GPU_VENDOR="unknown"
+AUTO_GPU="unknown"
 gpu_info=$(lspci | grep -Ei "vga|3d")
 if echo "$gpu_info" | grep -iq "nvidia"; then
-    GPU_VENDOR="nvidia"
+    AUTO_GPU="nvidia"
 elif echo "$gpu_info" | grep -iq "amd"; then
-    GPU_VENDOR="amd"
+    AUTO_GPU="amd"
 elif echo "$gpu_info" | grep -iq "intel"; then
-    GPU_VENDOR="intel"
+    AUTO_GPU="intel"
 fi
-echo -e "Detected GPU Vendor: ${CYAN}${GPU_VENDOR}${NC}"
+
+echo -e "\nAutomatically detected GPU Vendor: ${CYAN}${AUTO_GPU}${NC}"
+echo -e "Which graphics driver configuration would you like to use?"
+echo -e "1) Automatically detected (${AUTO_GPU})"
+echo -e "2) Nvidia proprietary drivers"
+echo -e "3) AMD open-source drivers"
+echo -e "4) Intel open-source drivers"
+echo -e "5) Skip GPU-specific drivers"
+read -p "Select choice [1-5] (Default 1): " gpu_choice
+gpu_choice="${gpu_choice:-1}"
+
+GPU_VENDOR="$AUTO_GPU"
+if [ "$gpu_choice" -eq 2 ]; then
+    GPU_VENDOR="nvidia"
+elif [ "$gpu_choice" -eq 3 ]; then
+    GPU_VENDOR="amd"
+elif [ "$gpu_choice" -eq 4 ]; then
+    GPU_VENDOR="intel"
+elif [ "$gpu_choice" -eq 5 ]; then
+    GPU_VENDOR="skip"
+fi
+echo -e "Using GPU driver configuration for: ${CYAN}${GPU_VENDOR}${NC}"
 
 REQUIRED_PACKAGES=(
     hyprland waybar dunst rofi-wayland kitty firefox zen-browser-bin code dolphin yazi sddm-astronaut-theme
@@ -254,9 +306,11 @@ echo -e "\n${BLUE}${BOLD}[4/5] Enabling and starting system services (bluetooth,
 for svc in bluetooth NetworkManager sddm ananicy-cpp; do
     verify_and_start_service "$svc"
 done
+fi
 
 
 
+if [[ "$opt_helper_scripts" =~ ^[Yy]$ ]]; then
 # --- CONFIGURE NETWORKMANAGER TO MANAGE WLAN0 (Required for native Hotspot) ---
 if [ -f /etc/NetworkManager/NetworkManager.conf ]; then
     if grep -q "unmanaged-devices=interface-name:wlan0" /etc/NetworkManager/NetworkManager.conf; then
@@ -267,7 +321,9 @@ if [ -f /etc/NetworkManager/NetworkManager.conf ]; then
         fi
     fi
 fi
+fi
 
+if [[ "$opt_deploy_hyde" =~ ^[Yy]$ ]]; then
 # 3. Clone and Run HyDE (Hyprdots) Installer
 echo -e "\n${BLUE}${BOLD}[5/5] Deploying HyDE Desktop Environment Framework...${NC}"
 if [ -d "$HOME/hyde" ]; then
@@ -285,7 +341,7 @@ cd "$HOME/hyde/Scripts" || exit
 
 # Run install.sh with pre-seeded inputs to skip/default prompt timers
 # Enter/Skip Grub theme, Enter/Skip SDDM theme, and Answer 'n' to Flatpak apps
-export aurhlpr="yay"
+export aurhlpr="$AUR_HELPER"
 export myShell="zsh"
 echo -e "\n\n\nn" | ./install.sh
 
@@ -301,7 +357,9 @@ if command -v awww &>/dev/null && ! command -v swww &>/dev/null; then
     ln -sf /usr/bin/awww "$HOME/.local/share/bin/swww"
     ln -sf /usr/bin/awww-daemon "$HOME/.local/share/bin/swww-daemon"
 fi
+fi
 
+if [[ "$opt_deploy_dots" =~ ^[Yy]$ ]]; then
 # 4. Deploy EXACT Customized Dotfiles
 echo -e "\n${MAGENTA}${BOLD}==============================================================${NC}"
 echo -e "${MAGENTA}${BOLD}   Deploying Custom System Settings, Keybinds, & Fonts...    ${NC}"
@@ -337,7 +395,9 @@ xkb_symbols "thal_bksl" {
 };
 XKBEOF
 fi'
+fi
 
+if [[ "$opt_helper_scripts" =~ ^[Yy]$ ]]; then
 # --- WRITE ~/.local/bin/double-pageup.sh ---
 echo -e "${CYAN}Writing ~/.local/bin/double-pageup.sh...${NC}"
 mkdir -p "$HOME/.local/bin"
@@ -564,7 +624,9 @@ else
 fi
 HOTEOF
 chmod +x "$HOME/start_hotspot.sh"
+fi
 
+if [[ "$opt_deploy_dots" =~ ^[Yy]$ ]]; then
 # --- Configure Antigravity IDE Flags & Keyring ---
 echo -e "${CYAN}Writing ~/.config/antigravity-ide-flags.conf...${NC}"
 mkdir -p "$HOME/.config"
@@ -594,7 +656,9 @@ gradient_color_3 = '#00c9ff'
 gradient_color_4 = '#00f2fe'
 gradient_color_5 = '#0072ff'
 EOF
+fi
 
+if [[ "$opt_helper_scripts" =~ ^[Yy]$ ]]; then
 # --- Write ~/.local/share/bin/hypr-display-settings.py ---
 echo -e "${CYAN}Writing ~/.local/share/bin/hypr-display-settings.py...${NC}"
 mkdir -p "$HOME/.local/share/bin"
@@ -1841,8 +1905,9 @@ Type=Application
 Categories=Settings;HardwareSettings;
 NLDEEOF
 chmod +x "$HOME/.local/share/applications/nightlight-gui.desktop"
+fi
 
-
+if [[ "$opt_deploy_dots" =~ ^[Yy]$ ]]; then
 echo -e "${CYAN}Ensuring gnome-keyring-daemon systemd services are unmasked...${NC}"
 systemctl --user unmask gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
 systemctl --user enable gnome-keyring-daemon.service gnome-keyring-daemon.socket 2>/dev/null || true
@@ -5345,13 +5410,21 @@ echo -e "${GREEN}omar custom documentation script written.${NC}"
 
 
 
+fi # End of opt_deploy_dots
+
 echo -e "\n${GREEN}${BOLD}======================================================================${NC}"
 echo -e "${GREEN}${BOLD}   CONGRATULATIONS! System Restoration is Complete!                  ${NC}"
 echo -e "${GREEN}${BOLD}======================================================================${NC}"
-echo -e "${YELLOW}Rebooting the system in 5 seconds to apply all changes...${NC}"
-for i in {5..1}; do
-    echo -e "  Rebooting in ${CYAN}$i${NC} seconds..."
-    sleep 1
-done
-echo -e "${BLUE}Rebooting now...${NC}"
-sudo reboot
+read -p "Would you like to reboot the system now to apply all changes? (y/n) [y]: " reboot_confirm
+reboot_confirm="${reboot_confirm:-y}"
+if [[ "$reboot_confirm" =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Rebooting the system in 5 seconds...${NC}"
+    for i in {5..1}; do
+        echo -e "  Rebooting in ${CYAN}$i${NC} seconds..."
+        sleep 1
+    done
+    echo -e "${BLUE}Rebooting now...${NC}"
+    sudo reboot
+else
+    echo -e "${GREEN}[OK] Done! Please reboot manually later to apply all configurations.${NC}"
+fi
