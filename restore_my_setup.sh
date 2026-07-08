@@ -140,6 +140,14 @@ echo -e "\n${BLUE}${BOLD}[1.5/5] Synchronizing package databases...${NC}"
 fix_pacman_lock
 sudo pacman -Sy
 
+# Update Arch Linux and CachyOS keyrings first to prevent signature verification errors
+echo -e "${CYAN}Updating package keyrings to prevent signature errors...${NC}"
+fix_pacman_lock
+sudo pacman -S --needed --noconfirm archlinux-keyring 2>/dev/null || true
+if pacman -Si cachyos-keyring &>/dev/null; then
+    sudo pacman -S --needed --noconfirm cachyos-keyring 2>/dev/null || true
+fi
+
 # Ensure git and zsh are installed
 echo -e "\n${BLUE}${BOLD}[2/5] Ensuring Core packages (git, zsh) are installed...${NC}"
 
@@ -3779,12 +3787,24 @@ cat << 'EOF' > "$HOME/.config/waybar/modules/separator.jsonc"
     },
 EOF
 
+# --- WRITE ~/.config/waybar/modules/prayer.jsonc ---
+echo -e "${CYAN}Writing ~/.config/waybar/modules/prayer.jsonc...${NC}"
+cat << 'EOF' > "$HOME/.config/waybar/modules/prayer.jsonc"
+    "custom/prayer": {
+        "format": "{}",
+        "exec": "$HOME/.local/share/bin/prayer_times.py",
+        "interval": 1,
+        "tooltip": false
+    },
+EOF
+
 # --- WRITE hyde repository copies of modules ---
 if [ -d "$HOME/hyde" ]; then
     echo -e "${CYAN}Writing hyde repository copies of modules...${NC}"
     mkdir -p "$HOME/hyde/Configs/.config/waybar/modules"
     cp "$HOME/.config/waybar/modules/workspaces.jsonc" "$HOME/hyde/Configs/.config/waybar/modules/workspaces.jsonc"
     cp "$HOME/.config/waybar/modules/separator.jsonc" "$HOME/hyde/Configs/.config/waybar/modules/separator.jsonc"
+    cp "$HOME/.config/waybar/modules/prayer.jsonc" "$HOME/hyde/Configs/.config/waybar/modules/prayer.jsonc"
 fi
 
 # --- WRITE ~/.config/hyde/hyde.conf ---
@@ -4345,6 +4365,35 @@ fi
 
 # --- CONFIGURE GLASSY ZEN BROWSER CUSTOM THEME ---
 echo -e "\n${BLUE}${BOLD}Configuring Glassy/Transparent Zen Browser profile UI...${NC}"
+
+# Pre-seed default Zen Browser profiles if they don't exist yet (ensures theme files are always created on clean installations)
+mkdir -p "$HOME/.config/zen"
+if [ ! -f "$HOME/.config/zen/profiles.ini" ]; then
+    echo -e "${CYAN}Pre-seeding Zen Browser profiles.ini and default profile directories...${NC}"
+    cat << 'EOF' > "$HOME/.config/zen/profiles.ini"
+[Profile1]
+Name=Default Profile
+IsRelative=1
+Path=081dvyif.Default Profile
+Default=1
+
+[Profile0]
+Name=Default (release)
+IsRelative=1
+Path=l1u1cimb.Default (release)
+
+[General]
+StartWithLastProfile=1
+Version=2
+
+[Install15B76BAA26BA15E7]
+Default=l1u1cimb.Default (release)
+Locked=1
+EOF
+    mkdir -p "$HOME/.config/zen/081dvyif.Default Profile"
+    mkdir -p "$HOME/.config/zen/l1u1cimb.Default (release)"
+fi
+
 ZEN_PROFILES=()
 while IFS= read -r -d '' dir; do
     ZEN_PROFILES+=("$dir")
