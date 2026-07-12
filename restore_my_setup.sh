@@ -4532,7 +4532,36 @@ user_pref("browser.sessionstore.resume_from_crash", false);
 user_pref("font.size.variable.x-western", 18);
 user_pref("font.size.fixed.x-western", 15);
 user_pref("font.minimum-size.x-western", 13);
+
+// --- Memory & RAM Optimizations (Minimum Memory Footprint) ---
+// Enable automatic tab unloading on low memory
+user_pref("browser.tabs.unloadOnLowMemory", true);
+user_pref("browser.tabs.unloadOnLowMemory.min_inactive_time", 300000); // Unload after 5 mins of inactivity
+
+// Limit the number of content processes (Default is 8+, set to 1 for absolute minimum RAM usage)
+user_pref("dom.ipc.processCount.webIsolated", 1);
+user_pref("dom.ipc.processCount", 1);
+
+// Limit image cache and memory footprint
+user_pref("browser.cache.memory.enable", true);
+user_pref("browser.cache.memory.capacity", 65536); // Limit memory cache to 64MB (65536 KB)
+user_pref("browser.cache.memory.max_entry_size", 5120); // Limit max entry size to 5MB (5120 KB)
+user_pref("image.mem.max_decoded_image_size", 52428800); // Limit decoded image cache to 50MB
+
+// Disable speculative prefetching (Massive RAM saver - prevents loading links you haven't clicked)
+user_pref("network.predictor.enabled", false);
+user_pref("network.dns.disablePrefetch", true);
+user_pref("network.prefetch-next", false);
+user_pref("network.http.speculative-parallel-limit", 0);
+
+// Increase session save interval to reduce continuous writes/CPU/RAM overhead
+user_pref("browser.sessionstore.interval", 300000); // Save session every 5 minutes (300000ms) instead of 15s
+
+// Force aggressive garbage collection to release unused memory faster
+user_pref("javascript.options.mem.gc_high_frequency_time_limit", 1000);
+user_pref("javascript.options.mem.gc_low_frequency_time_limit", 5000);
 ZENUSERJS
+
 
         # Create themes directories
         mkdir -p "$profile/chrome/zen-themes/e34745fd-2b7f-4c16-b03a-6e29e5c3f20a"
