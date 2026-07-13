@@ -153,6 +153,8 @@ if [[ "$opt_install_pkgs" =~ ^[Yy]$ ]]; then
         wl-clipboard qt5-graphicaleffects qt5-quickcontrols qt5-quickcontrols2
         seahorse networkmanager zenity fastfetch bibata-cursor-theme-bin fzf cachyos-fish-config
         psmisc python dnsmasq hostapd iw sddm ananicy-cpp gammastep
+        pipewire pipewire-pulse pipewire-alsa wireplumber
+        xdg-desktop-portal-hyprland xdg-desktop-portal-gtk xdg-user-dirs
     )
 
     if [ "$GPU_VENDOR" = "nvidia" ]; then
@@ -200,6 +202,12 @@ fi
 if [[ "$opt_deploy_dots" =~ ^[Yy]$ ]]; then
     echo -e "\n${BLUE}${BOLD}[3/4] Copying customized configuration files from repository...${NC}"
     
+    # Update/create default user directories (Downloads, Documents, etc.)
+    if command -v xdg-user-dirs-update &>/dev/null; then
+        echo -e "${CYAN}Initializing default user directories (Downloads, Documents, etc.)...${NC}"
+        xdg-user-dirs-update
+    fi
+
     # Create directories
     mkdir -p "$HOME/.config" "$HOME/.local/share"
     
