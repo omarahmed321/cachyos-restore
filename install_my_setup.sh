@@ -222,6 +222,13 @@ if [[ "$opt_deploy_dots" =~ ^[Yy]$ ]]; then
     # Copy configurations directly
     cp -rf "$SCRIPT_DIR/configs/hypr" "$HOME/.config/"
     cp -rf "$SCRIPT_DIR/configs/waybar" "$HOME/.config/"
+    
+    # Install optimized prayer times script to the correct bin path
+    mkdir -p "$HOME/.local/share/bin"
+    cp -f "$SCRIPT_DIR/configs/waybar/prayer_times.py" "$HOME/.local/share/bin/prayer_times.py"
+    chmod +x "$HOME/.local/share/bin/prayer_times.py"
+    rm -f "$HOME/.config/waybar/prayer_times.py"
+    
     cp -rf "$SCRIPT_DIR/configs/kitty" "$HOME/.config/"
     cp -rf "$SCRIPT_DIR/configs/cava" "$HOME/.config/"
     
