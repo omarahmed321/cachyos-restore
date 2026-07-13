@@ -344,6 +344,7 @@ input {{
     accel_profile = flat
     touchpad {{
         natural_scroll = {"yes" if natural else "no"}
+        tap-to-click = true
     }}
 }}
 """
