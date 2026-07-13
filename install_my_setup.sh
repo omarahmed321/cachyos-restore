@@ -400,6 +400,27 @@ EOF
 ]
 EOF
     done < <(find "$HOME/.config/zen" -maxdepth 1 -type d -name "*Default*" -print0 2>/dev/null)
+
+    # Copy and apply the custom wallpaper
+    if [ -d "$SCRIPT_DIR/wallpapers" ]; then
+        echo -e "${CYAN}Deploying and setting custom system wallpaper...${NC}"
+        mkdir -p "$HOME/.config/hyde/themes/Nordic Blue/wallpapers" "$HOME/Pictures/Wallpapers"
+        cp -f "$SCRIPT_DIR/wallpapers/background_for_me.jpg" "$HOME/.config/hyde/themes/Nordic Blue/wallpapers/background-for-me.jpg"
+        cp -f "$SCRIPT_DIR/wallpapers/background_for_me.jpg" "$HOME/Pictures/Wallpapers/background-for-me.jpg"
+        
+        # Apply wallpaper if swww is running or swwwallpaper.sh is available
+        if command -v swww &>/dev/null; then
+            # Initialize swww daemon if not running
+            if ! pgrep -x "swww-daemon" &>/dev/null; then
+                swww-daemon --format xrgb &
+                sleep 1
+            fi
+            swww img "$HOME/.config/hyde/themes/Nordic Blue/wallpapers/background-for-me.jpg" --transition-type simple || true
+        fi
+        if [ -f "$HOME/.local/share/bin/swwwallpaper.sh" ]; then
+            "$HOME/.local/share/bin/swwwallpaper.sh" -s "$HOME/.config/hyde/themes/Nordic Blue/wallpapers/background-for-me.jpg" &>/dev/null || true
+        fi
+    fi
 fi
 
 # --- Step 4: Install Helper Scripts ---
