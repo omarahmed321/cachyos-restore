@@ -84,7 +84,7 @@
 
     "custom/prayer": {
         "format": "{}",
-        "exec": "/home/omar/.local/share/bin/prayer_times.py",
+        "exec": "~/.local/share/bin/prayer_times.py",
         "interval": 1,
         "rotate": 0,
         "tooltip": false
