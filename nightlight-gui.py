@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # =============================================================================
-#   Night Light & Brightness GUI Panel (Hyprland / hyprsunset)
+#   Night Light & Brightness GUI Panel (Hyprland / hyprsunset + brightnessctl)
 #   Part of: CachyOS + HyDE System Restorer
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 # =============================================================================
@@ -19,68 +19,84 @@ from gi.repository import Gtk, Adw, GLib, Gdk, Gio
 HYPRLAND_CONF = os.path.expanduser("~/.config/hypr/hyprland.conf")
 CONFIG_FILE   = os.path.expanduser("~/.config/hypr/nightlight.conf")
 
-# --- Temperature / Percentage Mapping ---
-# 0% Night Light Warmth  = 6500K (Daylight / Off)
-# 100% Night Light Warmth = 1000K (Max Warmth Amber)
+# --- Temperature / Percentage Helpers ---
+# 0% Night Light Warmth   = 6500K (Daylight / Off)
+# 100% Night Light Warmth = 2500K (Max Warm Amber)
 def pct_to_temp(pct):
     pct = max(0, min(100, pct))
-    return int(6500 - (pct / 100.0) * 5500)
+    return int(6500 - (pct / 100.0) * 4000)
 
 def temp_to_pct(temp):
-    temp = max(1000, min(6500, temp))
-    return int(round(((6500 - temp) / 5500.0) * 100))
+    temp = max(2500, min(6500, temp))
+    return int(round(((6500 - temp) / 4000.0) * 100))
 
 def get_warmth_desc(pct):
     if pct <= 0:
         return "⚪ Off · Daylight (6500K)"
     elif pct <= 35:
-        return f"🟡 Soft Warmth ({pct_to_temp(pct)}K)"
+        return f"🟡 Soft Evening Warmth ({pct_to_temp(pct)}K)"
     elif pct <= 70:
         return f"🟠 Balanced Night Warmth ({pct_to_temp(pct)}K)"
     else:
-        return f"🔴 Deep Night Amber ({pct_to_temp(pct)}K)"
+        return f"🔴 Deep Amber Night Mode ({pct_to_temp(pct)}K)"
+
+def get_hardware_brightness():
+    try:
+        g = int(subprocess.check_output(['brightnessctl', 'g'], text=True).strip())
+        m = int(subprocess.check_output(['brightnessctl', 'm'], text=True).strip())
+        if m > 0:
+            return int(round((g / m) * 100))
+    except Exception:
+        pass
+    return 100
+
+def set_hardware_brightness(pct):
+    pct = max(5, min(100, pct))
+    try:
+        subprocess.run(['brightnessctl', 'set', f"{pct}%"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
 
 # --- Backend Config Functions ---
 def _load_conf():
-    t, g, en = 3500, 100, True
+    t, b, en = 3500, get_hardware_brightness(), True
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
                 c = f.read()
             m_t = re.search(r"^\s*(?:ENABLE_NIGHTLIGHT|temperature)=(\d+)", c, re.M)
-            m_g = re.search(r"^\s*(?:HYPRSUNSET_GAMMA|gamma)=(\d+)", c, re.M)
+            m_b = re.search(r"^\s*(?:HYPRSUNSET_GAMMA|brightness)=(\d+)", c, re.M)
             m_e = re.search(r"^\s*(?:HYPRSUNSET_ENABLED|enabled)=(true|false)", c, re.M)
             if m_t: t = int(m_t.group(1))
-            if m_g: g = int(m_g.group(1))
+            if m_b: b = int(m_b.group(1))
             if m_e: en = (m_e.group(1) == "true")
         except Exception:
             pass
-    return t, g, en
+    return t, b, en
 
-def _save_conf(t, g, en):
+def _save_conf(t, b, en):
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     en_str = "true" if en else "false"
     with open(CONFIG_FILE, "w") as f:
         f.write(f"""# Night Light Configuration — managed by nightlight-gui.py
 temperature={t}
-gamma={g}
+brightness={b}
 enabled={en_str}
 ENABLE_NIGHTLIGHT={t}
-HYPRSUNSET_GAMMA={g}
+HYPRSUNSET_GAMMA={b}
 HYPRSUNSET_ENABLED={en_str}
 """)
 
-def _apply_live(t, g, en):
+def _apply_live(t, b, en):
+    # 1. Apply hardware brightness safely
+    set_hardware_brightness(b)
+
+    # 2. Apply Night Light temperature via hyprsunset
     if not en or t >= 6500:
         subprocess.run(["killall", "-q", "hyprsunset"], check=False)
         return
 
-    g_val = max(0.1, min(1.0, g / 100.0))
-    g_str = f"{g_val:.2f}"
     cmd = ["hyprsunset", "-t", str(t)]
-    if g < 100:
-        cmd.extend(["-g", g_str])
-
     subprocess.run(["killall", "-q", "hyprsunset"], check=False)
     try:
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -93,10 +109,10 @@ def _patch_hyprland(t, en):
     try:
         with open(HYPRLAND_CONF, "r") as f:
             lines = f.readlines()
-        exec_line = "exec-once = python3 ~/.config/hypr/nightlight-start.sh\n"
+        exec_line = "exec-once = bash ~/.local/share/bin/nightlight-start.sh\n"
         has_exec = any("nightlight-start.sh" in l for l in lines)
         if not has_exec:
-            lines.append("\n# Auto-start Night Light\n" + exec_line)
+            lines.append("\n# Auto-start Night Light & Brightness\n" + exec_line)
             with open(HYPRLAND_CONF, "w") as f:
                 f.writelines(lines)
     except Exception:
@@ -164,9 +180,9 @@ class NightLightApp(Adw.Application):
         win = Adw.ApplicationWindow(application=app, title="Night Light & Brightness")
         win.set_default_size(390, 310)
 
-        t, g, en = _load_conf()
+        t, b, en = _load_conf()
         self._t = t
-        self._g = g
+        self._b = b
         self._en = en
         self._timer = None
 
@@ -215,22 +231,22 @@ class NightLightApp(Adw.Application):
         self.scale_nl.connect("value-changed", self._on_temp_pct_changed)
         card.append(self.scale_nl)
 
-        # Slider 2: Brightness (Percentage 10% - 100%)
+        # Slider 2: Hardware Brightness (Percentage 5% - 100%)
         row_br = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        lbl_br = Gtk.Label(label="Brightness")
+        lbl_br = Gtk.Label(label="Display Brightness")
         lbl_br.add_css_class("slider-label")
         lbl_br.set_hexpand(True)
         lbl_br.set_halign(Gtk.Align.START)
         row_br.append(lbl_br)
 
-        self.val_br = Gtk.Label(label=f"{self._g}%")
+        self.val_br = Gtk.Label(label=f"{self._b}%")
         self.val_br.add_css_class("val-badge")
         row_br.append(self.val_br)
         card.append(row_br)
 
-        self.scale_br = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1)
-        self.scale_br.set_value(self._g)
-        self.scale_br.connect("value-changed", self._on_gamma_changed)
+        self.scale_br = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 5, 100, 1)
+        self.scale_br.set_value(self._b)
+        self.scale_br.connect("value-changed", self._on_brightness_changed)
         card.append(self.scale_br)
 
         # Action Save Button
@@ -251,7 +267,6 @@ class NightLightApp(Adw.Application):
     def _on_toggle(self, sw, state):
         self._en = state
         self.scale_nl.set_sensitive(state)
-        self.scale_br.set_sensitive(state)
         self._debounce()
         return False
 
@@ -262,28 +277,28 @@ class NightLightApp(Adw.Application):
         self._t = pct_to_temp(pct)
         self._debounce()
 
-    def _on_gamma_changed(self, sc):
+    def _on_brightness_changed(self, sc):
         pct = int(sc.get_value())
         self.val_br.set_label(f"{pct}%")
-        self._g = pct
+        self._b = pct
         self._debounce()
 
     def _debounce(self):
         if self._timer:
             GLib.source_remove(self._timer)
-        self._timer = GLib.timeout_add(300, self._do_apply)
+        self._timer = GLib.timeout_add(200, self._do_apply)
 
     def _do_apply(self):
         self._timer = None
-        threading.Thread(target=_apply_live, args=(self._t, self._g, self._en), daemon=True).start()
+        threading.Thread(target=_apply_live, args=(self._t, self._b, self._en), daemon=True).start()
         return False
 
     def _on_save(self, b):
         def _do():
-            _save_conf(self._t, self._g, self._en)
+            _save_conf(self._t, self._b, self._en)
             _patch_hyprland(self._t, self._en)
-            _apply_live(self._t, self._g, self._en)
-            GLib.idle_add(self._show_status, "✓ Saved & Applied to Startup!")
+            _apply_live(self._t, self._b, self._en)
+            GLib.idle_add(self._show_status, "✓ Saved & Applied Successfully!")
         threading.Thread(target=_do, daemon=True).start()
 
     def _show_status(self, msg):

@@ -1630,67 +1630,83 @@ HYPRLAND_CONF = os.path.expanduser("~/.config/hypr/hyprland.conf")
 CONFIG_FILE   = os.path.expanduser("~/.config/hypr/nightlight.conf")
 
 # --- Temperature / Percentage Mapping ---
-# 0% Night Light Warmth  = 6500K (Daylight / Off)
-# 100% Night Light Warmth = 1000K (Max Warmth Amber)
+# 0% Night Light Warmth   = 6500K (Daylight / Off)
+# 100% Night Light Warmth = 2500K (Max Warm Amber)
 def pct_to_temp(pct):
     pct = max(0, min(100, pct))
-    return int(6500 - (pct / 100.0) * 5500)
+    return int(6500 - (pct / 100.0) * 4000)
 
 def temp_to_pct(temp):
-    temp = max(1000, min(6500, temp))
-    return int(round(((6500 - temp) / 5500.0) * 100))
+    temp = max(2500, min(6500, temp))
+    return int(round(((6500 - temp) / 4000.0) * 100))
 
 def get_warmth_desc(pct):
     if pct <= 0:
         return "⚪ Off · Daylight (6500K)"
     elif pct <= 35:
-        return f"🟡 Soft Warmth ({pct_to_temp(pct)}K)"
+        return f"🟡 Soft Evening Warmth ({pct_to_temp(pct)}K)"
     elif pct <= 70:
         return f"🟠 Balanced Night Warmth ({pct_to_temp(pct)}K)"
     else:
-        return f"🔴 Deep Night Amber ({pct_to_temp(pct)}K)"
+        return f"🔴 Deep Amber Night Mode ({pct_to_temp(pct)}K)"
+
+def get_hardware_brightness():
+    try:
+        g = int(subprocess.check_output(['brightnessctl', 'g'], text=True).strip())
+        m = int(subprocess.check_output(['brightnessctl', 'm'], text=True).strip())
+        if m > 0:
+            return int(round((g / m) * 100))
+    except Exception:
+        pass
+    return 100
+
+def set_hardware_brightness(pct):
+    pct = max(5, min(100, pct))
+    try:
+        subprocess.run(['brightnessctl', 'set', f"{pct}%"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
 
 # --- Backend Config Functions ---
 def _load_conf():
-    t, g, en = 3500, 100, True
+    t, b, en = 3500, get_hardware_brightness(), True
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
                 c = f.read()
             m_t = re.search(r"^\s*(?:ENABLE_NIGHTLIGHT|temperature)=(\d+)", c, re.M)
-            m_g = re.search(r"^\s*(?:HYPRSUNSET_GAMMA|gamma)=(\d+)", c, re.M)
+            m_b = re.search(r"^\s*(?:HYPRSUNSET_GAMMA|brightness)=(\d+)", c, re.M)
             m_e = re.search(r"^\s*(?:HYPRSUNSET_ENABLED|enabled)=(true|false)", c, re.M)
             if m_t: t = int(m_t.group(1))
-            if m_g: g = int(m_g.group(1))
+            if m_b: b = int(m_b.group(1))
             if m_e: en = (m_e.group(1) == "true")
         except Exception:
             pass
-    return t, g, en
+    return t, b, en
 
-def _save_conf(t, g, en):
+def _save_conf(t, b, en):
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     en_str = "true" if en else "false"
     with open(CONFIG_FILE, "w") as f:
         f.write(f"""# Night Light Configuration — managed by nightlight-gui.py
 temperature={t}
-gamma={g}
+brightness={b}
 enabled={en_str}
 ENABLE_NIGHTLIGHT={t}
-HYPRSUNSET_GAMMA={g}
+HYPRSUNSET_GAMMA={b}
 HYPRSUNSET_ENABLED={en_str}
 """)
 
-def _apply_live(t, g, en):
+def _apply_live(t, b, en):
+    # 1. Apply hardware brightness safely
+    set_hardware_brightness(b)
+
+    # 2. Apply Night Light temperature via hyprsunset
     if not en or t >= 6500:
         subprocess.run(["killall", "-q", "hyprsunset"], check=False)
         return
 
-    g_val = max(0.1, min(1.0, g / 100.0))
-    g_str = f"{g_val:.2f}"
     cmd = ["hyprsunset", "-t", str(t)]
-    if g < 100:
-        cmd.extend(["-g", g_str])
-
     subprocess.run(["killall", "-q", "hyprsunset"], check=False)
     try:
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
