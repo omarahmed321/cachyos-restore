@@ -46,7 +46,7 @@ The setup script installs two graphical settings panels that are also available 
 
 ### 🌙 Night Light GUI (`nightlight-gui.py`)
 
-A GTK4/Adwaita panel for controlling **display color temperature and brightness** via `hyprsunset`.
+A GTK4/Adwaita panel for controlling **display color warmth** via `hyprsunset` with real-time **auto-saving**.
 
 **During installation** — the Night Light wizard opens automatically at the end of the setup process, letting you choose your preferred color temperature before the first reboot.
 
@@ -59,15 +59,14 @@ A GTK4/Adwaita panel for controlling **display color temperature and brightness*
 | **App launcher** (Rofi/wofi) | Search for **"Night Light"** |
 
 **Features:**
-- 🎚️ Temperature slider: 1000K (very warm) → 6500K (cool daylight)
-- 💡 Brightness (gamma) slider: 10% → 100%
-- ⚡ 6 quick presets: Night Mode · Evening · Home Comfort · Daytime · Cool Blue · Dim Night
-- 💾 Saves settings to `~/.config/hypr/nightlight.conf` — persists across reboots
-- 🔄 Live preview — changes apply instantly as you move the slider
+- 🎚️ **Warmth Percentage slider**: 0% (Daylight / 6500K) → 100% (Deep Amber Night / 2000K)
+- ⚡ **Toggle Switch**: Enable or disable night light instantly
+- 💾 **Real-time Auto-save**: Changes save automatically to `~/.config/hypr/nightlight.conf` and persist across reboots
+- 🔄 **Live preview**: Changes apply instantly in real time as a persistent background daemon
 
 **Run the setup wizard manually:**
 ```bash
-python3 ~/.local/share/bin/nightlight-gui.py --setup
+python3 ~/.local/share/bin/nightlight-gui.py
 ```
 
 ---
@@ -122,7 +121,7 @@ When you clone this repository, you will find the following files:
 | **`setup-waybar-glassmorphism.sh`** | **Glassmorphism 3-Islands Waybar Controller.** Standalone script that configures 3 floating glassmorphic capsules, rounded workspace numbers, laptop battery indicator, and click-to-manage Wi-Fi menu with Pywal integration. |
 | **`hypr-display-settings.py`** | **Display & Mouse Settings GUI.** GTK/Tkinter panel for configuring monitor resolution, refresh rate, scaling, and mouse pointer sensitivity. |
 | **`monitor-alignment.sh`** | **Dual Monitor Cursor Alignment Tool.** Zenity interactive wizard to calibrate screen rotation and vertical Y-offset alignment so mouse pointer transitions smoothly between dual displays. |
-| **`nightlight-gui.py`** | **Night Light settings GUI.** A GTK4/Adwaita panel for controlling display color temperature (1000–6500K) and brightness via `hyprsunset`. Supports a `--setup` flag for the first-run wizard launched during installation. Installed to `~/.local/share/bin/nightlight-gui.py`. Launch with `Super + Alt + N`. |
+| **`nightlight-gui.py`** | **Night Light settings GUI.** A GTK4/Adwaita panel for controlling display color warmth (2000–6500K) via `hyprsunset` with real-time auto-saving. Installed to `~/.local/share/bin/nightlight-gui.py`. Launch with `Super + Alt + N`. |
 | **`patch_driver.py`** | **Wi-Fi driver patcher.** Automatically modifies the RTL8188EUS (`8188eu`) wireless driver source files so it compiles on 6.x/7.x kernels. |
 | **`start_hotspot.sh`** | **Hotspot activation utility.** Spawns a Wi-Fi hotspot on the Realtek `wlan0` interface using `create_ap`. |
 | **`double-pageup.sh`** | **Key-binding helper.** Captures double-taps of the `Page_Up` key and simulates `Ctrl + \`` to toggle the integrated terminal. |
