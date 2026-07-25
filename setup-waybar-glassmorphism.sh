@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
-#   Waybar Glassmorphism 3-Islands Setup Script (Pywal & Theme Switcher Button)
+#   Waybar Glassmorphism Complete Master Setup Script (HyDE & Pywal Integrated)
 #   Part of: CachyOS + HyDE Custom Waybar Enhancements
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 #===============================================================================
@@ -21,7 +21,7 @@ NC='\033[0m'
 echo -e "${CYAN}${BOLD}"
 cat << "EOF"
   ==============================================================
-     Waybar Glassmorphism 3-Islands Installer & Controller
+     Waybar Glassmorphism 3-Islands Master Installer
   ==============================================================
 EOF
 echo -e "${NC}"
@@ -58,7 +58,7 @@ if [ -f "$CONFIG_FILE" ] && [ ! -f "$CONFIG_FILE.glass.bak" ]; then
 fi
 
 # Write Glassmorphism Waybar Config (config.jsonc)
-echo -e "${CYAN}[*] Writing Glassmorphism config to $CONFIG_FILE...${NC}"
+echo -e "${CYAN}[*] Writing Glassmorphism master config to $CONFIG_FILE...${NC}"
 cat << 'EOF' > "$CONFIG_FILE"
 {
     "layer": "top",
@@ -83,6 +83,7 @@ cat << 'EOF' > "$CONFIG_FILE"
     ],
     "modules-right": [
         "network",
+        "bluetooth",
         "pulseaudio",
         "battery",
         "memory",
@@ -170,6 +171,16 @@ cat << 'EOF' > "$CONFIG_FILE"
         "tooltip-format": "󰤨 {essid}\nIP: {ipaddr}/{cidr}\nSignal: {signalStrength}%\nInterface: {ifname}"
     },
 
+    "bluetooth": {
+        "format": " {status}",
+        "format-disabled": "󰂲 Off",
+        "format-connected": "󰂱 {num_connections}",
+        "tooltip-format": "{controller_alias}\t{controller_address}",
+        "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
+        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
+        "on-click": "blueman-manager || kitty --class float_blueman -e bluetoothctl"
+    },
+
     "pulseaudio": {
         "format": "{icon} {volume}%",
         "format-muted": "󰝟 Muted",
@@ -230,7 +241,7 @@ echo -e "${CYAN}[*] Writing Glassmorphism stylesheet to $STYLE_FILE and $MODULE_
 
 cat << 'EOF' > "$MODULE_STYLE_FILE"
 /* =============================================================================
-   Waybar Glassmorphism 3-Islands Style (Pywal Dynamic Colors & Ultra Soft Shadow)
+   Waybar Glassmorphism 3-Islands Master Style (Pywal Dynamic & Ultra Soft)
    Part of: CachyOS + HyDE Glassmorphism Setup
    ============================================================================= */
 
@@ -271,7 +282,7 @@ window#waybar {
     margin-right: 10px;
 }
 
-/* ── WORKSPACES & THEME BUTTON (LEFT ISLAND) ─────────────────────────────── */
+/* ── WORKSPACES & WINDOW ICONS (LEFT ISLAND) ─────────────────────────────── */
 #workspaces {
     background: transparent;
     padding: 0px;
@@ -335,20 +346,24 @@ window#waybar {
     padding: 0px 4px;
 }
 
-/* ── RIGHT ISLAND (NETWORK, VOLUME, BATTERY, MEM, CPU, TRAY) ───────────────── */
-#network, #pulseaudio, #battery, #memory, #cpu, #tray {
+/* ── RIGHT ISLAND (NETWORK, BLUETOOTH, VOLUME, BATTERY, MEM, CPU, TRAY) ──────── */
+#network, #bluetooth, #pulseaudio, #battery, #memory, #cpu, #tray {
     padding: 0px 7px;
     margin: 0px 2px;
     color: alpha(@main-fg, 0.85);
     border-radius: 8px;
 }
 
-#network:hover, #pulseaudio:hover, #battery:hover, #memory:hover, #cpu:hover {
+#network:hover, #bluetooth:hover, #pulseaudio:hover, #battery:hover, #memory:hover, #cpu:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
 #network.disconnected {
     color: rgba(255, 107, 107, 0.85);
+}
+
+#bluetooth.disabled {
+    color: rgba(160, 160, 160, 0.6);
 }
 
 #pulseaudio.muted {
@@ -384,4 +399,4 @@ cp "$MODULE_STYLE_FILE" "$STYLE_FILE" 2>/dev/null || true
 echo -e "${GREEN}[+] Starting Waybar to apply live changes...${NC}"
 waybar &>/dev/null &
 
-echo -e "\n${GREEN}${BOLD}[OK] Glassmorphism Waybar with Theme Switcher applied!${NC}"
+echo -e "\n${GREEN}${BOLD}[OK] Master Glassmorphism Waybar applied successfully!${NC}"
