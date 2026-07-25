@@ -116,6 +116,10 @@ When you clone this repository, you will find the following files:
 | File | Description |
 | :--- | :--- |
 | **`restore_my_setup.sh`** | **The main installer & configuration script.** Handles core packages, kernel headers, SDDM Candy theme, HyDE config, monitor layout, VS Code sync, keyboard layout, and driver building. |
+| **`cachy_tools_menu.sh`** | **Unified Tools Control Panel Launcher.** Master bash script providing an interactive CLI or GUI (Rofi/Zenity) selection menu to launch Night Light, Display & Mouse Settings, Cursor Alignment Calibration, Double PageUp, or Wi-Fi Hotspot. |
+| **`setup-waybar-glassmorphism.sh`** | **Glassmorphism 3-Islands Waybar Controller.** Standalone script that configures 3 floating glassmorphic capsules, rounded workspace numbers, laptop battery indicator, and click-to-manage Wi-Fi menu with Pywal integration. |
+| **`hypr-display-settings.py`** | **Display & Mouse Settings GUI.** GTK/Tkinter panel for configuring monitor resolution, refresh rate, scaling, and mouse pointer sensitivity. |
+| **`monitor-alignment.sh`** | **Dual Monitor Cursor Alignment Tool.** Zenity interactive wizard to calibrate screen rotation and vertical Y-offset alignment so mouse pointer transitions smoothly between dual displays. |
 | **`nightlight-gui.py`** | **Night Light settings GUI.** A GTK4/Adwaita panel for controlling display color temperature (1000–6500K) and brightness via `hyprsunset`. Supports a `--setup` flag for the first-run wizard launched during installation. Installed to `~/.local/share/bin/nightlight-gui.py`. Launch with `Super + Alt + N`. |
 | **`patch_driver.py`** | **Wi-Fi driver patcher.** Automatically modifies the RTL8188EUS (`8188eu`) wireless driver source files so it compiles on 6.x/7.x kernels. |
 | **`start_hotspot.sh`** | **Hotspot activation utility.** Spawns a Wi-Fi hotspot on the Realtek `wlan0` interface using `create_ap`. |
