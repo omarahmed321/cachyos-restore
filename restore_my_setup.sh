@@ -1009,23 +1009,22 @@ class DisplaySettingsApp(tk.Tk):
         self.hz_combo = ttk.Combobox(display_frame, state="readonly", width=15)
         self.hz_combo.grid(row=2, column=1, sticky='w', pady=10, padx=10)
         
-        # Scaling Select (Interactive Percentage Slider)
+        # Scaling Select (Direct Custom Text Entry + Preset Selector)
         ttk.Label(display_frame, text="System Zoom (Scale):").grid(row=3, column=0, sticky='w', pady=10, padx=10)
-        scale_slider_frame = ttk.Frame(display_frame)
-        scale_slider_frame.grid(row=3, column=1, sticky='ew', pady=10, padx=10)
+        scale_input_frame = ttk.Frame(display_frame)
+        scale_input_frame.grid(row=3, column=1, sticky='w', pady=10, padx=10)
 
-        self.scale_val_var = tk.StringVar(value="100%")
-        
-        self.scale_slider = tk.Scale(
-            scale_slider_frame, from_=75, to=250, resolution=5, orient='horizontal',
-            bg='#3c3836', fg='#ebdbb2', troughcolor='#272727', highlightbackground='#272727',
-            activebackground='#504945', showvalue=False, command=self.on_scale_slider_move
+        self.scale_entry = ttk.Entry(scale_input_frame, width=10, font=('JetBrains Mono', 10))
+        self.scale_entry.pack(side='left', padx=(0, 10))
+        self.scale_entry.insert(0, "1")
+
+        self.scale_preset_combo = ttk.Combobox(
+            scale_input_frame,
+            values=["1 (100%)", "1.25 (125%)", "1.5 (150%)", "1.67 (167%)", "1.75 (175%)", "2 (200%)"],
+            state="readonly", width=14
         )
-        self.scale_slider.set(100)
-        self.scale_slider.pack(side='left', fill='x', expand=True, padx=2)
-
-        self.scale_label = ttk.Label(scale_slider_frame, textvariable=self.scale_val_var, font=('JetBrains Mono', 11, 'bold'), width=6, anchor='center')
-        self.scale_label.pack(side='right', padx=5)
+        self.scale_preset_combo.pack(side='left', padx=2)
+        self.scale_preset_combo.bind("<<ComboboxSelected>>", self.on_scale_preset_select)
 
         # Orientation Select
         ttk.Label(display_frame, text="Orientation:").grid(row=4, column=0, sticky='w', pady=10, padx=10)
@@ -1087,9 +1086,10 @@ class DisplaySettingsApp(tk.Tk):
             self.monitor_combo.current(0)
             self.on_monitor_select(None)
 
-    def on_scale_slider_move(self, value):
-        pct = int(float(value))
-        self.scale_val_var.set(f"{pct}%")
+    def on_scale_preset_select(self, event):
+        selected = self.scale_preset_combo.get().split()[0]
+        self.scale_entry.delete(0, tk.END)
+        self.scale_entry.insert(0, selected)
 
     def on_monitor_select(self, event):
         m_idx = self.monitor_combo.current()
@@ -1109,16 +1109,10 @@ class DisplaySettingsApp(tk.Tk):
             
         self.on_res_select(None)
         
-        # Pre-select current scale on slider
+        # Pre-select current scale into Entry
         curr_scale = m_info['scale']
-        try:
-            curr_scale_float = float(curr_scale)
-            pct = int(round(curr_scale_float * 100))
-            self.scale_slider.set(pct)
-            self.scale_val_var.set(f"{pct}%")
-        except ValueError:
-            self.scale_slider.set(100)
-            self.scale_val_var.set("100%")
+        self.scale_entry.delete(0, tk.END)
+        self.scale_entry.insert(0, curr_scale)
 
         # Pre-select current transform/rotation
         extra = m_info['extra']
