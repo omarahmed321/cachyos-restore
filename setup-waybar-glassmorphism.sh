@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
-#   Waybar Glassmorphism Complete Master Setup Script (HyDE & Pywal Integrated)
+#   Waybar Glassmorphism Permanent Master Setup Script (Pywal & HyDE Integrated)
 #   Part of: CachyOS + HyDE Custom Waybar Enhancements
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 #===============================================================================
@@ -9,6 +9,10 @@ WAYBAR_DIR="$HOME/.config/waybar"
 CONFIG_FILE="$WAYBAR_DIR/config.jsonc"
 STYLE_FILE="$WAYBAR_DIR/style.css"
 MODULE_STYLE_FILE="$WAYBAR_DIR/modules/style.css"
+ACTIVE_FLAG="$WAYBAR_DIR/glassmorphism.active"
+BIN_DEST="$HOME/.local/share/bin/setup-waybar-glassmorphism.sh"
+WBARSTYLEGEN="$HOME/.local/share/bin/wbarstylegen.sh"
+WBARCONFGEN="$HOME/.local/share/bin/wbarconfgen.sh"
 
 # Colors for terminal output
 GREEN='\033[0;32m'
@@ -18,48 +22,11 @@ RED='\033[0;31m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-echo -e "${CYAN}${BOLD}"
-cat << "EOF"
-  ==============================================================
-     Waybar Glassmorphism 3-Islands Master Installer
-  ==============================================================
-EOF
-echo -e "${NC}"
+apply_waybar_config() {
+    mkdir -p "$WAYBAR_DIR/modules"
 
-# Stop waybar process first to release any file locks on style.css
-echo -e "${CYAN}[*] Temporarily stopping Waybar to update configuration...${NC}"
-killall -9 waybar 2>/dev/null || true
-sleep 0.5
-
-# Restore mode check
-if [ "$1" == "--restore" ]; then
-    if [ -f "$CONFIG_FILE.glass.bak" ]; then
-        echo -e "${YELLOW}[*] Restoring original Waybar configuration...${NC}"
-        cp "$CONFIG_FILE.glass.bak" "$CONFIG_FILE" 2>/dev/null || true
-        cp "$STYLE_FILE.glass.bak" "$STYLE_FILE" 2>/dev/null || true
-        cp "$MODULE_STYLE_FILE.glass.bak" "$MODULE_STYLE_FILE" 2>/dev/null || true
-        echo -e "${GREEN}[OK] Restored successfully.${NC}"
-        waybar &>/dev/null &
-        exit 0
-    else
-        echo -e "${RED}[ERROR] No backup found at $CONFIG_FILE.glass.bak${NC}"
-        exit 1
-    fi
-fi
-
-mkdir -p "$WAYBAR_DIR/modules"
-
-# Create Backup if not already backed up
-if [ -f "$CONFIG_FILE" ] && [ ! -f "$CONFIG_FILE.glass.bak" ]; then
-    echo -e "${CYAN}[*] Creating backup of current Waybar config & styles...${NC}"
-    cp "$CONFIG_FILE" "$CONFIG_FILE.glass.bak"
-    cp "$STYLE_FILE" "$STYLE_FILE.glass.bak" 2>/dev/null || true
-    cp "$MODULE_STYLE_FILE" "$MODULE_STYLE_FILE.glass.bak" 2>/dev/null || true
-fi
-
-# Write Glassmorphism Waybar Config (config.jsonc)
-echo -e "${CYAN}[*] Writing Glassmorphism master config to $CONFIG_FILE...${NC}"
-cat << 'EOF' > "$CONFIG_FILE"
+    # Write Glassmorphism Waybar Config (config.jsonc)
+    cat << 'EOF' > "$CONFIG_FILE"
 {
     "layer": "top",
     "position": "top",
@@ -236,10 +203,8 @@ cat << 'EOF' > "$CONFIG_FILE"
 }
 EOF
 
-# Write Pywal-integrated GTK Valid CSS to style.css and modules/style.css
-echo -e "${CYAN}[*] Writing Glassmorphism stylesheet to $STYLE_FILE and $MODULE_STYLE_FILE...${NC}"
-
-cat << 'EOF' > "$MODULE_STYLE_FILE"
+    # Write Pywal-integrated GTK Valid CSS to style.css and modules/style.css
+    cat << 'EOF' > "$MODULE_STYLE_FILE"
 /* =============================================================================
    Waybar Glassmorphism 3-Islands Master Style (Pywal Dynamic & Ultra Soft)
    Part of: CachyOS + HyDE Glassmorphism Setup
@@ -393,10 +358,96 @@ tooltip label {
 }
 EOF
 
-cp "$MODULE_STYLE_FILE" "$STYLE_FILE" 2>/dev/null || true
+    cp "$MODULE_STYLE_FILE" "$STYLE_FILE" 2>/dev/null || true
+}
+
+# Silent re-apply mode (used by HyDE theme change hooks)
+if [ "$1" == "--apply-silent" ]; then
+    apply_waybar_config
+    exit 0
+fi
+
+echo -e "${CYAN}${BOLD}"
+cat << "EOF"
+  ==============================================================
+     Waybar Glassmorphism Permanent Master Controller
+  ==============================================================
+EOF
+echo -e "${NC}"
+
+# Restore mode check
+if [ "$1" == "--restore" ]; then
+    echo -e "${YELLOW}[*] Removing Glassmorphism permanent lock flag...${NC}"
+    rm -f "$ACTIVE_FLAG" 2>/dev/null || true
+    
+    if [ -f "$CONFIG_FILE.glass.bak" ]; then
+        echo -e "${YELLOW}[*] Restoring original Waybar configuration...${NC}"
+        cp "$CONFIG_FILE.glass.bak" "$CONFIG_FILE" 2>/dev/null || true
+        cp "$STYLE_FILE.glass.bak" "$STYLE_FILE" 2>/dev/null || true
+        cp "$MODULE_STYLE_FILE.glass.bak" "$MODULE_STYLE_FILE" 2>/dev/null || true
+        echo -e "${GREEN}[OK] Restored successfully.${NC}"
+        killall -9 waybar 2>/dev/null || true
+        waybar &>/dev/null &
+        exit 0
+    else
+        echo -e "${RED}[ERROR] No backup found at $CONFIG_FILE.glass.bak${NC}"
+        exit 1
+    fi
+fi
+
+# Stop waybar process first to release any file locks on style.css
+echo -e "${CYAN}[*] Temporarily stopping Waybar to update configuration...${NC}"
+killall -9 waybar 2>/dev/null || true
+sleep 0.5
+
+# Create Backup if not already backed up
+if [ -f "$CONFIG_FILE" ] && [ ! -f "$CONFIG_FILE.glass.bak" ]; then
+    echo -e "${CYAN}[*] Creating backup of current Waybar config & styles...${NC}"
+    cp "$CONFIG_FILE" "$CONFIG_FILE.glass.bak"
+    cp "$STYLE_FILE" "$STYLE_FILE.glass.bak" 2>/dev/null || true
+    cp "$MODULE_STYLE_FILE" "$MODULE_STYLE_FILE.glass.bak" 2>/dev/null || true
+fi
+
+# Write Glassmorphism Config & Styles
+echo -e "${CYAN}[*] Applying permanent Glassmorphism layout & Pywal styles...${NC}"
+apply_waybar_config
+
+# Set Active Lock Flag
+touch "$ACTIVE_FLAG"
+mkdir -p "$HOME/.local/share/bin"
+cp "$0" "$BIN_DEST" 2>/dev/null || true
+chmod +x "$BIN_DEST" 2>/dev/null || true
+
+# Patch wbarstylegen.sh to maintain Glassmorphism layout permanently on theme switch
+if [ -f "$WBARSTYLEGEN" ]; then
+    if ! grep -q "glassmorphism.active" "$WBARSTYLEGEN"; then
+        echo -e "${CYAN}[*] Registering permanent hook in HyDE theme engine (wbarstylegen.sh)...${NC}"
+        cat << 'HOOK' >> "$WBARSTYLEGEN"
+
+# Permanent Glassmorphism Lock Hook
+if [ -f "$HOME/.config/waybar/glassmorphism.active" ] && [ -f "$HOME/.local/share/bin/setup-waybar-glassmorphism.sh" ]; then
+    bash "$HOME/.local/share/bin/setup-waybar-glassmorphism.sh" --apply-silent
+fi
+HOOK
+    fi
+fi
+
+# Patch wbarconfgen.sh to maintain Glassmorphism layout permanently on theme switch
+if [ -f "$WBARCONFGEN" ]; then
+    if ! grep -q "glassmorphism.active" "$WBARCONFGEN"; then
+        echo -e "${CYAN}[*] Registering permanent hook in HyDE config generator (wbarconfgen.sh)...${NC}"
+        cat << 'HOOK' >> "$WBARCONFGEN"
+
+# Permanent Glassmorphism Lock Hook
+if [ -f "$HOME/.config/waybar/glassmorphism.active" ] && [ -f "$HOME/.local/share/bin/setup-waybar-glassmorphism.sh" ]; then
+    bash "$HOME/.local/share/bin/setup-waybar-glassmorphism.sh" --apply-silent
+fi
+HOOK
+    fi
+fi
 
 # Restart Waybar to apply changes live
-echo -e "${GREEN}[+] Starting Waybar to apply live changes...${NC}"
+echo -e "${GREEN}[+] Starting Waybar with permanent Glassmorphism layout...${NC}"
 waybar &>/dev/null &
 
-echo -e "\n${GREEN}${BOLD}[OK] Master Glassmorphism Waybar applied successfully!${NC}"
+echo -e "\n${GREEN}${BOLD}[OK] Glassmorphism Waybar is now PERMANENTLY LOCKED across all theme changes!${NC}"
