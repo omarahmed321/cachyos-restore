@@ -1823,14 +1823,7 @@ class NightLightApp(Adw.Application):
         card.append(self.scale_nl)
 
 
-        # Action Save Button
-        save_btn = Gtk.Button(label="💾 Save Settings")
-        save_btn.add_css_class("suggested-action")
-        save_btn.set_margin_top(8)
-        save_btn.connect("clicked", self._on_save)
-        card.append(save_btn)
-
-        self.status_lbl = Gtk.Label(label="")
+        self.status_lbl = Gtk.Label(label="✓ Auto-saved")
         self.status_lbl.add_css_class("status-label")
         self.status_lbl.set_margin_top(4)
         card.append(self.status_lbl)
@@ -1840,19 +1833,29 @@ class NightLightApp(Adw.Application):
 
     def _on_toggle(self, sw, state):
         self._en = state
-    # ── Helpers ───────────────────────────────────────────────────────────────
+        self.scale_nl.set_sensitive(state)
+        self._debounce()
+        return False
+
+    def _on_temp_pct_changed(self, sc):
+        pct = int(sc.get_value())
+        self.val_nl.set_label(f"{pct}%")
+        self.desc_nl.set_label(get_warmth_desc(pct))
+        self._t = pct_to_temp(pct)
+        self._debounce()
 
     def _debounce(self):
-        """Apply hyprsunset 400 ms after the last change."""
         if self._timer:
             GLib.source_remove(self._timer)
-        self._timer = GLib.timeout_add(400, self._do_apply)
+        self._timer = GLib.timeout_add(250, self._do_apply_and_save)
 
-    def _do_apply(self):
+    def _do_apply_and_save(self):
         self._timer = None
-        threading.Thread(
-            target=_apply_live, args=(self._t, self._g, self._en), daemon=True
-        ).start()
+        def _do():
+            _save_conf(self._t, self._en)
+            _patch_hyprland(self._t, self._en)
+            _apply_live(self._t, self._en)
+        threading.Thread(target=_do, daemon=True).start()
         return False
 
     def _set_sens(self, e):

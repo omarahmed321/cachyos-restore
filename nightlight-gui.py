@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # =============================================================================
-#   Night Light GUI Panel (Hyprland / hyprsunset)
+#   Night Light GUI Panel (Hyprland / hyprsunset) — Auto-Save Mode
 #   Part of: CachyOS + HyDE System Restorer
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 # =============================================================================
@@ -135,9 +135,9 @@ window { background-color: transparent; }
 }
 
 .status-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    color: #2ecc71;
+    opacity: 0.6;
 }
 
 scale trough {
@@ -159,7 +159,7 @@ class NightLightApp(Adw.Application):
         )
 
         win = Adw.ApplicationWindow(application=app, title="Night Light Control")
-        win.set_default_size(380, 240)
+        win.set_default_size(380, 200)
 
         t, en = _load_conf()
         self._t = t
@@ -212,14 +212,7 @@ class NightLightApp(Adw.Application):
         self.scale_nl.connect("value-changed", self._on_temp_pct_changed)
         card.append(self.scale_nl)
 
-        # Action Save Button
-        save_btn = Gtk.Button(label="💾 Save Settings")
-        save_btn.add_css_class("suggested-action")
-        save_btn.set_margin_top(8)
-        save_btn.connect("clicked", self._on_save)
-        card.append(save_btn)
-
-        self.status_lbl = Gtk.Label(label="")
+        self.status_lbl = Gtk.Label(label="✓ Auto-saved")
         self.status_lbl.add_css_class("status-label")
         self.status_lbl.set_margin_top(4)
         card.append(self.status_lbl)
@@ -243,24 +236,16 @@ class NightLightApp(Adw.Application):
     def _debounce(self):
         if self._timer:
             GLib.source_remove(self._timer)
-        self._timer = GLib.timeout_add(250, self._do_apply)
+        self._timer = GLib.timeout_add(250, self._do_apply_and_save)
 
-    def _do_apply(self):
+    def _do_apply_and_save(self):
         self._timer = None
-        threading.Thread(target=_apply_live, args=(self._t, self._en), daemon=True).start()
-        return False
-
-    def _on_save(self, b):
         def _do():
             _save_conf(self._t, self._en)
             _patch_hyprland(self._t, self._en)
             _apply_live(self._t, self._en)
-            GLib.idle_add(self._show_status, "✓ Saved & Applied Successfully!")
         threading.Thread(target=_do, daemon=True).start()
-
-    def _show_status(self, msg):
-        self.status_lbl.set_label(msg)
-        GLib.timeout_add_seconds(3, lambda: self.status_lbl.set_label("") or False)
+        return False
 
 if __name__ == "__main__":
     app = NightLightApp()
