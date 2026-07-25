@@ -1631,85 +1631,66 @@ CONFIG_FILE   = os.path.expanduser("~/.config/hypr/nightlight.conf")
 
 # --- Temperature / Percentage Mapping ---
 # 0% Night Light Warmth   = 6500K (Daylight / Off)
-# 100% Night Light Warmth = 2500K (Max Warm Amber)
+# 100% Night Light Warmth = 2000K (Max Warm Amber)
 def pct_to_temp(pct):
     pct = max(0, min(100, pct))
-    return int(6500 - (pct / 100.0) * 4000)
+    return int(6500 - (pct / 100.0) * 4500)
 
 def temp_to_pct(temp):
-    temp = max(2500, min(6500, temp))
-    return int(round(((6500 - temp) / 4000.0) * 100))
+    temp = max(2000, min(6500, temp))
+    return int(round(((6500 - temp) / 4500.0) * 100))
 
 def get_warmth_desc(pct):
     if pct <= 0:
-        return "⚪ Off · Daylight (6500K)"
+        return "⚪ Off · Normal Daylight (6500K)"
     elif pct <= 35:
-        return f"🟡 Soft Evening Warmth ({pct_to_temp(pct)}K)"
+        return f"🟡 Soft Warmth ({pct_to_temp(pct)}K)"
     elif pct <= 70:
         return f"🟠 Balanced Night Warmth ({pct_to_temp(pct)}K)"
     else:
         return f"🔴 Deep Amber Night Mode ({pct_to_temp(pct)}K)"
 
-def get_hardware_brightness():
-    try:
-        g = int(subprocess.check_output(['brightnessctl', 'g'], text=True).strip())
-        m = int(subprocess.check_output(['brightnessctl', 'm'], text=True).strip())
-        if m > 0:
-            return int(round((g / m) * 100))
-    except Exception:
-        pass
-    return 100
-
-def set_hardware_brightness(pct):
-    pct = max(5, min(100, pct))
-    try:
-        subprocess.run(['brightnessctl', 'set', f"{pct}%"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-
 # --- Backend Config Functions ---
 def _load_conf():
-    t, b, en = 3500, get_hardware_brightness(), True
+    t, en = 3500, True
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, "r") as f:
                 c = f.read()
             m_t = re.search(r"^\s*(?:ENABLE_NIGHTLIGHT|temperature)=(\d+)", c, re.M)
-            m_b = re.search(r"^\s*(?:HYPRSUNSET_GAMMA|brightness)=(\d+)", c, re.M)
             m_e = re.search(r"^\s*(?:HYPRSUNSET_ENABLED|enabled)=(true|false)", c, re.M)
             if m_t: t = int(m_t.group(1))
-            if m_b: b = int(m_b.group(1))
             if m_e: en = (m_e.group(1) == "true")
         except Exception:
             pass
-    return t, b, en
+    return t, en
 
-def _save_conf(t, b, en):
+def _save_conf(t, en):
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     en_str = "true" if en else "false"
     with open(CONFIG_FILE, "w") as f:
         f.write(f"""# Night Light Configuration — managed by nightlight-gui.py
 temperature={t}
-brightness={b}
 enabled={en_str}
 ENABLE_NIGHTLIGHT={t}
-HYPRSUNSET_GAMMA={b}
 HYPRSUNSET_ENABLED={en_str}
 """)
 
-def _apply_live(t, b, en):
-    # 1. Apply hardware brightness safely
-    set_hardware_brightness(b)
-
-    # 2. Apply Night Light temperature via hyprsunset
-    if not en or t >= 6500:
-        subprocess.run(["killall", "-q", "hyprsunset"], check=False)
+def _apply_live(t, en):
+    # Kill any existing hyprsunset daemon instances
+    subprocess.run(["pkill", "-9", "-x", "hyprsunset"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
+    if not en or t >= 6400:
         return
 
-    cmd = ["hyprsunset", "-t", str(t)]
-    subprocess.run(["killall", "-q", "hyprsunset"], check=False)
     try:
-        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Spawn hyprsunset as a persistent background daemon
+        subprocess.Popen(
+            ["hyprsunset", "-t", str(t)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
     except Exception as e:
         print(f"[!] Failed to run hyprsunset: {e}")
 
@@ -1719,7 +1700,7 @@ def _patch_hyprland(t, en):
     try:
         with open(HYPRLAND_CONF, "r") as f:
             lines = f.readlines()
-        exec_line = "exec-once = python3 ~/.config/hypr/nightlight-start.sh\n"
+        exec_line = "exec-once = bash ~/.local/share/bin/nightlight-start.sh\n"
         has_exec = any("nightlight-start.sh" in l for l in lines)
         if not has_exec:
             lines.append("\n# Auto-start Night Light\n" + exec_line)
@@ -1752,7 +1733,7 @@ window { background-color: transparent; }
 }
 
 .val-badge {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 800;
     color: @accent_color;
 }
@@ -1787,12 +1768,11 @@ class NightLightApp(Adw.Application):
             Gdk.Display.get_default(), p, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
-        win = Adw.ApplicationWindow(application=app, title="Night Light & Brightness")
-        win.set_default_size(390, 310)
+        win = Adw.ApplicationWindow(application=app, title="Night Light Control")
+        win.set_default_size(380, 240)
 
-        t, g, en = _load_conf()
+        t, en = _load_conf()
         self._t = t
-        self._g = g
         self._en = en
         self._timer = None
 
@@ -1801,7 +1781,7 @@ class NightLightApp(Adw.Application):
 
         # Header Row with Switch Toggle
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        title = Gtk.Label(label="🌙 Night Light & Brightness")
+        title = Gtk.Label(label="🌙 Night Light Control")
         title.add_css_class("title-label")
         title.set_hexpand(True)
         title.set_halign(Gtk.Align.START)
@@ -1816,7 +1796,7 @@ class NightLightApp(Adw.Application):
         # Divider
         card.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
 
-        # Slider 1: Night Light Warmth (Percentage 0% - 100%)
+        # Slider: Night Light Warmth (Percentage 0% - 100%)
         initial_pct = temp_to_pct(self._t)
 
         row_nl = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -1838,26 +1818,10 @@ class NightLightApp(Adw.Application):
 
         self.scale_nl = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
         self.scale_nl.set_value(initial_pct)
+        self.scale_nl.set_sensitive(self._en)
         self.scale_nl.connect("value-changed", self._on_temp_pct_changed)
         card.append(self.scale_nl)
 
-        # Slider 2: Brightness (Percentage 10% - 100%)
-        row_br = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        lbl_br = Gtk.Label(label="Brightness")
-        lbl_br.add_css_class("slider-label")
-        lbl_br.set_hexpand(True)
-        lbl_br.set_halign(Gtk.Align.START)
-        row_br.append(lbl_br)
-
-        self.val_br = Gtk.Label(label=f"{self._g}%")
-        self.val_br.add_css_class("val-badge")
-        row_br.append(self.val_br)
-        card.append(row_br)
-
-        self.scale_br = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 10, 100, 1)
-        self.scale_br.set_value(self._g)
-        self.scale_br.connect("value-changed", self._on_gamma_changed)
-        card.append(self.scale_br)
 
         # Action Save Button
         save_btn = Gtk.Button(label="💾 Save Settings")
