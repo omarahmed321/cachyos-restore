@@ -19,9 +19,9 @@ from gi.repository import Gtk, Adw, GLib, Gdk, Gio
 HYPRLAND_CONF = os.path.expanduser("~/.config/hypr/hyprland.conf")
 CONFIG_FILE   = os.path.expanduser("~/.config/hypr/nightlight.conf")
 
-# --- Temperature / Percentage Helpers ---
-# 0% warmth = 6500K (Daylight)
-# 100% warmth = 1000K (Max Warmth)
+# --- Temperature / Percentage Mapping ---
+# 0% Night Light Warmth  = 6500K (Daylight / Off)
+# 100% Night Light Warmth = 1000K (Max Warmth Amber)
 def pct_to_temp(pct):
     pct = max(0, min(100, pct))
     return int(6500 - (pct / 100.0) * 5500)
@@ -29,6 +29,16 @@ def pct_to_temp(pct):
 def temp_to_pct(temp):
     temp = max(1000, min(6500, temp))
     return int(round(((6500 - temp) / 5500.0) * 100))
+
+def get_warmth_desc(pct):
+    if pct <= 0:
+        return "⚪ Off · Daylight (6500K)"
+    elif pct <= 35:
+        return f"🟡 Soft Warmth ({pct_to_temp(pct)}K)"
+    elif pct <= 70:
+        return f"🟠 Balanced Night Warmth ({pct_to_temp(pct)}K)"
+    else:
+        return f"🔴 Deep Night Amber ({pct_to_temp(pct)}K)"
 
 # --- Backend Config Functions ---
 def _load_conf():
@@ -57,7 +67,7 @@ HYPRSUNSET_ENABLED={'true' if en else 'false'}
 """)
 
 def _apply_live(t, g, en):
-    if not en:
+    if not en or t >= 6500:
         subprocess.run(["killall", "-q", "hyprsunset"], check=False)
         return
 
@@ -117,6 +127,12 @@ window { background-color: transparent; }
     color: @accent_color;
 }
 
+.desc-label {
+    font-size: 11px;
+    opacity: 0.75;
+    margin-top: 2px;
+}
+
 scale trough {
     border-radius: 8px;
     min-height: 12px;
@@ -136,7 +152,7 @@ class NightLightApp(Adw.Application):
         )
 
         win = Adw.ApplicationWindow(application=app, title="Night Light & Brightness")
-        win.set_default_size(380, 280)
+        win.set_default_size(390, 310)
 
         t, g, en = _load_conf()
         self._t = t
@@ -165,6 +181,8 @@ class NightLightApp(Adw.Application):
         card.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
 
         # Slider 1: Night Light Warmth (Percentage 0% - 100%)
+        initial_pct = temp_to_pct(self._t)
+
         row_nl = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         lbl_nl = Gtk.Label(label="Night Light Warmth")
         lbl_nl.add_css_class("slider-label")
@@ -172,13 +190,18 @@ class NightLightApp(Adw.Application):
         lbl_nl.set_halign(Gtk.Align.START)
         row_nl.append(lbl_nl)
 
-        self.val_nl = Gtk.Label(label=f"{temp_to_pct(self._t)}%")
+        self.val_nl = Gtk.Label(label=f"{initial_pct}%")
         self.val_nl.add_css_class("val-badge")
         row_nl.append(self.val_nl)
         card.append(row_nl)
 
+        self.desc_nl = Gtk.Label(label=get_warmth_desc(initial_pct))
+        self.desc_nl.add_css_class("desc-label")
+        self.desc_nl.set_halign(Gtk.Align.START)
+        card.append(self.desc_nl)
+
         self.scale_nl = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
-        self.scale_nl.set_value(temp_to_pct(self._t))
+        self.scale_nl.set_value(initial_pct)
         self.scale_nl.connect("value-changed", self._on_temp_pct_changed)
         card.append(self.scale_nl)
 
@@ -223,6 +246,7 @@ class NightLightApp(Adw.Application):
     def _on_temp_pct_changed(self, sc):
         pct = int(sc.get_value())
         self.val_nl.set_label(f"{pct}%")
+        self.desc_nl.set_label(get_warmth_desc(pct))
         self._t = pct_to_temp(pct)
         self._debounce()
 
