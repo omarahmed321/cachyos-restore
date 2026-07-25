@@ -282,7 +282,7 @@ class DisplaySettingsApp(tk.Tk):
         super().__init__()
         
         self.title("CachyOS Display & Mouse Settings")
-        self.geometry("450x450")
+        self.geometry("480x480")
         self.configure(bg='#272727')
         
         # Load data
@@ -342,11 +342,23 @@ class DisplaySettingsApp(tk.Tk):
         self.hz_combo = ttk.Combobox(display_frame, state="readonly", width=15)
         self.hz_combo.grid(row=2, column=1, sticky='w', pady=10, padx=10)
         
-        # Scaling Select
+        # Scaling Select (Interactive Percentage Slider)
         ttk.Label(display_frame, text="System Zoom (Scale):").grid(row=3, column=0, sticky='w', pady=10, padx=10)
-        self.scale_values = ["1", "1.25", "1.5", "1.75", "2"]
-        self.scale_combo = ttk.Combobox(display_frame, values=self.scale_values, state="readonly", width=10)
-        self.scale_combo.grid(row=3, column=1, sticky='w', pady=10, padx=10)
+        scale_slider_frame = ttk.Frame(display_frame)
+        scale_slider_frame.grid(row=3, column=1, sticky='ew', pady=10, padx=10)
+
+        self.scale_val_var = tk.StringVar(value="100%")
+        
+        self.scale_slider = tk.Scale(
+            scale_slider_frame, from_=75, to=250, resolution=5, orient='horizontal',
+            bg='#3c3836', fg='#ebdbb2', troughcolor='#272727', highlightbackground='#272727',
+            activebackground='#504945', showvalue=False, command=self.on_scale_slider_move
+        )
+        self.scale_slider.set(100)
+        self.scale_slider.pack(side='left', fill='x', expand=True, padx=2)
+
+        self.scale_label = ttk.Label(scale_slider_frame, textvariable=self.scale_val_var, font=('JetBrains Mono', 11, 'bold'), width=6, anchor='center')
+        self.scale_label.pack(side='right', padx=5)
 
         # Orientation Select
         ttk.Label(display_frame, text="Orientation:").grid(row=4, column=0, sticky='w', pady=10, padx=10)
@@ -408,6 +420,10 @@ class DisplaySettingsApp(tk.Tk):
             self.monitor_combo.current(0)
             self.on_monitor_select(None)
 
+    def on_scale_slider_move(self, value):
+        pct = int(float(value))
+        self.scale_val_var.set(f"{pct}%")
+
     def on_monitor_select(self, event):
         m_idx = self.monitor_combo.current()
         m_name = self.monitor_names[m_idx]
@@ -426,21 +442,16 @@ class DisplaySettingsApp(tk.Tk):
             
         self.on_res_select(None)
         
-        # Pre-select current scale
+        # Pre-select current scale on slider
         curr_scale = m_info['scale']
         try:
             curr_scale_float = float(curr_scale)
-            if curr_scale_float.is_integer():
-                curr_scale_str = str(int(curr_scale_float))
-            else:
-                curr_scale_str = f"{curr_scale_float:.2f}".rstrip('0').rstrip('.')
+            pct = int(round(curr_scale_float * 100))
+            self.scale_slider.set(pct)
+            self.scale_val_var.set(f"{pct}%")
         except ValueError:
-            curr_scale_str = curr_scale
-            
-        if curr_scale_str in self.scale_values:
-            self.scale_combo.set(curr_scale_str)
-        else:
-            self.scale_combo.set("1")
+            self.scale_slider.set(100)
+            self.scale_val_var.set("100%")
 
         # Pre-select current transform/rotation
         extra = m_info['extra']
@@ -499,7 +510,13 @@ class DisplaySettingsApp(tk.Tk):
         
         selected_res = self.res_combo.get()
         selected_hz = self.hz_combo.get()
-        selected_scale = self.scale_combo.get()
+        
+        pct = self.scale_slider.get()
+        scale_float = pct / 100.0
+        if scale_float.is_integer():
+            selected_scale = str(int(scale_float))
+        else:
+            selected_scale = f"{scale_float:.2f}".rstrip('0').rstrip('.')
         
         if not selected_res or not selected_hz or not selected_scale:
             messagebox.showerror("Error", "Please make sure resolution, refresh rate, and scaling are selected.")
