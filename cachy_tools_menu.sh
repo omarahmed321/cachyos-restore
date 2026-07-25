@@ -40,6 +40,7 @@ find_tool() {
 # Locate script targets
 FAV_PATH=$(find_tool "omar-fav-setup.sh")
 WP_PATH=$(find_tool "setup-wordpress-local.sh")
+POLKIT_PATH=$(find_tool "fix-polkit-localwp.sh")
 NIGHTLIGHT_PATH=$(find_tool "nightlight-gui.py")
 DISPLAY_PATH=$(find_tool "hypr-display-settings.py")
 ALIGNMENT_PATH=$(find_tool "monitor-alignment.sh")
@@ -63,6 +64,15 @@ launch_wordpress_setup() {
         bash "$WP_PATH"
     else
         echo -e "${RED}[ERROR] setup-wordpress-local.sh not found!${NC}"
+    fi
+}
+
+launch_polkit_fix() {
+    if [ -n "$POLKIT_PATH" ]; then
+        echo -e "${GREEN}[+] Running Polkit Authentication Fixer...${NC}"
+        bash "$POLKIT_PATH"
+    else
+        echo -e "${RED}[ERROR] fix-polkit-localwp.sh not found!${NC}"
     fi
 }
 
@@ -124,7 +134,7 @@ launch_hotspot() {
 # Graphical GUI Rofi / Zenity Launcher
 gui_menu() {
     if command -v rofi &>/dev/null; then
-        SELECTION=$(echo -e "1. ⭐️ Omar's Favorite Setup (omar-fav-setup)\n2. 🌐 Install Local WordPress (LocalWP)\n3. 🌙 Night Light GUI\n4. 🖥️ Display & Mouse Settings\n5. 🎯 Dual Monitor Cursor Alignment\n6. 📊 Waybar Glassmorphism Setup\n7. ⌨️ Double PageUp Trigger\n8. 🔌 Wi-Fi Hotspot Controller" | rofi -dmenu -i -p "CachyOS Control Panel:")
+        SELECTION=$(echo -e "1. ⭐️ Omar's Favorite Setup (omar-fav-setup)\n2. 🌐 Install Local WordPress (LocalWP)\n3. 🔐 Fix Polkit Auth for LocalWP\n4. 🌙 Night Light GUI\n5. 🖥️ Display & Mouse Settings\n6. 🎯 Dual Monitor Cursor Alignment\n7. 📊 Waybar Glassmorphism Setup\n8. ⌨️ Double PageUp Trigger\n9. 🔌 Wi-Fi Hotspot Controller" | rofi -dmenu -i -p "CachyOS Control Panel:")
     elif command -v zenity &>/dev/null; then
         SELECTION=$(zenity --list \
             --title="CachyOS Control Panel & System Tools" \
@@ -132,13 +142,14 @@ gui_menu() {
             --column="Available Utilities" \
             "1. ⭐️ Omar's Favorite Setup (omar-fav-setup)" \
             "2. 🌐 Install Local WordPress (LocalWP)" \
-            "3. 🌙 Night Light GUI" \
-            "4. 🖥️ Display & Mouse Settings" \
-            "5. 🎯 Dual Monitor Cursor Alignment" \
-            "6. 📊 Waybar Glassmorphism Setup" \
-            "7. ⌨️ Double PageUp Trigger" \
-            "8. 🔌 Wi-Fi Hotspot Controller" \
-            --width=450 --height=440 2>/dev/null)
+            "3. 🔐 Fix Polkit Auth for LocalWP" \
+            "4. 🌙 Night Light GUI" \
+            "5. 🖥️ Display & Mouse Settings" \
+            "6. 🎯 Dual Monitor Cursor Alignment" \
+            "7. 📊 Waybar Glassmorphism Setup" \
+            "8. ⌨️ Double PageUp Trigger" \
+            "9. 🔌 Wi-Fi Hotspot Controller" \
+            --width=450 --height=460 2>/dev/null)
     else
         echo -e "${YELLOW}[!] Neither Rofi nor Zenity found. Falling back to terminal menu...${NC}"
         cli_menu
@@ -148,6 +159,7 @@ gui_menu() {
     case "$SELECTION" in
         *"Omar's Favorite"*) launch_fav_setup ;;
         *"Local WordPress"*) launch_wordpress_setup ;;
+        *"Fix Polkit"*) launch_polkit_fix ;;
         *"Night Light"*) launch_nightlight ;;
         *"Display & Mouse"*) launch_display_settings ;;
         *"Cursor Alignment"*) launch_cursor_alignment ;;
@@ -175,38 +187,42 @@ EOF
         echo -e "  ${MAGENTA}${BOLD}2)${NC} 🌐 Install Local WordPress (${YELLOW}setup-wordpress-local.sh${NC})"
         echo -e "     Install LocalWP desktop app for local WordPress development"
         echo
-        echo -e "  ${MAGENTA}${BOLD}3)${NC} 🌙 Launch Night Light GUI (${YELLOW}nightlight-gui.py${NC})"
+        echo -e "  ${MAGENTA}${BOLD}3)${NC} 🔐 Fix Polkit Auth for LocalWP (${YELLOW}fix-polkit-localwp.sh${NC})"
+        echo -e "     Launch & fix Polkit authentication dialogs for LocalWP privileges"
+        echo
+        echo -e "  ${MAGENTA}${BOLD}4)${NC} 🌙 Launch Night Light GUI (${YELLOW}nightlight-gui.py${NC})"
         echo -e "     Adjust screen warmth percentage (0%-100%) with instant auto-save"
         echo
-        echo -e "  ${MAGENTA}${BOLD}4)${NC} 🖥️ Launch Display & Mouse Settings (${YELLOW}hypr-display-settings.py${NC})"
+        echo -e "  ${MAGENTA}${BOLD}5)${NC} 🖥️ Launch Display & Mouse Settings (${YELLOW}hypr-display-settings.py${NC})"
         echo -e "     Change resolution, refresh rate, custom scaling, and pointer sensitivity"
         echo
-        echo -e "  ${MAGENTA}${BOLD}5)${NC} 🎯 Dual Monitor Cursor Alignment Calibration (${YELLOW}monitor-alignment.sh${NC})"
+        echo -e "  ${MAGENTA}${BOLD}6)${NC} 🎯 Dual Monitor Cursor Alignment Calibration (${YELLOW}monitor-alignment.sh${NC})"
         echo -e "     Calibrate screen boundary alignment & shift cursor movement between dual displays"
         echo
-        echo -e "  ${MAGENTA}${BOLD}6)${NC} 📊 Launch Waybar Glassmorphism Setup (${YELLOW}setup-waybar-glassmorphism.sh${NC})"
+        echo -e "  ${MAGENTA}${BOLD}7)${NC} 📊 Launch Waybar Glassmorphism Setup (${YELLOW}setup-waybar-glassmorphism.sh${NC})"
         echo -e "     Apply or restore 3-island glassmorphic floating Waybar design"
         echo
-        echo -e "  ${MAGENTA}${BOLD}7)${NC} ⌨️ Double PageUp Listener Trigger (${YELLOW}double-pageup.sh${NC})"
+        echo -e "  ${MAGENTA}${BOLD}8)${NC} ⌨️ Double PageUp Listener Trigger (${YELLOW}double-pageup.sh${NC})"
         echo -e "     Simulate keybinding shortcut for terminal toggling"
         echo
-        echo -e "  ${MAGENTA}${BOLD}8)${NC} 🔌 Wi-Fi Hotspot Controller (${YELLOW}start_hotspot.sh${NC})"
+        echo -e "  ${MAGENTA}${BOLD}9)${NC} 🔌 Wi-Fi Hotspot Controller (${YELLOW}start_hotspot.sh${NC})"
         echo -e "     Spawn local Wi-Fi hotspot with QR code display"
         echo
-        echo -e "  ${MAGENTA}${BOLD}9)${NC} 🚪 Exit"
+        echo -e "  ${MAGENTA}${BOLD}10)${NC} 🚪 Exit"
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
-        read -p " Select choice [1-9]: " choice
+        read -p " Select choice [1-10]: " choice
 
         case "$choice" in
             1) launch_fav_setup; read -p "Press Enter to continue..." ;;
             2) launch_wordpress_setup; read -p "Press Enter to continue..." ;;
-            3) launch_nightlight; read -p "Press Enter to continue..." ;;
-            4) launch_display_settings; read -p "Press Enter to continue..." ;;
-            5) launch_cursor_alignment; read -p "Press Enter to continue..." ;;
-            6) launch_waybar_setup; read -p "Press Enter to continue..." ;;
-            7) launch_double_pageup; read -p "Press Enter to continue..." ;;
-            8) launch_hotspot; read -p "Press Enter to continue..." ;;
-            9|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
+            3) launch_polkit_fix; read -p "Press Enter to continue..." ;;
+            4) launch_nightlight; read -p "Press Enter to continue..." ;;
+            5) launch_display_settings; read -p "Press Enter to continue..." ;;
+            6) launch_cursor_alignment; read -p "Press Enter to continue..." ;;
+            7) launch_waybar_setup; read -p "Press Enter to continue..." ;;
+            8) launch_double_pageup; read -p "Press Enter to continue..." ;;
+            9) launch_hotspot; read -p "Press Enter to continue..." ;;
+            10|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
             *) echo -e "${RED}[!] Invalid choice.${NC}"; sleep 1 ;;
         esac
     done
