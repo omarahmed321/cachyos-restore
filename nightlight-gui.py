@@ -47,9 +47,9 @@ def _load_conf():
         try:
             with open(CONFIG_FILE, "r") as f:
                 c = f.read()
-            m_t = re.search(r"^\s*ENABLE_NIGHTLIGHT=(\d+)", c, re.M)
-            m_g = re.search(r"^\s*HYPRSUNSET_GAMMA=(\d+)", c, re.M)
-            m_e = re.search(r"^\s*HYPRSUNSET_ENABLED=(true|false)", c, re.M)
+            m_t = re.search(r"^\s*(?:ENABLE_NIGHTLIGHT|temperature)=(\d+)", c, re.M)
+            m_g = re.search(r"^\s*(?:HYPRSUNSET_GAMMA|gamma)=(\d+)", c, re.M)
+            m_e = re.search(r"^\s*(?:HYPRSUNSET_ENABLED|enabled)=(true|false)", c, re.M)
             if m_t: t = int(m_t.group(1))
             if m_g: g = int(m_g.group(1))
             if m_e: en = (m_e.group(1) == "true")
@@ -59,11 +59,15 @@ def _load_conf():
 
 def _save_conf(t, g, en):
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
+    en_str = "true" if en else "false"
     with open(CONFIG_FILE, "w") as f:
-        f.write(f"""# Night Light Configuration
+        f.write(f"""# Night Light Configuration — managed by nightlight-gui.py
+temperature={t}
+gamma={g}
+enabled={en_str}
 ENABLE_NIGHTLIGHT={t}
 HYPRSUNSET_GAMMA={g}
-HYPRSUNSET_ENABLED={'true' if en else 'false'}
+HYPRSUNSET_ENABLED={en_str}
 """)
 
 def _apply_live(t, g, en):
@@ -131,6 +135,12 @@ window { background-color: transparent; }
     font-size: 11px;
     opacity: 0.75;
     margin-top: 2px;
+}
+
+.status-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2ecc71;
 }
 
 scale trough {
@@ -231,6 +241,7 @@ class NightLightApp(Adw.Application):
         card.append(save_btn)
 
         self.status_lbl = Gtk.Label(label="")
+        self.status_lbl.add_css_class("status-label")
         self.status_lbl.set_margin_top(4)
         card.append(self.status_lbl)
 
@@ -242,6 +253,7 @@ class NightLightApp(Adw.Application):
         self.scale_nl.set_sensitive(state)
         self.scale_br.set_sensitive(state)
         self._debounce()
+        return False
 
     def _on_temp_pct_changed(self, sc):
         pct = int(sc.get_value())
@@ -270,7 +282,8 @@ class NightLightApp(Adw.Application):
         def _do():
             _save_conf(self._t, self._g, self._en)
             _patch_hyprland(self._t, self._en)
-            GLib.idle_add(self._show_status, "✓ Saved successfully!")
+            _apply_live(self._t, self._g, self._en)
+            GLib.idle_add(self._show_status, "✓ Saved & Applied to Startup!")
         threading.Thread(target=_do, daemon=True).start()
 
     def _show_status(self, msg):
