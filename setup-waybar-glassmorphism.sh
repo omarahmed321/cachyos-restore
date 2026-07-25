@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
-#   Waybar Glassmorphism 3-Islands Setup Script (Ultra Soft Shadow & Soft Opacity)
+#   Waybar Glassmorphism 3-Islands Setup Script (Pywal & Theme Switcher Button)
 #   Part of: CachyOS + HyDE Custom Waybar Enhancements
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 #===============================================================================
@@ -73,7 +73,8 @@ cat << 'EOF' > "$CONFIG_FILE"
     "reload_style_on_change": true,
 
     "modules-left": [
-        "hyprland/workspaces"
+        "hyprland/workspaces",
+        "custom/theme"
     ],
     "modules-center": [
         "clock",
@@ -120,6 +121,14 @@ cat << 'EOF' > "$CONFIG_FILE"
             "3": [],
             "4": []
         }
+    },
+
+    "custom/theme": {
+        "format": "󰔎",
+        "on-click": "themeselect.sh",
+        "on-click-right": "swwwallselect.sh",
+        "on-click-middle": "wallbashtoggle.sh",
+        "tooltip-format": "Left Click: Select Theme\nRight Click: Select Wallpaper\nMiddle Click: Wallbash Mode"
     },
 
     "clock": {
@@ -216,7 +225,7 @@ cat << 'EOF' > "$CONFIG_FILE"
 }
 EOF
 
-# Write Pywal-integrated GTK Valid CSS to style.css and modules/style.css with ultra soft shadow
+# Write Pywal-integrated GTK Valid CSS to style.css and modules/style.css
 echo -e "${CYAN}[*] Writing Glassmorphism stylesheet to $STYLE_FILE and $MODULE_STYLE_FILE...${NC}"
 
 cat << 'EOF' > "$MODULE_STYLE_FILE"
@@ -250,7 +259,7 @@ window#waybar {
     padding: 2px 12px;
     margin-top: 4px;
     margin-bottom: 4px;
-    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.12); /* <--- ULTRA SOFT SUBTLE SHADOW */
+    box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.12);
     color: @main-fg;
 }
 
@@ -262,7 +271,7 @@ window#waybar {
     margin-right: 10px;
 }
 
-/* ── WORKSPACES (LEFT ISLAND) ─────────────────────────────────────────────── */
+/* ── WORKSPACES & THEME BUTTON (LEFT ISLAND) ─────────────────────────────── */
 #workspaces {
     background: transparent;
     padding: 0px;
@@ -299,6 +308,20 @@ window#waybar {
     background: rgba(235, 77, 75, 0.6);
     color: #ffffff;
     border-radius: 8px;
+}
+
+#custom-theme {
+    padding: 0px 8px;
+    margin: 2px 4px;
+    color: alpha(@main-fg, 0.90);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+#custom-theme:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: @wb-hvr-fg;
 }
 
 /* ── CENTER ISLAND (CLOCK & PRAYER) ────────────────────────────────────────── */
@@ -361,6 +384,4 @@ cp "$MODULE_STYLE_FILE" "$STYLE_FILE" 2>/dev/null || true
 echo -e "${GREEN}[+] Starting Waybar to apply live changes...${NC}"
 waybar &>/dev/null &
 
-echo -e "\n${GREEN}${BOLD}[OK] Ultra Soft Shadow & Glassmorphism Waybar applied!${NC}"
-echo -e "To restore your original Waybar config anytime, run:"
-echo -e "  ${CYAN}./setup-waybar-glassmorphism.sh --restore${NC}\n"
+echo -e "\n${GREEN}${BOLD}[OK] Glassmorphism Waybar with Theme Switcher applied!${NC}"
