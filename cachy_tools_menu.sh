@@ -41,6 +41,7 @@ find_tool() {
 NIGHTLIGHT_PATH=$(find_tool "nightlight-gui.py")
 DISPLAY_PATH=$(find_tool "hypr-display-settings.py")
 ALIGNMENT_PATH=$(find_tool "monitor-alignment.sh")
+WAYBAR_PATH=$(find_tool "setup-waybar-glassmorphism.sh")
 PAGEUP_PATH=$(find_tool "double-pageup.sh")
 HOTSPOT_PATH=$(find_tool "start_hotspot.sh")
 
@@ -72,6 +73,15 @@ launch_cursor_alignment() {
     fi
 }
 
+launch_waybar_setup() {
+    if [ -n "$WAYBAR_PATH" ]; then
+        echo -e "${GREEN}[+] Launching Waybar Glassmorphism Setup...${NC}"
+        bash "$WAYBAR_PATH"
+    else
+        echo -e "${RED}[ERROR] setup-waybar-glassmorphism.sh not found!${NC}"
+    fi
+}
+
 launch_double_pageup() {
     if [ -n "$PAGEUP_PATH" ]; then
         echo -e "${GREEN}[+] Running Double PageUp Listener helper...${NC}"
@@ -94,7 +104,7 @@ launch_hotspot() {
 # Graphical GUI Rofi / Zenity Launcher
 gui_menu() {
     if command -v rofi &>/dev/null; then
-        SELECTION=$(echo -e "1. 🌙 Night Light GUI\n2. 🖥️ Display & Mouse Settings\n3. 🎯 Dual Monitor Cursor Alignment\n4. ⌨️ Double PageUp Trigger\n5. 🔌 Wi-Fi Hotspot Controller" | rofi -dmenu -i -p "CachyOS Control Panel:")
+        SELECTION=$(echo -e "1. 🌙 Night Light GUI\n2. 🖥️ Display & Mouse Settings\n3. 🎯 Dual Monitor Cursor Alignment\n4. 📊 Waybar Glassmorphism Setup\n5. ⌨️ Double PageUp Trigger\n6. 🔌 Wi-Fi Hotspot Controller" | rofi -dmenu -i -p "CachyOS Control Panel:")
     elif command -v zenity &>/dev/null; then
         SELECTION=$(zenity --list \
             --title="CachyOS Control Panel & System Tools" \
@@ -103,9 +113,10 @@ gui_menu() {
             "1. 🌙 Night Light GUI" \
             "2. 🖥️ Display & Mouse Settings" \
             "3. 🎯 Dual Monitor Cursor Alignment" \
-            "4. ⌨️ Double PageUp Trigger" \
-            "5. 🔌 Wi-Fi Hotspot Controller" \
-            --width=420 --height=320 2>/dev/null)
+            "4. 📊 Waybar Glassmorphism Setup" \
+            "5. ⌨️ Double PageUp Trigger" \
+            "6. 🔌 Wi-Fi Hotspot Controller" \
+            --width=420 --height=360 2>/dev/null)
     else
         echo -e "${YELLOW}[!] Neither Rofi nor Zenity found. Falling back to terminal menu...${NC}"
         cli_menu
@@ -116,6 +127,7 @@ gui_menu() {
         *"Night Light"*) launch_nightlight ;;
         *"Display & Mouse"*) launch_display_settings ;;
         *"Cursor Alignment"*) launch_cursor_alignment ;;
+        *"Waybar Glassmorphism"*) launch_waybar_setup ;;
         *"Double PageUp"*) launch_double_pageup ;;
         *"Hotspot"*) launch_hotspot ;;
         *) exit 0 ;;
@@ -142,23 +154,27 @@ EOF
         echo -e "  ${MAGENTA}${BOLD}3)${NC} 🎯 Dual Monitor Cursor Alignment Calibration (${YELLOW}monitor-alignment.sh${NC})"
         echo -e "     Calibrate screen boundary alignment & shift cursor movement between dual displays"
         echo
-        echo -e "  ${MAGENTA}${BOLD}4)${NC} ⌨️ Double PageUp Listener Trigger (${YELLOW}double-pageup.sh${NC})"
+        echo -e "  ${MAGENTA}${BOLD}4)${NC} 📊 Launch Waybar Glassmorphism Setup (${YELLOW}setup-waybar-glassmorphism.sh${NC})"
+        echo -e "     Apply or restore 3-island glassmorphic floating Waybar design"
+        echo
+        echo -e "  ${MAGENTA}${BOLD}5)${NC} ⌨️ Double PageUp Listener Trigger (${YELLOW}double-pageup.sh${NC})"
         echo -e "     Simulate keybinding shortcut for terminal toggling"
         echo
-        echo -e "  ${MAGENTA}${BOLD}5)${NC} 🔌 Wi-Fi Hotspot Controller (${YELLOW}start_hotspot.sh${NC})"
+        echo -e "  ${MAGENTA}${BOLD}6)${NC} 🔌 Wi-Fi Hotspot Controller (${YELLOW}start_hotspot.sh${NC})"
         echo -e "     Spawn local Wi-Fi hotspot with QR code display"
         echo
-        echo -e "  ${MAGENTA}${BOLD}6)${NC} 🚪 Exit"
+        echo -e "  ${MAGENTA}${BOLD}7)${NC} 🚪 Exit"
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
-        read -p " Select choice [1-6]: " choice
+        read -p " Select choice [1-7]: " choice
 
         case "$choice" in
             1) launch_nightlight; read -p "Press Enter to continue..." ;;
             2) launch_display_settings; read -p "Press Enter to continue..." ;;
             3) launch_cursor_alignment; read -p "Press Enter to continue..." ;;
-            4) launch_double_pageup; read -p "Press Enter to continue..." ;;
-            5) launch_hotspot; read -p "Press Enter to continue..." ;;
-            6|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
+            4) launch_waybar_setup; read -p "Press Enter to continue..." ;;
+            5) launch_double_pageup; read -p "Press Enter to continue..." ;;
+            6) launch_hotspot; read -p "Press Enter to continue..." ;;
+            7|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
             *) echo -e "${RED}[!] Invalid choice.${NC}"; sleep 1 ;;
         esac
     done
