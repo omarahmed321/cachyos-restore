@@ -475,7 +475,7 @@ class DisplaySettingsApp(tk.Tk):
             current_hz = m_info['current_mode'].split('@')[1] if '@' in m_info['current_mode'] else ''
             try:
                 curr_hz_val = float(current_hz)
-                curr_hz_str = str(int(curr_hz_val)) if curr_hz_val.is_integer() else f"{curr_hz_str:.2f}"
+                curr_hz_str = str(int(curr_hz_val)) if curr_hz_val.is_integer() else f"{curr_hz_val:.2f}"
             except ValueError:
                 curr_hz_str = current_hz
             
