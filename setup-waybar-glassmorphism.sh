@@ -40,8 +40,7 @@ apply_waybar_config() {
     "reload_style_on_change": true,
 
     "modules-left": [
-        "hyprland/workspaces",
-        "custom/theme"
+        "hyprland/workspaces"
     ],
     "modules-center": [
         "clock",
@@ -89,14 +88,6 @@ apply_waybar_config() {
             "3": [],
             "4": []
         }
-    },
-
-    "custom/theme": {
-        "format": "󰔎",
-        "on-click": "themeselect.sh",
-        "on-click-right": "swwwallselect.sh",
-        "on-click-middle": "wallbashtoggle.sh",
-        "tooltip-format": "Left Click: Select Theme\nRight Click: Select Wallpaper\nMiddle Click: Wallbash Mode"
     },
 
     "clock": {
@@ -286,20 +277,6 @@ window#waybar {
     border-radius: 8px;
 }
 
-#custom-theme {
-    padding: 0px 8px;
-    margin: 2px 4px;
-    color: alpha(@main-fg, 0.90);
-    border-radius: 8px;
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
-
-#custom-theme:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: @wb-hvr-fg;
-}
-
 /* ── CENTER ISLAND (CLOCK & PRAYER) ────────────────────────────────────────── */
 #clock, #custom-prayer {
     padding: 0px 8px;
@@ -450,4 +427,4 @@ fi
 echo -e "${GREEN}[+] Starting Waybar with permanent Glassmorphism layout...${NC}"
 waybar &>/dev/null &
 
-echo -e "\n${GREEN}${BOLD}[OK] Glassmorphism Waybar is now PERMANENTLY LOCKED across all theme changes!${NC}"
+echo -e "\n${GREEN}${BOLD}[OK] Clean Glassmorphism Waybar applied successfully!${NC}"
