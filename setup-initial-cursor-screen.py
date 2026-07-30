@@ -103,6 +103,12 @@ class BootCursorApp(tk.Tk):
             messagebox.showinfo("Success", f"Initial boot cursor screen set to '{screen}'!\nSaved to ~/.config/hypr/userprefs.conf")
 
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "--set":
+        screen_name = sys.argv[2]
+        if apply_initial_cursor_screen(screen_name):
+            print(f"Initial boot cursor screen set to '{screen_name}' successfully.")
+        sys.exit(0)
+
     if not os.environ.get('WAYLAND_DISPLAY') and not os.environ.get('DISPLAY'):
         print("Error: Display environment not found.")
         sys.exit(1)

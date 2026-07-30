@@ -15,6 +15,9 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)"
+[ -z "$SCRIPT_DIR" -o "$SCRIPT_DIR" = "/bin" ] && SCRIPT_DIR="$HOME/cachyos-restore"
+
 # Header block
 echo -e "${CYAN}${BOLD}"
 cat << "EOF"
@@ -2718,27 +2721,132 @@ OFFSET_Y=0
 
 # Check if hyprctl is available and running
 if command -v hyprctl &>/dev/null && hyprctl monitors &>/dev/null; then
-    echo -e "${GREEN}Hyprland is running. Using hyprctl for detection...${NC}"
+    echo -e "${GREEN}Hyprland is running. Using hyprctl for dynamic monitor detection...${NC}"
     MONITORS_JSON=$(hyprctl monitors -j)
     
-    # Sort monitors by maximum supported refresh rate (from availableModes) so the main high-refresh one is last
     SORTED_MONITORS=$(echo "$MONITORS_JSON" | jq 'map(. + {maxHz: ([.availableModes[] | capture("@(?<rate>[0-9.]+)Hz") | .rate | tonumber] | max | round)}) | sort_by(.maxHz)')
     NUM_MONITORS=$(echo "$SORTED_MONITORS" | jq '. | length')
     
     if [ "$NUM_MONITORS" -gt 0 ]; then
-        MAIN_NAME=$(echo "$SORTED_MONITORS" | jq -r 'last | .name')
-        MAIN_HZ=$(echo "$SORTED_MONITORS" | jq -r 'last | .maxHz')
-        MAIN_WIDTH=$(echo "$SORTED_MONITORS" | jq -r 'last | .width')
-        MAIN_HEIGHT=$(echo "$SORTED_MONITORS" | jq -r 'last | .height')
-        
         if [ "$NUM_MONITORS" -gt 1 ]; then
-            # We have a secondary monitor
-            SIDE_NAME=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .name')
-            SIDE_HZ=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .maxHz')
-            SIDE_WIDTH=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .width')
-            SIDE_HEIGHT=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .height')
-            
-            # Write configurations for dual-monitor setup
+            # Build list of connected monitors for user prompt
+            MONITOR_LIST_ARGS=()
+            for i in $(seq 0 $((NUM_MONITORS - 1))); do
+                m_name=$(echo "$MONITORS_JSON" | jq -r ".[$i].name")
+                m_w=$(echo "$MONITORS_JSON" | jq -r ".[$i].width")
+                m_h=$(echo "$MONITORS_JSON" | jq -r ".[$i].height")
+                m_hz=$(echo "$MONITORS_JSON" | jq -r ".[$i].refreshRate" | cut -d'.' -f1)
+                m_model=$(echo "$MONITORS_JSON" | jq -r ".[$i].model // \"Display\"")
+                MONITOR_LIST_ARGS+=("$m_name" "${m_w}x${m_h}@${m_hz}Hz ($m_model)")
+            done
+
+            SELECTED_PRIMARY=""
+            if command -v zenity &>/dev/null && [ -n "$WAYLAND_DISPLAY" -o -n "$DISPLAY" ]; then
+                SELECTED_PRIMARY=$(zenity --list \
+                    --title="Primary Screen Selection" \
+                    --text="Multiple monitors detected.\nWhich display is your PRIMARY screen?" \
+                    --column="Monitor Port" \
+                    --column="Details & Resolution" \
+                    "${MONITOR_LIST_ARGS[@]}" \
+                    --width=480 --height=320 2>/dev/null)
+            fi
+
+            if [ -n "$SELECTED_PRIMARY" ]; then
+                MAIN_NAME="$SELECTED_PRIMARY"
+                SIDE_NAME=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name != \"$MAIN_NAME\") | .name" | head -n 1)
+            else
+                # Default to highest refresh rate monitor
+                MAIN_NAME=$(echo "$SORTED_MONITORS" | jq -r 'last | .name')
+                SIDE_NAME=$(echo "$SORTED_MONITORS" | jq -r '.[0] | .name')
+            fi
+
+            # Ask position relative to secondary monitor (RIGHT or LEFT)
+            PRIMARY_POSITION="RIGHT"
+            if command -v zenity &>/dev/null && [ -n "$WAYLAND_DISPLAY" -o -n "$DISPLAY" ]; then
+                POS_CHOICE=$(zenity --list \
+                    --title="Primary Screen Placement" \
+                    --text="Where is your PRIMARY screen ($MAIN_NAME) positioned relative to your secondary screen ($SIDE_NAME)?" \
+                    --column="Position Option" \
+                    "RIGHT (Primary screen is on the right of secondary screen)" \
+                    "LEFT (Primary screen is on the left of secondary screen)" \
+                    --width=520 --height=250 2>/dev/null)
+                if [[ "$POS_CHOICE" =~ "LEFT" ]]; then
+                    PRIMARY_POSITION="LEFT"
+                fi
+            fi
+
+            # Ask SDDM Screen Target
+            SELECTED_SDDM=""
+            if command -v zenity &>/dev/null && [ -n "$WAYLAND_DISPLAY" -o -n "$DISPLAY" ]; then
+                SELECTED_SDDM=$(zenity --list \
+                    --title="SDDM Login Screen Display" \
+                    --text="Which monitor should the SDDM Login Screen appear on?" \
+                    --column="Display Port" \
+                    --column="Details" \
+                    "${MONITOR_LIST_ARGS[@]}" \
+                    --width=480 --height=320 2>/dev/null)
+            else
+                echo -e "\n${YELLOW}Select which monitor should display the SDDM Login Screen:${NC}"
+                for idx in "${!MONITOR_LIST_ARGS[@]}"; do
+                    if [ $((idx % 2)) -eq 0 ]; then
+                        echo -e "  [$((idx/2 + 1))] ${MONITOR_LIST_ARGS[idx]} - ${MONITOR_LIST_ARGS[idx+1]}"
+                    fi
+                done
+                read -p "Enter choice [1-$NUM_MONITORS] (Default: 1): " sddm_choice
+                sddm_choice="${sddm_choice:-1}"
+                sel_idx=$(( (sddm_choice - 1) * 2 ))
+                SELECTED_SDDM="${MONITOR_LIST_ARGS[sel_idx]}"
+            fi
+
+            if [ -n "$SELECTED_SDDM" ]; then
+                sudo mkdir -p /etc/sddm.conf.d 2>/dev/null
+                echo "$SELECTED_SDDM" | sudo tee /etc/sddm.conf.d/target_monitor >/dev/null 2>&1
+                if [ -f "$SCRIPT_DIR/sddm-screen-config.py" ]; then
+                    python3 "$SCRIPT_DIR/sddm-screen-config.py" --set "$SELECTED_SDDM" &>/dev/null || true
+                fi
+                echo -e "${GREEN}[OK] SDDM login screen set to $SELECTED_SDDM${NC}"
+            fi
+
+            # Ask Initial Boot Cursor Screen Target
+            SELECTED_CURSOR=""
+            if command -v zenity &>/dev/null && [ -n "$WAYLAND_DISPLAY" -o -n "$DISPLAY" ]; then
+                SELECTED_CURSOR=$(zenity --list \
+                    --title="Initial Boot Cursor Screen" \
+                    --text="Which display should the mouse cursor default to on initial boot?" \
+                    --column="Display Port" \
+                    --column="Details" \
+                    "${MONITOR_LIST_ARGS[@]}" \
+                    --width=480 --height=320 2>/dev/null)
+            else
+                echo -e "\n${YELLOW}Select which display the mouse cursor should default to on boot:${NC}"
+                for idx in "${!MONITOR_LIST_ARGS[@]}"; do
+                    if [ $((idx % 2)) -eq 0 ]; then
+                        echo -e "  [$((idx/2 + 1))] ${MONITOR_LIST_ARGS[idx]} - ${MONITOR_LIST_ARGS[idx+1]}"
+                    fi
+                done
+                read -p "Enter choice [1-$NUM_MONITORS] (Default: 1): " cursor_choice
+                cursor_choice="${cursor_choice:-1}"
+                sel_idx=$(( (cursor_choice - 1) * 2 ))
+                SELECTED_CURSOR="${MONITOR_LIST_ARGS[sel_idx]}"
+            fi
+
+            if [ -n "$SELECTED_CURSOR" ]; then
+                if [ -f "$SCRIPT_DIR/setup-initial-cursor-screen.py" ]; then
+                    python3 "$SCRIPT_DIR/setup-initial-cursor-screen.py" --set "$SELECTED_CURSOR" &>/dev/null || true
+                fi
+                echo -e "${GREEN}[OK] Boot cursor default screen set to $SELECTED_CURSOR${NC}"
+            fi
+
+            MAIN_HZ=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$MAIN_NAME\") | .refreshRate" | cut -d'.' -f1)
+            MAIN_WIDTH=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$MAIN_NAME\") | .width")
+            MAIN_HEIGHT=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$MAIN_NAME\") | .height")
+            MAIN_TRANSFORM=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$MAIN_NAME\") | .transform // 0")
+
+            SIDE_HZ=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$SIDE_NAME\") | .refreshRate" | cut -d'.' -f1)
+            SIDE_WIDTH=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$SIDE_NAME\") | .width")
+            SIDE_HEIGHT=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$SIDE_NAME\") | .height")
+            SIDE_TRANSFORM=$(echo "$MONITORS_JSON" | jq -r ".[] | select(.name == \"$SIDE_NAME\") | .transform // 0")
+
             if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
                 ROTATED_SIDE_WIDTH=${SIDE_HEIGHT}
                 ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
@@ -2755,12 +2863,18 @@ if command -v hyprctl &>/dev/null && hyprctl monitors &>/dev/null; then
                 ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
             fi
             
-            OFFSET_X=${ROTATED_SIDE_WIDTH}
             OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
             [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-            
-            MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
-            MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}"
+
+            if [ "$PRIMARY_POSITION" = "RIGHT" ]; then
+                OFFSET_X=${ROTATED_SIDE_WIDTH}
+                MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
+                MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}"
+            else
+                OFFSET_X=${ROTATED_MAIN_WIDTH}
+                MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},0x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
+                MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},${OFFSET_X}x0,1,transform,${SIDE_TRANSFORM}"
+            fi
             
             # Workspace rules for dual-monitor
             WORKSPACE_RULES="# Workspace Rules\n"
@@ -2776,6 +2890,10 @@ if command -v hyprctl &>/dev/null && hyprctl monitors &>/dev/null; then
             done
         else
             # Single monitor setup
+            MAIN_NAME=$(echo "$SORTED_MONITORS" | jq -r 'last | .name')
+            MAIN_HZ=$(echo "$SORTED_MONITORS" | jq -r 'last | .maxHz')
+            MAIN_WIDTH=$(echo "$SORTED_MONITORS" | jq -r 'last | .width')
+            MAIN_HEIGHT=$(echo "$SORTED_MONITORS" | jq -r 'last | .height')
             MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},0x0,1"
             WORKSPACE_RULES="# Workspace Rules\n"
             for w in {1..10}; do
@@ -2930,6 +3048,13 @@ echo -e "${GREEN}[OK] Dynamic monitors.conf generated successfully!${NC}"
 
 # Calibrate monitor alignment if dual monitor detected
 if [ -n "$SIDE_NAME" ]; then
+    # Ensure scripts are copied to local bin first
+    mkdir -p "$HOME/.local/share/bin"
+    if [ -f "$SCRIPT_DIR/monitor-alignment.sh" ]; then
+        cp "$SCRIPT_DIR/monitor-alignment.sh" "$HOME/.local/share/bin/" 2>/dev/null || true
+        chmod +x "$HOME/.local/share/bin/monitor-alignment.sh" 2>/dev/null || true
+    fi
+
     # Only run calibration if display environment is active (GUI mode)
     if [ -n "$WAYLAND_DISPLAY" ] || [ -n "$DISPLAY" ]; then
         echo -e "${BLUE}${BOLD}Dual monitors detected. Prompting for mouse alignment calibration...${NC}"
@@ -2942,191 +3067,20 @@ if [ -n "$SIDE_NAME" ]; then
             --cancel-label="Skip" \
             --width=400 2>/dev/null; then
             
-            # Loop for calibration
-            while true; do
-                # Recalculate dimensions based on current transforms
-                if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
-                    ROTATED_SIDE_WIDTH=${SIDE_HEIGHT}
-                    ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
-                else
-                    ROTATED_SIDE_WIDTH=${SIDE_WIDTH}
-                    ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
-                fi
-                
-                if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
-                    ROTATED_MAIN_WIDTH=${MAIN_HEIGHT}
-                    ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
-                else
-                    ROTATED_MAIN_WIDTH=${MAIN_WIDTH}
-                    ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
-                fi
-                
-                OFFSET_X=${ROTATED_SIDE_WIDTH}
-                
-                # Rewrite monitors.conf with current offsets and transforms
-                MONITOR_CONFIGS="monitor = ${MAIN_NAME},${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ},${OFFSET_X}x${OFFSET_Y},1,transform,${MAIN_TRANSFORM}\n"
-                MONITOR_CONFIGS="${MONITOR_CONFIGS}monitor = ${SIDE_NAME},${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ},0x0,1,transform,${SIDE_TRANSFORM}"
-                
-                cat << MONEOF > "$HOME/.config/hypr/monitors.conf"
-# █▀▄▀█ █▀█ █▄░█ █ ▀█▀ █▀█ █▀█ █▀
-# █░▀░█ █▄█ █░▀█ █ ░█░ █▄█ █▀▄ ▄█
-# Dynamically generated by restore_my_setup.sh
+            ALIGN_SCRIPT=""
+            if [ -f "$SCRIPT_DIR/monitor-alignment.sh" ]; then
+                ALIGN_SCRIPT="$SCRIPT_DIR/monitor-alignment.sh"
+            elif [ -f "$HOME/cachyos-restore/monitor-alignment.sh" ]; then
+                ALIGN_SCRIPT="$HOME/cachyos-restore/monitor-alignment.sh"
+            elif [ -f "$HOME/.local/share/bin/monitor-alignment.sh" ]; then
+                ALIGN_SCRIPT="$HOME/.local/share/bin/monitor-alignment.sh"
+            fi
 
-$(echo -e "$MONITOR_CONFIGS")
-
-$(echo -e "$WORKSPACE_RULES")
-MONEOF
-                
-                # Apply changes dynamically in Hyprland
-                if command -v hyprctl &>/dev/null; then
-                    if hyprctl activewindow -j 2>/dev/null | grep -q "lua"; then
-                        hyprctl eval "hl.monitor({ output = '${SIDE_NAME}', mode = '${SIDE_WIDTH}x${SIDE_HEIGHT}@${SIDE_HZ}', position = '0x0', scale = 1, transform = ${SIDE_TRANSFORM} })" &>/dev/null
-                        hyprctl eval "hl.monitor({ output = '${MAIN_NAME}', mode = '${MAIN_WIDTH}x${MAIN_HEIGHT}@${MAIN_HZ}', position = '${OFFSET_X}x${OFFSET_Y}', scale = 1, transform = ${MAIN_TRANSFORM} })" &>/dev/null
-                    else
-                        hyprctl reload &>/dev/null
-                    fi
-                fi
-
-                # Show list dialog
-                choice=$(zenity --list \
-                    --title="Monitor Setup & Alignment Calibration" \
-                    --text="Adjust orientation of the screens or alignment of the main screen.\nCurrent offset: ${OFFSET_Y}px." \
-                    --column="Action" \
-                    "Rotate Secondary: Landscape (Normal)" \
-                    "Rotate Secondary: Portrait (90°)" \
-                    "Rotate Secondary: Flipped Landscape (180°)" \
-                    "Rotate Secondary: Flipped Portrait (270°)" \
-                    "Rotate Main: Landscape (Normal)" \
-                    "Rotate Main: Portrait (90°)" \
-                    "Rotate Main: Flipped Landscape (180°)" \
-                    "Rotate Main: Flipped Portrait (270°)" \
-                    "Enter Custom Y-Offset Value" \
-                    "Shift Main Monitor Down (+50px)" \
-                    "Shift Main Monitor Up (-50px)" \
-                    "Fine-tune Down (+10px)" \
-                    "Fine-tune Up (-10px)" \
-                    "Save and Exit" \
-                    --width=480 --height=550 2>/dev/null)
-                    
-                # Parse choice
-                case "$choice" in
-                    "Rotate Secondary: Landscape (Normal)")
-                        SIDE_TRANSFORM=0
-                        ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
-                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
-                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
-                        else
-                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
-                        fi
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Rotate Secondary: Portrait (90°)")
-                        SIDE_TRANSFORM=1
-                        ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
-                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
-                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
-                        else
-                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
-                        fi
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Rotate Secondary: Flipped Landscape (180°)")
-                        SIDE_TRANSFORM=2
-                        ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
-                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
-                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
-                        else
-                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
-                        fi
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Rotate Secondary: Flipped Portrait (270°)")
-                        SIDE_TRANSFORM=3
-                        ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
-                        if [ "$MAIN_TRANSFORM" -eq 1 ] || [ "$MAIN_TRANSFORM" -eq 3 ]; then
-                            ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
-                        else
-                            ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
-                        fi
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Rotate Main: Landscape (Normal)")
-                        MAIN_TRANSFORM=0
-                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
-                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
-                        else
-                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
-                        fi
-                        ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Rotate Main: Portrait (90°)")
-                        MAIN_TRANSFORM=1
-                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
-                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
-                        else
-                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
-                        fi
-                        ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Rotate Main: Flipped Landscape (180°)")
-                        MAIN_TRANSFORM=2
-                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
-                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
-                        else
-                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
-                        fi
-                        ROTATED_MAIN_HEIGHT=${MAIN_HEIGHT}
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Rotate Main: Flipped Portrait (270°)")
-                        MAIN_TRANSFORM=3
-                        if [ "$SIDE_TRANSFORM" -eq 1 ] || [ "$SIDE_TRANSFORM" -eq 3 ]; then
-                            ROTATED_SIDE_HEIGHT=${SIDE_WIDTH}
-                        else
-                            ROTATED_SIDE_HEIGHT=${SIDE_HEIGHT}
-                        fi
-                        ROTATED_MAIN_HEIGHT=${MAIN_WIDTH}
-                        OFFSET_Y=$(( (ROTATED_SIDE_HEIGHT - ROTATED_MAIN_HEIGHT) / 2 ))
-                        [ $OFFSET_Y -lt 0 ] && OFFSET_Y=0
-                        ;;
-                    "Enter Custom Y-Offset Value")
-                        custom_val=$(zenity --entry \
-                            --title="Custom Y-Offset" \
-                            --text="Enter custom Y-offset in pixels (e.g., 0, 100, 200...):\n(Higher values shift the main screen down)" \
-                            --entry-text="$OFFSET_Y" 2>/dev/null)
-                        if [[ "$custom_val" =~ ^-?[0-9]+$ ]]; then
-                            OFFSET_Y=$custom_val
-                        elif [ -n "$custom_val" ]; then
-                            zenity --error --title="Invalid Input" --text="Please enter a valid integer number." --width=300 2>/dev/null
-                        fi
-                        ;;
-                    "Shift Main Monitor Down (+50px)")
-                        OFFSET_Y=$((OFFSET_Y + 50))
-                        ;;
-                    "Shift Main Monitor Up (-50px)")
-                        OFFSET_Y=$((OFFSET_Y - 50))
-                        ;;
-                    "Fine-tune Down (+10px)")
-                        OFFSET_Y=$((OFFSET_Y + 10))
-                        ;;
-                    "Fine-tune Up (-10px)")
-                        OFFSET_Y=$((OFFSET_Y - 10))
-                        ;;
-                    *)
-                        # Save and exit or cancel
-                        break
-                        ;;
-                esac
-            done
+            if [ -n "$ALIGN_SCRIPT" ]; then
+                bash "$ALIGN_SCRIPT"
+            else
+                echo -e "${RED}[ERROR] monitor-alignment.sh not found!${NC}"
+            fi
         fi
     fi
 fi
@@ -5256,28 +5210,29 @@ sudo tee /usr/share/sddm/scripts/Xsetup >/dev/null << 'XSEOF'
 #!/bin/sh
 # Xsetup - run as root before the login dialog appears
 
-# 1. Configure monitors dynamically (keep landscape primary monitor, turn off others)
+# 1. Configure monitors dynamically according to target configuration
 CONNECTED_MONITORS=$(xrandr | grep " connected" | awk '{print $1}')
 MONITOR_COUNT=$(echo "$CONNECTED_MONITORS" | wc -l)
 if [ "$MONITOR_COUNT" -gt 1 ]; then
-    PRIMARY_MONITOR=$(xrandr | grep " connected" | awk '{
-        split($3, res, "[x+]");
-        if (res[1] > res[2]) {
-            print $1;
-            exit;
-        }
-    }')
+    TARGET_MON=$(cat /etc/sddm.conf.d/target_monitor 2>/dev/null | tr -d '[:space:]')
+    PRIMARY_MONITOR=""
+    if [ -n "$TARGET_MON" ] && echo "$CONNECTED_MONITORS" | grep -q "^$TARGET_MON$"; then
+        PRIMARY_MONITOR="$TARGET_MON"
+    fi
+    
     if [ -z "$PRIMARY_MONITOR" ]; then
         PRIMARY_MONITOR=$(echo "$CONNECTED_MONITORS" | head -n 1)
     fi
-    
-    XRANDR_CMD="xrandr --output $PRIMARY_MONITOR --auto --primary"
-    for mon in $CONNECTED_MONITORS; do
-        if [ "$mon" != "$PRIMARY_MONITOR" ]; then
-            XRANDR_CMD="$XRANDR_CMD --output $mon --off"
-        fi
-    done
-    eval "$XRANDR_CMD"
+
+    if [ -n "$PRIMARY_MONITOR" ]; then
+        XRANDR_CMD="xrandr --output $PRIMARY_MONITOR --auto --primary"
+        for mon in $CONNECTED_MONITORS; do
+            if [ "$mon" != "$PRIMARY_MONITOR" ]; then
+                XRANDR_CMD="$XRANDR_CMD --output $mon --auto --right-of $PRIMARY_MONITOR"
+            fi
+        done
+        eval "$XRANDR_CMD"
+    fi
 fi
 
 # 2. Set mouse sensitivity and flat acceleration profile
@@ -5474,10 +5429,16 @@ echo -e "${GREEN}omar custom documentation script written.${NC}"
 
 
 
+# Execute Task Manager Setup (deploys task commands, fastfetch tasks.txt & zsh/fish integration)
+if [ -f "$SCRIPT_DIR/setup-task-manager.sh" ]; then
+    echo -e "${CYAN}Executing setup-task-manager.sh (deploying todo, doing, donetask, rmtask, edittask, GUI)...${NC}"
+    bash "$SCRIPT_DIR/setup-task-manager.sh" || true
+fi
+
 # Deploy all unified repo scripts to user bin
 if [ -d "$SCRIPT_DIR" ]; then
     mkdir -p "$HOME/.local/share/bin"
-    for tool in cachy_tools_menu.sh omar-fav-setup.sh setup-wordpress-local.sh fix-polkit-localwp.sh setup-waybar-glassmorphism.sh hypr-display-settings.py nightlight-gui.py sddm-screen-config.py task-manager-gui.py setup-notifications-theme.py setup-zen-browser-theme.sh setup-initial-cursor-screen.py interactive_restore.sh doing donetask todo rmtask edittask manage_tasks.py omar; do
+    for tool in cachy_tools_menu.sh omar-fav-setup.sh setup-wordpress-local.sh fix-polkit-localwp.sh setup-waybar-glassmorphism.sh hypr-display-settings.py nightlight-gui.py sddm-screen-config.py setup-task-manager.sh task-manager-gui.py setup-notifications-theme.py setup-zen-browser-theme.sh setup-initial-cursor-screen.py interactive_restore.sh doing donetask todo rmtask edittask manage_tasks.py omar; do
         if [ -f "$SCRIPT_DIR/$tool" ]; then
             cp "$SCRIPT_DIR/$tool" "$HOME/.local/share/bin/"
             chmod +x "$HOME/.local/share/bin/$tool"
