@@ -1,0 +1,7 @@
+/* Zen Browser Content Glassmorphism overrides */
+@-moz-document url("about:newtab"), url("about:home") {
+  body {
+    background-color: #1d2021 !important;
+    color: #ebdbb2 !important;
+  }
+}

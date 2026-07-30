@@ -1,0 +1,48 @@
+/* =============================================================================
+   Zen Browser Glassmorphism & Pywal Theme (3-Island Floating Style)
+   ============================================================================= */
+
+@import url("file:///" + osTargetFolder + "/colors.css");
+
+:root {
+  --zen-dark-bg: rgba(29, 32, 33, 0.75);
+  --zen-glass-bg: rgba(40, 40, 40, 0.55);
+  --zen-glass-border: rgba(131, 165, 152, 0.35);
+  --zen-accent-color: #83a598;
+  --zen-border-radius: 14px;
+}
+
+/* Glassmorphism sidebar & tab strip container */
+#sidebar-box,
+#tabbrowser-tabs,
+.zen-sidebar-panel,
+#navigator-toolbox {
+  background-color: var(--zen-dark-bg) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  border-radius: var(--zen-border-radius) !important;
+  border: 1px solid var(--zen-glass-border) !important;
+}
+
+/* Floating rounded URL bar */
+#urlbar-background {
+  background-color: var(--zen-glass-bg) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--zen-glass-border) !important;
+}
+
+/* Tab buttons styling */
+.tabbrowser-tab .tab-stack {
+  border-radius: 10px !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.tabbrowser-tab[selected="true"] .tab-stack {
+  background-color: rgba(131, 165, 152, 0.25) !important;
+  border: 1px solid var(--zen-accent-color) !important;
+}
+
+/* Remove default harsh borders */
+#navigator-toolbox {
+  border-bottom: none !important;
+}

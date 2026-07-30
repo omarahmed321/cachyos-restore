@@ -53,7 +53,8 @@ SDDM_PATH=$(find_tool "sddm-screen-config.py")
 TASK_GUI_PATH=$(find_tool "task-manager-gui.py")
 DUNST_PATH=$(find_tool "setup-notifications-theme.py")
 OMAR_CMD_PATH=$(find_tool "omar")
-ZEN_PATH=$(find_tool "setup-zen-mode.sh")
+ZEN_BROWSER_PATH=$(find_tool "setup-zen-browser-theme.sh")
+ZEN_MODE_PATH=$(find_tool "setup-zen-mode.sh")
 BOOT_CURSOR_PATH=$(find_tool "setup-initial-cursor-screen.py")
 
 # Launchers
@@ -176,10 +177,19 @@ launch_omar_cmd() {
     fi
 }
 
+launch_zen_browser() {
+    if [ -n "$ZEN_BROWSER_PATH" ]; then
+        echo -e "${GREEN}[+] Applying Zen Browser Glassmorphism Theme...${NC}"
+        bash "$ZEN_BROWSER_PATH"
+    else
+        echo -e "${RED}[ERROR] setup-zen-browser-theme.sh not found!${NC}"
+    fi
+}
+
 launch_zen_mode() {
-    if [ -n "$ZEN_PATH" ]; then
-        echo -e "${GREEN}[+] Toggling Minimal Zen Mode Theme...${NC}"
-        bash "$ZEN_PATH"
+    if [ -n "$ZEN_MODE_PATH" ]; then
+        echo -e "${GREEN}[+] Toggling Minimal Zen Focus Mode...${NC}"
+        bash "$ZEN_MODE_PATH"
     else
         echo -e "${RED}[ERROR] setup-zen-mode.sh not found!${NC}"
     fi
@@ -209,8 +219,9 @@ gui_menu() {
 11. 📝 Interactive Task Manager GUI (doing/donetask/rmtask)
 12. 🔔 Notification Theme Customizer (Dunst)
 13. 🚀 View Command 'omar' System Help
-14. 🧘 Toggle Minimal Zen Mode Theme
-15. 🎯 Initial Boot Cursor Screen Selector"
+14. 🌐 Zen Browser Glassmorphism Theme (setup-zen-browser-theme.sh)
+15. 🧘 Toggle Minimal Zen Focus Mode (setup-zen-mode.sh)
+16. 🎯 Initial Boot Cursor Screen Selector"
 
     if command -v rofi &>/dev/null; then
         SELECTION=$(echo -e "$OPTIONS" | rofi -dmenu -i -p "CachyOS Control Panel:")
@@ -232,9 +243,10 @@ gui_menu() {
             "11. 📝 Interactive Task Manager GUI" \
             "12. 🔔 Notification Theme Customizer" \
             "13. 🚀 View Command 'omar' System Help" \
-            "14. 🧘 Toggle Minimal Zen Mode Theme" \
-            "15. 🎯 Initial Boot Cursor Screen Selector" \
-            --width=520 --height=580 2>/dev/null)
+            "14. 🌐 Zen Browser Glassmorphism Theme" \
+            "15. 🧘 Toggle Minimal Zen Focus Mode" \
+            "16. 🎯 Initial Boot Cursor Screen Selector" \
+            --width=520 --height=620 2>/dev/null)
     else
         echo -e "${YELLOW}[!] Neither Rofi nor Zenity found. Falling back to terminal menu...${NC}"
         cli_menu
@@ -255,7 +267,8 @@ gui_menu() {
         *"Interactive Task Manager"*) launch_task_gui ;;
         *"Notification Theme"*) launch_dunst_theme ;;
         *"Command 'omar'"*) launch_omar_cmd ;;
-        *"Zen Mode"*) launch_zen_mode ;;
+        *"Zen Browser Glassmorphism"*) launch_zen_browser ;;
+        *"Zen Focus Mode"*) launch_zen_mode ;;
         *"Boot Cursor Screen"*) launch_boot_cursor ;;
         *) exit 0 ;;
     esac
@@ -286,11 +299,12 @@ EOF
         echo -e "  ${GREEN}${BOLD}11)${NC} 📝 Interactive Task Manager GUI (${YELLOW}task-manager-gui.py${NC})"
         echo -e "  ${GREEN}${BOLD}12)${NC} 🔔 Notification Theme Customizer (${YELLOW}setup-notifications-theme.py${NC})"
         echo -e "  ${GREEN}${BOLD}13)${NC} 🚀 View Command 'omar' System Help (${YELLOW}omar${NC})"
-        echo -e "  ${GREEN}${BOLD}14)${NC} 🧘 Toggle Minimal Zen Mode Theme (${YELLOW}setup-zen-mode.sh${NC})"
-        echo -e "  ${GREEN}${BOLD}15)${NC} 🎯 Initial Boot Cursor Screen Selector (${YELLOW}setup-initial-cursor-screen.py${NC})"
-        echo -e "  ${RED}${BOLD}16)${NC} 🚪 Exit"
+        echo -e "  ${GREEN}${BOLD}14)${NC} 🌐 Zen Browser Glassmorphism Theme (${YELLOW}setup-zen-browser-theme.sh${NC})"
+        echo -e "  ${GREEN}${BOLD}15)${NC} 🧘 Toggle Minimal Zen Focus Mode (${YELLOW}setup-zen-mode.sh${NC})"
+        echo -e "  ${GREEN}${BOLD}16)${NC} 🎯 Initial Boot Cursor Screen Selector (${YELLOW}setup-initial-cursor-screen.py${NC})"
+        echo -e "  ${RED}${BOLD}17)${NC} 🚪 Exit"
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
-        read -p " Select choice [1-16]: " choice
+        read -p " Select choice [1-17]: " choice
 
         case "$choice" in
             1) launch_fav_setup; read -p "Press Enter to continue..." ;;
@@ -306,9 +320,10 @@ EOF
             11) launch_task_gui; read -p "Press Enter to continue..." ;;
             12) launch_dunst_theme; read -p "Press Enter to continue..." ;;
             13) launch_omar_cmd; read -p "Press Enter to continue..." ;;
-            14) launch_zen_mode; read -p "Press Enter to continue..." ;;
-            15) launch_boot_cursor; read -p "Press Enter to continue..." ;;
-            16|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
+            14) launch_zen_browser; read -p "Press Enter to continue..." ;;
+            15) launch_zen_mode; read -p "Press Enter to continue..." ;;
+            16) launch_boot_cursor; read -p "Press Enter to continue..." ;;
+            17|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
             *) echo -e "${RED}[!] Invalid choice.${NC}"; sleep 1 ;;
         esac
     done
