@@ -115,13 +115,18 @@ When you clone this repository, you will find the following files:
 | File | Description |
 | :--- | :--- |
 | **`restore_my_setup.sh`** | **The main installer & configuration script.** Handles core packages, kernel headers, SDDM Candy theme, HyDE config, monitor layout, VS Code sync, keyboard layout, and driver building. |
-| **`cachy_tools_menu.sh`** | **Unified Tools Control Panel Launcher.** Master bash script providing an interactive CLI or GUI (Rofi/Zenity) selection menu to launch Omar's Favorite Setup, Local WordPress Installer, Polkit Auth Fixer, Night Light, Display & Mouse Settings, Cursor Alignment Calibration, Double PageUp, or Wi-Fi Hotspot. |
+| **`cachy_tools_menu.sh`** | **Unified Tools Control Panel Launcher.** Master bash script providing an interactive CLI or GUI (Rofi/Zenity) selection menu for all 15 system tools without breaking existing features. |
 | **`omar-fav-setup.sh`** | **Omar's Favorite Setup Controller.** One-click script that configures the 3-island Glassmorphism Waybar and sets `background-for-me.jpg` paper wallpaper with Pywal color generation. |
 | **`setup-wordpress-local.sh`** | **Local WordPress Development Installer.** Automated script that installs LocalWP (#1 local WordPress development tool) from AUR with automatic fallback options. |
 | **`fix-polkit-localwp.sh`** | **Polkit Authentication Agent Fixer.** Utility script that installs, starts, and configures the Polkit authentication agent required for LocalWP elevated privileges. |
+| **`sddm-screen-config.py`** | **SDDM Display & Screen Selector.** GUI/CLI tool to select which monitor the SDDM login screen appears on and view connected display properties. |
+| **`task-manager-gui.py`** | **Interactive Task Manager GUI Picker.** GTK/Tkinter visual task selector for `doing`, `donetask`, `rmtask`, and `edittask` without retyping text. |
+| **`setup-notifications-theme.py`** | **Notification Theme Customizer.** Dunst popup customizer offering Glassmorphism, Gruvbox, Cyberpunk, and Minimalist Pill themes. |
+| **`setup-zen-mode.sh`** | **Minimal Zen Mode Theme Toggle.** Standalone script that toggles distraction-free workspace (hides Waybar, zero gaps/borders). |
+| **`setup-initial-cursor-screen.py`** | **Boot Cursor Screen Selector.** Tool to select which display the mouse pointer defaults to when booting into Hyprland. |
 | **`background-for-me.jpg`** | **Signature Paper Wallpaper Asset.** High-resolution background image used by `omar-fav-setup.sh`. |
 | **`setup-waybar-glassmorphism.sh`** | **Glassmorphism 3-Islands Waybar Controller.** Standalone script that configures 3 floating glassmorphic capsules, rounded workspace numbers, laptop battery indicator, and click-to-manage Wi-Fi menu with Pywal integration. |
-| **`hypr-display-settings.py`** | **Display & Mouse Settings GUI.** GTK/Tkinter panel for configuring monitor resolution, refresh rate, scaling, and mouse pointer sensitivity. |
+| **`hypr-display-settings.py`** | **Display & Mouse Settings GUI.** GTK/Tkinter panel for configuring monitor resolution, custom Hz refresh rate text entry, scaling, and mouse pointer sensitivity. |
 | **`monitor-alignment.sh`** | **Dual Monitor Cursor Alignment Tool.** Zenity interactive wizard to calibrate screen rotation and vertical Y-offset alignment so mouse pointer transitions smoothly between dual displays. |
 | **`nightlight-gui.py`** | **Night Light settings GUI.** A GTK4/Adwaita panel for controlling display color warmth (2000–6500K) via `hyprsunset` with real-time auto-saving. Installed to `~/.local/share/bin/nightlight-gui.py`. Launch with `Super + Alt + N`. |
 | **`patch_driver.py`** | **Wi-Fi driver patcher.** Automatically modifies the RTL8188EUS (`8188eu`) wireless driver source files so it compiles on 6.x/7.x kernels. |

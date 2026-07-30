@@ -48,6 +48,14 @@ WAYBAR_PATH=$(find_tool "setup-waybar-glassmorphism.sh")
 PAGEUP_PATH=$(find_tool "double-pageup.sh")
 HOTSPOT_PATH=$(find_tool "start_hotspot.sh")
 
+# New Tools
+SDDM_PATH=$(find_tool "sddm-screen-config.py")
+TASK_GUI_PATH=$(find_tool "task-manager-gui.py")
+DUNST_PATH=$(find_tool "setup-notifications-theme.py")
+OMAR_CMD_PATH=$(find_tool "omar")
+ZEN_PATH=$(find_tool "setup-zen-mode.sh")
+BOOT_CURSOR_PATH=$(find_tool "setup-initial-cursor-screen.py")
+
 # Launchers
 launch_fav_setup() {
     if [ -n "$FAV_PATH" ]; then
@@ -131,17 +139,88 @@ launch_hotspot() {
     fi
 }
 
+# New Tool Launchers
+launch_sddm_screen() {
+    if [ -n "$SDDM_PATH" ]; then
+        echo -e "${GREEN}[+] Launching SDDM Display Selector...${NC}"
+        python3 "$SDDM_PATH" &
+    else
+        echo -e "${RED}[ERROR] sddm-screen-config.py not found!${NC}"
+    fi
+}
+
+launch_task_gui() {
+    if [ -n "$TASK_GUI_PATH" ]; then
+        echo -e "${GREEN}[+] Launching Interactive Task Manager GUI...${NC}"
+        python3 "$TASK_GUI_PATH" &
+    else
+        echo -e "${RED}[ERROR] task-manager-gui.py not found!${NC}"
+    fi
+}
+
+launch_dunst_theme() {
+    if [ -n "$DUNST_PATH" ]; then
+        echo -e "${GREEN}[+] Launching Notification Theme Customizer...${NC}"
+        python3 "$DUNST_PATH" &
+    else
+        echo -e "${RED}[ERROR] setup-notifications-theme.py not found!${NC}"
+    fi
+}
+
+launch_omar_cmd() {
+    if [ -n "$OMAR_CMD_PATH" ]; then
+        echo -e "${GREEN}[+] Running 'omar' Documentation & Help Command...${NC}"
+        bash "$OMAR_CMD_PATH"
+    else
+        echo -e "${RED}[ERROR] 'omar' command not found!${NC}"
+    fi
+}
+
+launch_zen_mode() {
+    if [ -n "$ZEN_PATH" ]; then
+        echo -e "${GREEN}[+] Toggling Minimal Zen Mode Theme...${NC}"
+        bash "$ZEN_PATH"
+    else
+        echo -e "${RED}[ERROR] setup-zen-mode.sh not found!${NC}"
+    fi
+}
+
+launch_boot_cursor() {
+    if [ -n "$BOOT_CURSOR_PATH" ]; then
+        echo -e "${GREEN}[+] Launching Initial Boot Cursor Screen Selector...${NC}"
+        python3 "$BOOT_CURSOR_PATH" &
+    else
+        echo -e "${RED}[ERROR] setup-initial-cursor-screen.py not found!${NC}"
+    fi
+}
+
 # Graphical GUI Rofi / Zenity Launcher
 gui_menu() {
+    OPTIONS="1. ⭐️ Omar's Favorite Setup (omar-fav-setup)
+2. 🌐 Install Local WordPress (LocalWP)
+3. 🔐 Fix Polkit Auth for LocalWP
+4. 🌙 Night Light GUI
+5. 🖥️ Display & Mouse Settings
+6. 🎯 Dual Monitor Cursor Alignment
+7. 📊 Waybar Glassmorphism Setup
+8. ⌨️ Double PageUp Trigger
+9. 🔌 Wi-Fi Hotspot Controller
+10. 🖥️ SDDM Login Screen Selector
+11. 📝 Interactive Task Manager GUI (doing/donetask/rmtask)
+12. 🔔 Notification Theme Customizer (Dunst)
+13. 🚀 View Command 'omar' System Help
+14. 🧘 Toggle Minimal Zen Mode Theme
+15. 🎯 Initial Boot Cursor Screen Selector"
+
     if command -v rofi &>/dev/null; then
-        SELECTION=$(echo -e "1. ⭐️ Omar's Favorite Setup (omar-fav-setup)\n2. 🌐 Install Local WordPress (LocalWP)\n3. 🔐 Fix Polkit Auth for LocalWP\n4. 🌙 Night Light GUI\n5. 🖥️ Display & Mouse Settings\n6. 🎯 Dual Monitor Cursor Alignment\n7. 📊 Waybar Glassmorphism Setup\n8. ⌨️ Double PageUp Trigger\n9. 🔌 Wi-Fi Hotspot Controller" | rofi -dmenu -i -p "CachyOS Control Panel:")
+        SELECTION=$(echo -e "$OPTIONS" | rofi -dmenu -i -p "CachyOS Control Panel:")
     elif command -v zenity &>/dev/null; then
         SELECTION=$(zenity --list \
             --title="CachyOS Control Panel & System Tools" \
             --text="Choose a tool to launch:" \
             --column="Available Utilities" \
-            "1. ⭐️ Omar's Favorite Setup (omar-fav-setup)" \
-            "2. 🌐 Install Local WordPress (LocalWP)" \
+            "1. ⭐️ Omar's Favorite Setup" \
+            "2. 🌐 Install Local WordPress" \
             "3. 🔐 Fix Polkit Auth for LocalWP" \
             "4. 🌙 Night Light GUI" \
             "5. 🖥️ Display & Mouse Settings" \
@@ -149,7 +228,13 @@ gui_menu() {
             "7. 📊 Waybar Glassmorphism Setup" \
             "8. ⌨️ Double PageUp Trigger" \
             "9. 🔌 Wi-Fi Hotspot Controller" \
-            --width=450 --height=460 2>/dev/null)
+            "10. 🖥️ SDDM Login Screen Selector" \
+            "11. 📝 Interactive Task Manager GUI" \
+            "12. 🔔 Notification Theme Customizer" \
+            "13. 🚀 View Command 'omar' System Help" \
+            "14. 🧘 Toggle Minimal Zen Mode Theme" \
+            "15. 🎯 Initial Boot Cursor Screen Selector" \
+            --width=520 --height=580 2>/dev/null)
     else
         echo -e "${YELLOW}[!] Neither Rofi nor Zenity found. Falling back to terminal menu...${NC}"
         cli_menu
@@ -166,6 +251,12 @@ gui_menu() {
         *"Waybar Glassmorphism"*) launch_waybar_setup ;;
         *"Double PageUp"*) launch_double_pageup ;;
         *"Hotspot"*) launch_hotspot ;;
+        *"SDDM Login Screen"*) launch_sddm_screen ;;
+        *"Interactive Task Manager"*) launch_task_gui ;;
+        *"Notification Theme"*) launch_dunst_theme ;;
+        *"Command 'omar'"*) launch_omar_cmd ;;
+        *"Zen Mode"*) launch_zen_mode ;;
+        *"Boot Cursor Screen"*) launch_boot_cursor ;;
         *) exit 0 ;;
     esac
 }
@@ -182,35 +273,24 @@ cli_menu() {
 EOF
         echo -e "${NC}"
         echo -e "  ${MAGENTA}${BOLD}1)${NC} ⭐️ Omar's Favorite Setup (${YELLOW}omar-fav-setup.sh${NC})"
-        echo -e "     Apply Glassmorphism Waybar & set favorite paper background"
-        echo
         echo -e "  ${MAGENTA}${BOLD}2)${NC} 🌐 Install Local WordPress (${YELLOW}setup-wordpress-local.sh${NC})"
-        echo -e "     Install LocalWP desktop app for local WordPress development"
-        echo
         echo -e "  ${MAGENTA}${BOLD}3)${NC} 🔐 Fix Polkit Auth for LocalWP (${YELLOW}fix-polkit-localwp.sh${NC})"
-        echo -e "     Launch & fix Polkit authentication dialogs for LocalWP privileges"
-        echo
         echo -e "  ${MAGENTA}${BOLD}4)${NC} 🌙 Launch Night Light GUI (${YELLOW}nightlight-gui.py${NC})"
-        echo -e "     Adjust screen warmth percentage (0%-100%) with instant auto-save"
-        echo
         echo -e "  ${MAGENTA}${BOLD}5)${NC} 🖥️ Launch Display & Mouse Settings (${YELLOW}hypr-display-settings.py${NC})"
-        echo -e "     Change resolution, refresh rate, custom scaling, and pointer sensitivity"
-        echo
-        echo -e "  ${MAGENTA}${BOLD}6)${NC} 🎯 Dual Monitor Cursor Alignment Calibration (${YELLOW}monitor-alignment.sh${NC})"
-        echo -e "     Calibrate screen boundary alignment & shift cursor movement between dual displays"
-        echo
+        echo -e "  ${MAGENTA}${BOLD}6)${NC} 🎯 Dual Monitor Cursor Alignment (${YELLOW}monitor-alignment.sh${NC})"
         echo -e "  ${MAGENTA}${BOLD}7)${NC} 📊 Launch Waybar Glassmorphism Setup (${YELLOW}setup-waybar-glassmorphism.sh${NC})"
-        echo -e "     Apply or restore 3-island glassmorphic floating Waybar design"
-        echo
         echo -e "  ${MAGENTA}${BOLD}8)${NC} ⌨️ Double PageUp Listener Trigger (${YELLOW}double-pageup.sh${NC})"
-        echo -e "     Simulate keybinding shortcut for terminal toggling"
-        echo
         echo -e "  ${MAGENTA}${BOLD}9)${NC} 🔌 Wi-Fi Hotspot Controller (${YELLOW}start_hotspot.sh${NC})"
-        echo -e "     Spawn local Wi-Fi hotspot with QR code display"
-        echo
-        echo -e "  ${MAGENTA}${BOLD}10)${NC} 🚪 Exit"
+        echo -e "  ${CYAN}--------------------------------------------------------------${NC}"
+        echo -e "  ${GREEN}${BOLD}10)${NC} 🖥️ SDDM Login Screen Selector (${YELLOW}sddm-screen-config.py${NC})"
+        echo -e "  ${GREEN}${BOLD}11)${NC} 📝 Interactive Task Manager GUI (${YELLOW}task-manager-gui.py${NC})"
+        echo -e "  ${GREEN}${BOLD}12)${NC} 🔔 Notification Theme Customizer (${YELLOW}setup-notifications-theme.py${NC})"
+        echo -e "  ${GREEN}${BOLD}13)${NC} 🚀 View Command 'omar' System Help (${YELLOW}omar${NC})"
+        echo -e "  ${GREEN}${BOLD}14)${NC} 🧘 Toggle Minimal Zen Mode Theme (${YELLOW}setup-zen-mode.sh${NC})"
+        echo -e "  ${GREEN}${BOLD}15)${NC} 🎯 Initial Boot Cursor Screen Selector (${YELLOW}setup-initial-cursor-screen.py${NC})"
+        echo -e "  ${RED}${BOLD}16)${NC} 🚪 Exit"
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
-        read -p " Select choice [1-10]: " choice
+        read -p " Select choice [1-16]: " choice
 
         case "$choice" in
             1) launch_fav_setup; read -p "Press Enter to continue..." ;;
@@ -222,7 +302,13 @@ EOF
             7) launch_waybar_setup; read -p "Press Enter to continue..." ;;
             8) launch_double_pageup; read -p "Press Enter to continue..." ;;
             9) launch_hotspot; read -p "Press Enter to continue..." ;;
-            10|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
+            10) launch_sddm_screen; read -p "Press Enter to continue..." ;;
+            11) launch_task_gui; read -p "Press Enter to continue..." ;;
+            12) launch_dunst_theme; read -p "Press Enter to continue..." ;;
+            13) launch_omar_cmd; read -p "Press Enter to continue..." ;;
+            14) launch_zen_mode; read -p "Press Enter to continue..." ;;
+            15) launch_boot_cursor; read -p "Press Enter to continue..." ;;
+            16|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
             *) echo -e "${RED}[!] Invalid choice.${NC}"; sleep 1 ;;
         esac
     done

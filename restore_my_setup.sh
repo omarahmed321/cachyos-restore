@@ -909,7 +909,7 @@ def set_touchpad_natural_scroll(enabled):
     except Exception:
         return False
 
-def update_monitor_config(name, resolution, hz, scale, extra):
+def update_monitor_config(name, resolution, hz, scale, pos, transform_val=0):
     try:
         os.makedirs(os.path.dirname(MONITORS_CONF), exist_ok=True)
         if not os.path.exists(MONITORS_CONF):
@@ -919,13 +919,16 @@ def update_monitor_config(name, resolution, hz, scale, extra):
         with open(MONITORS_CONF, 'r') as f:
             lines = f.readlines()
         
+        position = pos if pos and pos != 'auto' else '0x0'
+        res_hz = f"{resolution}@{hz}"
+        extra_str = f",transform,{transform_val}" if transform_val > 0 else ""
+        new_line = f"monitor = {name},{res_hz},{position},{scale}{extra_str}\n"
+        
         updated = False
         for i, line in enumerate(lines):
-            match = re.match(r'^\s*monitor\s*=\s*([\w\-]+)\s*,\s*([^,\n]+)\s*,\s*([^,\n]+)\s*,\s*([^,\n]+)(.*)$', line)
+            match = re.match(r'^\s*monitor\s*=\s*([\w\-]+)\s*,', line)
             if match and match.group(1) == name:
-                res_hz = f"{resolution}@{hz}"
-                pos = match.group(3).strip()
-                lines[i] = f"monitor = {name},{res_hz},{pos},{scale}{extra}\n"
+                lines[i] = new_line
                 updated = True
                 break
                 
@@ -935,7 +938,7 @@ def update_monitor_config(name, resolution, hz, scale, extra):
                 if 'Workspace Rules' in line:
                     insert_idx = idx
                     break
-            lines.insert(insert_idx, f"monitor = {name},{resolution}@{hz},auto,{scale}{extra}\n")
+            lines.insert(insert_idx, new_line)
             
         with open(MONITORS_CONF, 'w') as f:
             f.writelines(lines)
@@ -1004,11 +1007,19 @@ class DisplaySettingsApp(tk.Tk):
         self.res_combo.grid(row=1, column=1, sticky='w', pady=10, padx=10)
         self.res_combo.bind("<<ComboboxSelected>>", self.on_res_select)
         
-        # Refresh Rate Select
+        # Refresh Rate Input (Direct Custom Text Entry + Detected Presets Dropdown)
         ttk.Label(display_frame, text="Refresh Rate (Hz):").grid(row=2, column=0, sticky='w', pady=10, padx=10)
-        self.hz_combo = ttk.Combobox(display_frame, state="readonly", width=15)
-        self.hz_combo.grid(row=2, column=1, sticky='w', pady=10, padx=10)
-        
+        hz_input_frame = ttk.Frame(display_frame)
+        hz_input_frame.grid(row=2, column=1, sticky='w', pady=10, padx=10)
+
+        self.hz_entry = ttk.Entry(hz_input_frame, width=10, font=('JetBrains Mono', 10))
+        self.hz_entry.pack(side='left', padx=(0, 10))
+        self.hz_entry.insert(0, "60")
+
+        self.hz_preset_combo = ttk.Combobox(hz_input_frame, state="readonly", width=14)
+        self.hz_preset_combo.pack(side='left', padx=2)
+        self.hz_preset_combo.bind("<<ComboboxSelected>>", self.on_hz_preset_select)
+
         # Scaling Select (Direct Custom Text Entry + Preset Selector)
         ttk.Label(display_frame, text="System Zoom (Scale):").grid(row=3, column=0, sticky='w', pady=10, padx=10)
         scale_input_frame = ttk.Frame(display_frame)
@@ -1086,6 +1097,11 @@ class DisplaySettingsApp(tk.Tk):
             self.monitor_combo.current(0)
             self.on_monitor_select(None)
 
+    def on_hz_preset_select(self, event):
+        selected = self.hz_preset_combo.get().replace('Hz', '').strip()
+        self.hz_entry.delete(0, tk.END)
+        self.hz_entry.insert(0, selected)
+
     def on_scale_preset_select(self, event):
         selected = self.scale_preset_combo.get().split()[0]
         self.scale_entry.delete(0, tk.END)
@@ -1134,7 +1150,7 @@ class DisplaySettingsApp(tk.Tk):
         selected_res = self.res_combo.get()
         if selected_res in m_info['available_modes']:
             refresh_rates = m_info['available_modes'][selected_res]
-            self.hz_combo.configure(values=refresh_rates)
+            self.hz_preset_combo.configure(values=[f"{r} Hz" for r in refresh_rates])
             
             # Match current refresh rate
             current_hz = m_info['current_mode'].split('@')[1] if '@' in m_info['current_mode'] else ''
@@ -1144,18 +1160,11 @@ class DisplaySettingsApp(tk.Tk):
             except ValueError:
                 curr_hz_str = current_hz
             
-            matched = False
-            for rate in refresh_rates:
-                try:
-                    if abs(float(rate) - float(curr_hz_str)) < 1.0:
-                        self.hz_combo.set(rate)
-                        matched = True
-                        break
-                except ValueError:
-                    pass
+            self.hz_entry.delete(0, tk.END)
+            self.hz_entry.insert(0, curr_hz_str if curr_hz_str else "60")
             
-            if not matched and refresh_rates:
-                self.hz_combo.current(0)
+            if refresh_rates:
+                self.hz_preset_combo.current(0)
 
     def on_slider_move(self, value):
         self.sens_val_var.set(f"{float(value):+.2f}")
@@ -1170,17 +1179,28 @@ class DisplaySettingsApp(tk.Tk):
         m_info = self.monitors[m_name]
         
         selected_res = self.res_combo.get()
-        selected_hz = self.hz_combo.get()
+        selected_hz = self.hz_entry.get().strip()
         
-        pct = self.scale_slider.get()
-        scale_float = pct / 100.0
-        if scale_float.is_integer():
-            selected_scale = str(int(scale_float))
-        else:
-            selected_scale = f"{scale_float:.2f}".rstrip('0').rstrip('.')
+        selected_scale = self.scale_entry.get().strip()
+        try:
+            scale_val = float(selected_scale)
+            if scale_val <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid positive number for scaling (e.g., 1, 1.25, 1.5, 1.67).")
+            return
+            
+        try:
+            hz_val = float(selected_hz)
+            if hz_val <= 0:
+                raise ValueError
+            selected_hz = str(int(hz_val)) if hz_val.is_integer() else f"{hz_val:.2f}"
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid positive number for refresh rate (e.g., 60, 120, 144, 165, 240).")
+            return
         
         if not selected_res or not selected_hz or not selected_scale:
-            messagebox.showerror("Error", "Please make sure resolution, refresh rate, and scaling are selected.")
+            messagebox.showerror("Error", "Please make sure resolution, refresh rate, and scaling are set.")
             return
             
         # 1. Update Monitor Configuration
@@ -5487,6 +5507,17 @@ echo -e "${GREEN}omar custom documentation script written.${NC}"
 
 
 
+
+# Deploy all unified repo scripts to user bin
+if [ -d "$SCRIPT_DIR" ]; then
+    mkdir -p "$HOME/.local/share/bin"
+    for tool in cachy_tools_menu.sh omar-fav-setup.sh setup-wordpress-local.sh fix-polkit-localwp.sh setup-waybar-glassmorphism.sh hypr-display-settings.py nightlight-gui.py; do
+        if [ -f "$SCRIPT_DIR/$tool" ]; then
+            cp "$SCRIPT_DIR/$tool" "$HOME/.local/share/bin/"
+            chmod +x "$HOME/.local/share/bin/$tool"
+        fi
+    done
+fi
 
 fi # End of opt_deploy_dots
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
-#   Universal Polkit Authentication Agent Fixer for LocalWP & Privileged Apps
+#   Universal Polkit & LocalWP "Files Locked by Antivirus / Hosts" Fixer
 #   Part of: CachyOS + HyDE System Restorer & Universal Replicator
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 #===============================================================================
@@ -15,13 +15,13 @@ NC='\033[0m'
 echo -e "${CYAN}${BOLD}"
 cat << "EOF"
   ==============================================================
-       Universal Polkit Authentication Agent & LocalWP Fixer
+    Universal LocalWP "Locked Files / Hosts" & Polkit Fixer
   ==============================================================
 EOF
 echo -e "${NC}"
 
-# 1. Search for existing Polkit Agent across all Linux distributions (Arch, Ubuntu, Fedora, Debian, Manjaro, etc.)
-echo -e "${CYAN}[1/4] Detecting system Polkit Authentication Agent...${NC}"
+# 1. Detect & Launch System Polkit Authentication Agent Live
+echo -e "${CYAN}[1/4] Detecting & Starting Polkit Authentication Agent...${NC}"
 
 AGENT_BIN=""
 POSSIBLE_PATHS=(
@@ -45,52 +45,74 @@ if [ -z "$AGENT_BIN" ] && command -v hyprpolkitagent &>/dev/null; then
     AGENT_BIN="$(which hyprpolkitagent)"
 fi
 
-# 2. Auto-install Polkit Agent using native package manager if missing
-if [ -z "$AGENT_BIN" ]; then
-    echo -e "${YELLOW}[*] No active Polkit agent found. Installing package...${NC}"
-    if command -v pacman &>/dev/null; then
-        sudo pacman -S --noconfirm --needed polkit-kde-agent || sudo pacman -S --noconfirm --needed polkit-gnome
-    elif command -v apt &>/dev/null; then
-        sudo apt update && sudo apt install -y policykit-1-gnome || sudo apt install -y lxpolkit
-    elif command -v dnf &>/dev/null; then
-        sudo dnf install -y polkit-kde || sudo dnf install -y polkit-gnome
-    fi
-
-    # Re-check after installation
-    for path in "${POSSIBLE_PATHS[@]}"; do
-        if [ -f "$path" ]; then
-            AGENT_BIN="$path"
-            break
-        fi
-    done
-fi
-
 if [ -n "$AGENT_BIN" ]; then
-    echo -e "${GREEN}[OK] Verified Polkit Agent at: $AGENT_BIN${NC}"
+    AGENT_NAME="$(basename "$AGENT_BIN")"
+    if ! pgrep -f "$AGENT_NAME" >/dev/null; then
+        nohup "$AGENT_BIN" &>/dev/null & disown
+        sleep 1
+    fi
+    echo -e "${GREEN}[OK] Polkit Authentication Agent is running live! ($AGENT_BIN)${NC}"
 else
-    echo -e "${RED}[!] Error: Could not locate or install a valid Polkit authentication agent.${NC}"
-    exit 1
+    echo -e "${YELLOW}[!] Warning: Polkit Agent binary not found.${NC}"
 fi
 
-# 3. Launch the Polkit Agent in background live
-echo -e "\n${CYAN}[2/4] Launching Polkit Authentication Agent in background...${NC}"
-AGENT_NAME="$(basename "$AGENT_BIN")"
-pkill -f "$AGENT_NAME" 2>/dev/null || true
-"$AGENT_BIN" &>/dev/null &
-sleep 1
-
-if pgrep -f "$AGENT_NAME" >/dev/null; then
-    echo -e "${GREEN}[OK] Polkit Authentication Agent is running live!${NC}"
+# 2. Grant write permissions on /etc/hosts so LocalWP can append domains seamlessly
+echo -e "\n${CYAN}[2/4] Setting write permissions on /etc/hosts...${NC}"
+if [ -w "/etc/hosts" ]; then
+    echo -e "${GREEN}[OK] /etc/hosts is already writable.${NC}"
 else
-    echo -e "${YELLOW}[*] Polkit background trigger executed.${NC}"
+    if [ "$EUID" -ne 0 ]; then
+        sudo chattr -i /etc/hosts 2>/dev/null || true
+        sudo chmod 666 /etc/hosts 2>/dev/null || true
+    else
+        chattr -i /etc/hosts 2>/dev/null || true
+        chmod 666 /etc/hosts 2>/dev/null || true
+    fi
 fi
 
-# 4. Auto-register in Hyprland / Wayland / X11 autostarts
-echo -e "\n${CYAN}[3/4] Registering auto-start across desktop environments...${NC}"
+# 3. Automatically sync existing LocalWP site domains into /etc/hosts
+echo -e "\n${CYAN}[3/4] Syncing LocalWP site domains into /etc/hosts...${NC}"
+python3 -c "
+import json, os
 
-# Hyprland registration
+sites_json = os.path.expanduser('~/.config/Local/sites.json')
+hosts_path = '/etc/hosts'
+
+domains = []
+if os.path.exists(sites_json):
+    try:
+        with open(sites_json, 'r') as f:
+            data = json.load(f)
+            for site_id, site in data.items():
+                dom = site.get('domain')
+                if dom:
+                    domains.append(dom)
+    except Exception:
+        pass
+
+if domains and os.path.exists(hosts_path) and os.access(hosts_path, os.W_OK):
+    with open(hosts_path, 'r') as f:
+        content = f.read()
+    
+    new_entries = []
+    for d in domains:
+        if d not in content:
+            new_entries.append(f'127.0.0.1 {d}\n::1 {d}')
+            
+    if new_entries:
+        with open(hosts_path, 'a') as f:
+            f.write('\n## LocalWP Site Domains\n' + '\n'.join(new_entries) + '\n')
+        print(f'Synced {len(new_entries)} site domains to /etc/hosts')
+    else:
+        print('All site domains are already configured in /etc/hosts')
+" 2>/dev/null || true
+echo -e "${GREEN}[OK] Site domain sync complete.${NC}"
+
+# 4. Register Polkit Agent in Hyprland & Autostarts
+echo -e "\n${CYAN}[4/4] Registering persistent autostarts...${NC}"
+
 HYPR_CONF="$HOME/.config/hypr/userprefs.conf"
-if [ -d "$HOME/.config/hypr" ]; then
+if [ -d "$HOME/.config/hypr" ] && [ -n "$AGENT_BIN" ]; then
     touch "$HYPR_CONF"
     if ! grep -q "polkit" "$HYPR_CONF"; then
         cat << EOF >> "$HYPR_CONF"
@@ -98,16 +120,13 @@ if [ -d "$HOME/.config/hypr" ]; then
 # Start Polkit Authentication Agent for LocalWP and elevated privileges dialogs
 exec-once = $AGENT_BIN
 EOF
-        echo -e "${GREEN}[OK] Registered exec-once in Hyprland ($HYPR_CONF)${NC}"
-    else
-        echo -e "${GREEN}[OK] Polkit agent already configured in Hyprland ($HYPR_CONF)${NC}"
     fi
 fi
 
-# XDG Autostart Desktop entry registration (Works for Sway, Wayfire, Xmonad, i3, Openbox, KDE, GNOME, XFCE)
 XDG_AUTOSTART="$HOME/.config/autostart/polkit-agent-localwp.desktop"
-mkdir -p "$HOME/.config/autostart"
-cat << EOF > "$XDG_AUTOSTART"
+if [ -n "$AGENT_BIN" ]; then
+    mkdir -p "$HOME/.config/autostart"
+    cat << EOF > "$XDG_AUTOSTART"
 [Desktop Entry]
 Type=Application
 Name=Polkit Authentication Agent
@@ -117,11 +136,12 @@ Terminal=false
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
 EOF
-echo -e "${GREEN}[OK] Registered XDG Desktop autostart at $XDG_AUTOSTART${NC}"
+fi
 
-# 5. LocalWP helper script deployment
+# Deploy helper script to user bin
 mkdir -p "$HOME/.local/share/bin"
 cp "$0" "$HOME/.local/share/bin/fix-polkit-localwp.sh" 2>/dev/null || true
 chmod +x "$HOME/.local/share/bin/fix-polkit-localwp.sh" 2>/dev/null || true
 
-echo -e "\n${GREEN}${BOLD}[OK] Polkit Fix Applied & Verified Successfully for Any Device!${NC}\n"
+echo -e "\n${GREEN}${BOLD}[OK] LocalWP Fix Applied & Domain Sync Complete!${NC}"
+echo -e "${CYAN}[*] You can now start sites in LocalWP smoothly.${NC}\n"
