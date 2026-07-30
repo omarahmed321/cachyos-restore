@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # =============================================================================
-#   Dunst Notification Theme & Appearance Customizer (Glassmorphism Pywal)
+#   Dunst Notification Theme Customizer (Exact Waybar Glass Capsule Style)
 #   Part of: CachyOS + HyDE System Restorer
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 # =============================================================================
@@ -17,9 +17,9 @@ WAL_COLORS_JSON = os.path.expanduser("~/.cache/wal/colors.json")
 USERPREFS_CONF = os.path.expanduser("~/.config/hypr/userprefs.conf")
 
 def get_pywal_colors():
-    bg = "#1d2021"
-    fg = "#ebdbb2"
-    accent = "#83a598"
+    bg = "#090a09"
+    fg = "#bac2b3"
+    accent = "#6E835B"
     if os.path.exists(WAL_COLORS_JSON):
         try:
             with open(WAL_COLORS_JSON, 'r') as f:
@@ -27,6 +27,8 @@ def get_pywal_colors():
                 bg = data.get("special", {}).get("background", bg)
                 fg = data.get("special", {}).get("foreground", fg)
                 accent = data.get("colors", {}).get("color4", accent)
+                if not accent or accent == bg:
+                    accent = data.get("colors", {}).get("color2", "#61775D")
         except Exception:
             pass
     return bg, fg, accent
@@ -34,11 +36,11 @@ def get_pywal_colors():
 py_bg, py_fg, py_accent = get_pywal_colors()
 
 THEMES = {
-    "1. 💎 Waybar 3-Island Glassmorphism (Pywal Blur)": f"""[global]
+    "1. 💎 Exact Waybar Glassmorphism Capsule (Matching Image)": f"""[global]
     monitor = 0
     follow = mouse
-    width = (280, 400)
-    height = (80, 160)
+    width = (280, 420)
+    height = (70, 160)
     origin = top-right
     offset = 20x55
     scale = 0
@@ -52,18 +54,18 @@ THEMES = {
     icon_corner_radius = 12
     indicate_hidden = yes
     transparency = 0
-    separator_height = 2
+    separator_height = 1
     padding = 12
-    horizontal_padding = 16
+    horizontal_padding = 20
     text_icon_padding = 12
-    frame_width = 2
-    frame_color = "{py_accent}"
-    gap_size = 10
+    frame_width = 1
+    frame_color = "{py_accent}60"
+    gap_size = 12
     separator_color = frame
     sort = yes
     font = JetBrains Mono 10
-    corner_radius = 16
-    background = "{py_bg}a0"
+    corner_radius = 20
+    background = "{py_bg}80"
     foreground = "{py_fg}"
     format = "<b>%s</b>\\n%b"
     alignment = left
@@ -74,15 +76,15 @@ THEMES = {
     max_icon_size = 64
 
 [urgency_low]
-    background = "{py_bg}a0"
-    foreground = "#a89984"
-    frame_color = "#50494580"
+    background = "{py_bg}80"
+    foreground = "{py_fg}"
+    frame_color = "{py_accent}40"
     timeout = 5
 
 [urgency_normal]
-    background = "{py_bg}b0"
+    background = "{py_bg}90"
     foreground = "{py_fg}"
-    frame_color = "{py_accent}"
+    frame_color = "{py_accent}80"
     timeout = 5
 
 [urgency_critical]
@@ -196,7 +198,7 @@ def ensure_hyprland_glass_blur():
                 content = f.read()
             if "match:namespace notifications" not in content:
                 with open(USERPREFS_CONF, 'a') as f:
-                    f.write("\n# Glassmorphism Blur for Notifications\nlayerrule = blur 1, match:namespace notifications\nlayerrule = ignore_alpha 0.2, match:namespace notifications\n")
+                    f.write("\n# Glassmorphism Blur for Notifications\nlayerrule = blur 1, match:namespace notifications\nlayerrule = ignore_alpha 0.1, match:namespace notifications\n")
                 subprocess.run(['hyprctl', 'reload'], capture_output=True)
         except Exception:
             pass
@@ -215,7 +217,7 @@ def apply_dunst_theme(theme_name):
         subprocess.Popen(["dunst"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         # Send test notification
-        subprocess.run(["notify-send", "-u", "normal", "✨ Glassmorphism Theme Active!", f"Notification style matched to Waybar: {theme_name}"])
+        subprocess.run(["notify-send", "-u", "normal", "💎 Glass Capsule Active", "Notification design matched to Waybar!"])
         return True
     except Exception as e:
         messagebox.showerror("Error", f"Failed to apply Dunst theme: {e}")
