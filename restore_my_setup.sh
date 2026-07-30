@@ -4008,41 +4008,15 @@ alias ld='eza -lhD --icons=auto --no-permissions --no-user --no-filesize --time-
 alias la='eza -lha --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
 alias lsa='eza -lha --icons=auto --no-permissions --no-user --no-filesize --time-style="+%Y/%-m/%-d %I:%M %p"'
 
-# Task management functions
-function todo
-    python3 ~/.local/share/bin/manage_tasks.py todo "$argv"
-    fastfetch
-end
+# Erase old task functions from Fish RAM
+functions -e todo doing donetask rmtask edittask 2>/dev/null
 
-function doing
-    python3 ~/.local/share/bin/manage_tasks.py doing "$argv"
-    fastfetch
-end
-
-function donetask
-    python3 ~/.local/share/bin/manage_tasks.py done "$argv"
-    fastfetch
-end
-
-function rmtask
-    python3 ~/.local/share/bin/manage_tasks.py remove "$argv"
-    fastfetch
-end
-
-function edittask
-    set -l editor_cmd $EDITOR
-    if test -z "$editor_cmd"
-        if type -q nano
-            set editor_cmd nano
-        else if type -q vim
-            set editor_cmd vim
-        else
-            set editor_cmd vi
-        end
-    end
-    eval $editor_cmd ~/.config/fastfetch/tasks.txt
-    fastfetch
-end
+# Task management functions delegating to executable scripts
+function todo; $HOME/.local/share/bin/todo $argv; end
+function doing; $HOME/.local/share/bin/doing $argv; end
+function donetask; $HOME/.local/share/bin/donetask $argv; end
+function rmtask; $HOME/.local/share/bin/rmtask $argv; end
+function edittask; $HOME/.local/share/bin/edittask $argv; end
 EOF
 
 # --- WRITE ~/.config/yazi/yazi.toml ---
