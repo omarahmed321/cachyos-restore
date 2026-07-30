@@ -210,13 +210,48 @@ DESC_MOD9="Deploys interactive Task Manager & system documentation helper:
 if prompt_module "9. Task Manager GUI & 'omar' Documentation" "$DESC_MOD9"; then
     echo -e "${GREEN}[+] Deploying Task Manager GUI & 'omar' command...${NC}"
     mkdir -p "$HOME/.local/share/bin"
-    for tool in task-manager-gui.py manage_tasks.py omar cachy_tools_menu.sh; do
+    for tool in task-manager-gui.py manage_tasks.py omar cachy_tools_menu.sh doing donetask todo rmtask edittask; do
         if [ -f "$SCRIPT_DIR/$tool" ]; then
             cp "$SCRIPT_DIR/$tool" "$HOME/.local/share/bin/"
             chmod +x "$HOME/.local/share/bin/$tool"
         fi
     done
-    echo -e "${GREEN}[OK] Task Manager & Documentation deployed.${NC}\n"
+    
+    # Configure Fish shell config automatically
+    FISH_CONF="$HOME/.config/fish/config.fish"
+    if [ -f "$FISH_CONF" ]; then
+        if ! grep -q "functions -e todo doing" "$FISH_CONF"; then
+            cat << 'EOFFISH' >> "$FISH_CONF"
+
+# Erase old task functions from Fish RAM & delegate to scripts
+functions -e todo doing donetask rmtask edittask 2>/dev/null
+function todo; $HOME/.local/share/bin/todo $argv; end
+function doing; $HOME/.local/share/bin/doing $argv; end
+function donetask; $HOME/.local/share/bin/donetask $argv; end
+function rmtask; $HOME/.local/share/bin/rmtask $argv; end
+function edittask; $HOME/.local/share/bin/edittask $argv; end
+EOFFISH
+        fi
+    fi
+
+    # Configure Zsh shell config automatically
+    ZSH_CONF="$HOME/.zshrc"
+    if [ -f "$ZSH_CONF" ]; then
+        if ! grep -q "unfunction todo doing" "$ZSH_CONF"; then
+            cat << 'EOFZSH' >> "$ZSH_CONF"
+
+# Erase old task functions from Zsh RAM & delegate to scripts
+unfunction todo doing donetask rmtask edittask 2>/dev/null || true
+todo() { "$HOME/.local/share/bin/todo" "$@"; }
+doing() { "$HOME/.local/share/bin/doing" "$@"; }
+donetask() { "$HOME/.local/share/bin/donetask" "$@"; }
+rmtask() { "$HOME/.local/share/bin/rmtask" "$@"; }
+edittask() { "$HOME/.local/share/bin/edittask" "$@"; }
+EOFZSH
+        fi
+    fi
+
+    echo -e "${GREEN}[OK] Task Manager & Documentation deployed and shells configured.${NC}\n"
 fi
 
 # Deploy helper script to user bin

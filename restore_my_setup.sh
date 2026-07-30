@@ -5477,7 +5477,7 @@ echo -e "${GREEN}omar custom documentation script written.${NC}"
 # Deploy all unified repo scripts to user bin
 if [ -d "$SCRIPT_DIR" ]; then
     mkdir -p "$HOME/.local/share/bin"
-    for tool in cachy_tools_menu.sh omar-fav-setup.sh setup-wordpress-local.sh fix-polkit-localwp.sh setup-waybar-glassmorphism.sh hypr-display-settings.py nightlight-gui.py sddm-screen-config.py task-manager-gui.py setup-notifications-theme.py setup-zen-browser-theme.sh setup-initial-cursor-screen.py interactive_restore.sh; do
+    for tool in cachy_tools_menu.sh omar-fav-setup.sh setup-wordpress-local.sh fix-polkit-localwp.sh setup-waybar-glassmorphism.sh hypr-display-settings.py nightlight-gui.py sddm-screen-config.py task-manager-gui.py setup-notifications-theme.py setup-zen-browser-theme.sh setup-initial-cursor-screen.py interactive_restore.sh doing donetask todo rmtask edittask manage_tasks.py omar; do
         if [ -f "$SCRIPT_DIR/$tool" ]; then
             cp "$SCRIPT_DIR/$tool" "$HOME/.local/share/bin/"
             chmod +x "$HOME/.local/share/bin/$tool"
