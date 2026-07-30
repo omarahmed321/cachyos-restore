@@ -21,7 +21,7 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# Helper to find tool paths (prefer repo directory, fallback to ~/.local/share/bin/ or ~/)
+# Helper to find tool paths
 find_tool() {
     local name="$1"
     if [ -f "$SCRIPT_DIR/$name" ]; then
@@ -53,155 +53,58 @@ SDDM_PATH=$(find_tool "sddm-screen-config.py")
 TASK_GUI_PATH=$(find_tool "task-manager-gui.py")
 DUNST_PATH=$(find_tool "setup-notifications-theme.py")
 OMAR_CMD_PATH=$(find_tool "omar")
-ZEN_BROWSER_PATH=$(find_tool "setup-zen-browser-theme.sh")
-ZEN_MODE_PATH=$(find_tool "setup-zen-mode.sh")
+ZEN_SUITE_PATH=$(find_tool "setup-zen.sh")
 BOOT_CURSOR_PATH=$(find_tool "setup-initial-cursor-screen.py")
 
 # Launchers
 launch_fav_setup() {
-    if [ -n "$FAV_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Omar's Favorite Setup...${NC}"
-        bash "$FAV_PATH"
-    else
-        echo -e "${RED}[ERROR] omar-fav-setup.sh not found!${NC}"
-    fi
+    [ -n "$FAV_PATH" ] && bash "$FAV_PATH" || echo -e "${RED}[ERROR] omar-fav-setup.sh not found!${NC}"
 }
-
 launch_wordpress_setup() {
-    if [ -n "$WP_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Local WordPress Installer...${NC}"
-        bash "$WP_PATH"
-    else
-        echo -e "${RED}[ERROR] setup-wordpress-local.sh not found!${NC}"
-    fi
+    [ -n "$WP_PATH" ] && bash "$WP_PATH" || echo -e "${RED}[ERROR] setup-wordpress-local.sh not found!${NC}"
 }
-
 launch_polkit_fix() {
-    if [ -n "$POLKIT_PATH" ]; then
-        echo -e "${GREEN}[+] Running Polkit Authentication Fixer...${NC}"
-        bash "$POLKIT_PATH"
-    else
-        echo -e "${RED}[ERROR] fix-polkit-localwp.sh not found!${NC}"
-    fi
+    [ -n "$POLKIT_PATH" ] && bash "$POLKIT_PATH" || echo -e "${RED}[ERROR] fix-polkit-localwp.sh not found!${NC}"
 }
-
 launch_nightlight() {
-    if [ -n "$NIGHTLIGHT_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Night Light GUI...${NC}"
-        python3 "$NIGHTLIGHT_PATH" &
-    else
-        echo -e "${RED}[ERROR] nightlight-gui.py not found!${NC}"
-    fi
+    [ -n "$NIGHTLIGHT_PATH" ] && python3 "$NIGHTLIGHT_PATH" & || echo -e "${RED}[ERROR] nightlight-gui.py not found!${NC}"
 }
-
 launch_display_settings() {
-    if [ -n "$DISPLAY_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Display & Mouse Settings...${NC}"
-        python3 "$DISPLAY_PATH" &
-    else
-        echo -e "${RED}[ERROR] hypr-display-settings.py not found!${NC}"
-    fi
+    [ -n "$DISPLAY_PATH" ] && python3 "$DISPLAY_PATH" & || echo -e "${RED}[ERROR] hypr-display-settings.py not found!${NC}"
 }
-
 launch_cursor_alignment() {
-    if [ -n "$ALIGNMENT_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Dual Monitor Cursor Alignment Calibration...${NC}"
-        bash "$ALIGNMENT_PATH"
-    else
-        echo -e "${RED}[ERROR] monitor-alignment.sh not found!${NC}"
-    fi
+    [ -n "$ALIGNMENT_PATH" ] && bash "$ALIGNMENT_PATH" || echo -e "${RED}[ERROR] monitor-alignment.sh not found!${NC}"
 }
-
 launch_waybar_setup() {
-    if [ -n "$WAYBAR_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Waybar Glassmorphism Setup...${NC}"
-        bash "$WAYBAR_PATH"
-    else
-        echo -e "${RED}[ERROR] setup-waybar-glassmorphism.sh not found!${NC}"
-    fi
+    [ -n "$WAYBAR_PATH" ] && bash "$WAYBAR_PATH" || echo -e "${RED}[ERROR] setup-waybar-glassmorphism.sh not found!${NC}"
 }
-
 launch_double_pageup() {
-    if [ -n "$PAGEUP_PATH" ]; then
-        echo -e "${GREEN}[+] Running Double PageUp Listener helper...${NC}"
-        bash "$PAGEUP_PATH" &
-        echo -e "${GREEN}[OK] Double PageUp trigger executed.${NC}"
-    else
-        echo -e "${RED}[ERROR] double-pageup.sh not found!${NC}"
-    fi
+    [ -n "$PAGEUP_PATH" ] && bash "$PAGEUP_PATH" & || echo -e "${RED}[ERROR] double-pageup.sh not found!${NC}"
 }
-
 launch_hotspot() {
-    if [ -n "$HOTSPOT_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Wi-Fi Hotspot Controller...${NC}"
-        bash "$HOTSPOT_PATH"
-    else
-        echo -e "${RED}[ERROR] start_hotspot.sh not found!${NC}"
-    fi
+    [ -n "$HOTSPOT_PATH" ] && bash "$HOTSPOT_PATH" || echo -e "${RED}[ERROR] start_hotspot.sh not found!${NC}"
 }
-
-# New Tool Launchers
 launch_sddm_screen() {
-    if [ -n "$SDDM_PATH" ]; then
-        echo -e "${GREEN}[+] Launching SDDM Display Selector...${NC}"
-        python3 "$SDDM_PATH" &
-    else
-        echo -e "${RED}[ERROR] sddm-screen-config.py not found!${NC}"
-    fi
+    [ -n "$SDDM_PATH" ] && python3 "$SDDM_PATH" & || echo -e "${RED}[ERROR] sddm-screen-config.py not found!${NC}"
 }
-
 launch_task_gui() {
-    if [ -n "$TASK_GUI_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Interactive Task Manager GUI...${NC}"
-        python3 "$TASK_GUI_PATH" &
-    else
-        echo -e "${RED}[ERROR] task-manager-gui.py not found!${NC}"
-    fi
+    [ -n "$TASK_GUI_PATH" ] && python3 "$TASK_GUI_PATH" & || echo -e "${RED}[ERROR] task-manager-gui.py not found!${NC}"
 }
-
 launch_dunst_theme() {
-    if [ -n "$DUNST_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Notification Theme Customizer...${NC}"
-        python3 "$DUNST_PATH" &
-    else
-        echo -e "${RED}[ERROR] setup-notifications-theme.py not found!${NC}"
-    fi
+    [ -n "$DUNST_PATH" ] && python3 "$DUNST_PATH" & || echo -e "${RED}[ERROR] setup-notifications-theme.py not found!${NC}"
 }
-
 launch_omar_cmd() {
-    if [ -n "$OMAR_CMD_PATH" ]; then
-        echo -e "${GREEN}[+] Running 'omar' Documentation & Help Command...${NC}"
-        bash "$OMAR_CMD_PATH"
+    [ -n "$OMAR_CMD_PATH" ] && bash "$OMAR_CMD_PATH" || echo -e "${RED}[ERROR] 'omar' command not found!${NC}"
+}
+launch_zen_suite() {
+    if [ -n "$ZEN_SUITE_PATH" ]; then
+        bash "$ZEN_SUITE_PATH"
     else
-        echo -e "${RED}[ERROR] 'omar' command not found!${NC}"
+        echo -e "${RED}[ERROR] setup-zen.sh not found!${NC}"
     fi
 }
-
-launch_zen_browser() {
-    if [ -n "$ZEN_BROWSER_PATH" ]; then
-        echo -e "${GREEN}[+] Applying Zen Browser Glassmorphism Theme...${NC}"
-        bash "$ZEN_BROWSER_PATH"
-    else
-        echo -e "${RED}[ERROR] setup-zen-browser-theme.sh not found!${NC}"
-    fi
-}
-
-launch_zen_mode() {
-    if [ -n "$ZEN_MODE_PATH" ]; then
-        echo -e "${GREEN}[+] Toggling Minimal Zen Focus Mode...${NC}"
-        bash "$ZEN_MODE_PATH"
-    else
-        echo -e "${RED}[ERROR] setup-zen-mode.sh not found!${NC}"
-    fi
-}
-
 launch_boot_cursor() {
-    if [ -n "$BOOT_CURSOR_PATH" ]; then
-        echo -e "${GREEN}[+] Launching Initial Boot Cursor Screen Selector...${NC}"
-        python3 "$BOOT_CURSOR_PATH" &
-    else
-        echo -e "${RED}[ERROR] setup-initial-cursor-screen.py not found!${NC}"
-    fi
+    [ -n "$BOOT_CURSOR_PATH" ] && python3 "$BOOT_CURSOR_PATH" & || echo -e "${RED}[ERROR] setup-initial-cursor-screen.py not found!${NC}"
 }
 
 # Graphical GUI Rofi / Zenity Launcher
@@ -219,9 +122,8 @@ gui_menu() {
 11. 📝 Interactive Task Manager GUI (doing/donetask/rmtask)
 12. 🔔 Notification Theme Customizer (Dunst)
 13. 🚀 View Command 'omar' System Help
-14. 🌐 Zen Browser Glassmorphism Theme (setup-zen-browser-theme.sh)
-15. 🧘 Toggle Minimal Zen Focus Mode (setup-zen-mode.sh)
-16. 🎯 Initial Boot Cursor Screen Selector"
+14. 🧘 Unified Zen Suite: Browser Glass Theme & Minimal Focus Mode (setup-zen.sh)
+15. 🎯 Initial Boot Cursor Screen Selector"
 
     if command -v rofi &>/dev/null; then
         SELECTION=$(echo -e "$OPTIONS" | rofi -dmenu -i -p "CachyOS Control Panel:")
@@ -243,12 +145,10 @@ gui_menu() {
             "11. 📝 Interactive Task Manager GUI" \
             "12. 🔔 Notification Theme Customizer" \
             "13. 🚀 View Command 'omar' System Help" \
-            "14. 🌐 Zen Browser Glassmorphism Theme" \
-            "15. 🧘 Toggle Minimal Zen Focus Mode" \
-            "16. 🎯 Initial Boot Cursor Screen Selector" \
-            --width=520 --height=620 2>/dev/null)
+            "14. 🧘 Unified Zen Suite: Browser Theme & Focus Mode" \
+            "15. 🎯 Initial Boot Cursor Screen Selector" \
+            --width=520 --height=600 2>/dev/null)
     else
-        echo -e "${YELLOW}[!] Neither Rofi nor Zenity found. Falling back to terminal menu...${NC}"
         cli_menu
         return
     fi
@@ -267,8 +167,7 @@ gui_menu() {
         *"Interactive Task Manager"*) launch_task_gui ;;
         *"Notification Theme"*) launch_dunst_theme ;;
         *"Command 'omar'"*) launch_omar_cmd ;;
-        *"Zen Browser Glassmorphism"*) launch_zen_browser ;;
-        *"Zen Focus Mode"*) launch_zen_mode ;;
+        *"Unified Zen Suite"*) launch_zen_suite ;;
         *"Boot Cursor Screen"*) launch_boot_cursor ;;
         *) exit 0 ;;
     esac
@@ -299,12 +198,11 @@ EOF
         echo -e "  ${GREEN}${BOLD}11)${NC} 📝 Interactive Task Manager GUI (${YELLOW}task-manager-gui.py${NC})"
         echo -e "  ${GREEN}${BOLD}12)${NC} 🔔 Notification Theme Customizer (${YELLOW}setup-notifications-theme.py${NC})"
         echo -e "  ${GREEN}${BOLD}13)${NC} 🚀 View Command 'omar' System Help (${YELLOW}omar${NC})"
-        echo -e "  ${GREEN}${BOLD}14)${NC} 🌐 Zen Browser Glassmorphism Theme (${YELLOW}setup-zen-browser-theme.sh${NC})"
-        echo -e "  ${GREEN}${BOLD}15)${NC} 🧘 Toggle Minimal Zen Focus Mode (${YELLOW}setup-zen-mode.sh${NC})"
-        echo -e "  ${GREEN}${BOLD}16)${NC} 🎯 Initial Boot Cursor Screen Selector (${YELLOW}setup-initial-cursor-screen.py${NC})"
-        echo -e "  ${RED}${BOLD}17)${NC} 🚪 Exit"
+        echo -e "  ${GREEN}${BOLD}14)${NC} 🧘 Unified Zen Suite: Browser Theme & Focus Mode (${YELLOW}setup-zen.sh${NC})"
+        echo -e "  ${GREEN}${BOLD}15)${NC} 🎯 Initial Boot Cursor Screen Selector (${YELLOW}setup-initial-cursor-screen.py${NC})"
+        echo -e "  ${RED}${BOLD}16)${NC} 🚪 Exit"
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
-        read -p " Select choice [1-17]: " choice
+        read -p " Select choice [1-16]: " choice
 
         case "$choice" in
             1) launch_fav_setup; read -p "Press Enter to continue..." ;;
@@ -320,10 +218,9 @@ EOF
             11) launch_task_gui; read -p "Press Enter to continue..." ;;
             12) launch_dunst_theme; read -p "Press Enter to continue..." ;;
             13) launch_omar_cmd; read -p "Press Enter to continue..." ;;
-            14) launch_zen_browser; read -p "Press Enter to continue..." ;;
-            15) launch_zen_mode; read -p "Press Enter to continue..." ;;
-            16) launch_boot_cursor; read -p "Press Enter to continue..." ;;
-            17|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
+            14) launch_zen_suite; read -p "Press Enter to continue..." ;;
+            15) launch_boot_cursor; read -p "Press Enter to continue..." ;;
+            16|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
             *) echo -e "${RED}[!] Invalid choice.${NC}"; sleep 1 ;;
         esac
     done
