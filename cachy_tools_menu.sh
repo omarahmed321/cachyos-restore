@@ -59,34 +59,34 @@ BOOT_CURSOR_PATH=$(find_tool "setup-initial-cursor-screen.py")
 
 # Launchers
 launch_fav_setup() {
-    [ -n "$FAV_PATH" ] && bash "$FAV_PATH" || echo -e "${RED}[ERROR] omar-fav-setup.sh not found!${NC}"
+    if [ -n "$FAV_PATH" ]; then bash "$FAV_PATH"; else echo -e "${RED}[ERROR] omar-fav-setup.sh not found!${NC}"; fi
 }
 launch_wordpress_setup() {
-    [ -n "$WP_PATH" ] && bash "$WP_PATH" || echo -e "${RED}[ERROR] setup-wordpress-local.sh not found!${NC}"
+    if [ -n "$WP_PATH" ]; then bash "$WP_PATH"; else echo -e "${RED}[ERROR] setup-wordpress-local.sh not found!${NC}"; fi
 }
 launch_polkit_fix() {
-    [ -n "$POLKIT_PATH" ] && bash "$POLKIT_PATH" || echo -e "${RED}[ERROR] fix-polkit-localwp.sh not found!${NC}"
+    if [ -n "$POLKIT_PATH" ]; then bash "$POLKIT_PATH"; else echo -e "${RED}[ERROR] fix-polkit-localwp.sh not found!${NC}"; fi
 }
 launch_nightlight() {
-    [ -n "$NIGHTLIGHT_PATH" ] && python3 "$NIGHTLIGHT_PATH" & || echo -e "${RED}[ERROR] nightlight-gui.py not found!${NC}"
+    if [ -n "$NIGHTLIGHT_PATH" ]; then python3 "$NIGHTLIGHT_PATH" & else echo -e "${RED}[ERROR] nightlight-gui.py not found!${NC}"; fi
 }
 launch_display_settings() {
-    [ -n "$DISPLAY_PATH" ] && python3 "$DISPLAY_PATH" & || echo -e "${RED}[ERROR] hypr-display-settings.py not found!${NC}"
+    if [ -n "$DISPLAY_PATH" ]; then python3 "$DISPLAY_PATH" & else echo -e "${RED}[ERROR] hypr-display-settings.py not found!${NC}"; fi
 }
 launch_cursor_alignment() {
-    [ -n "$ALIGNMENT_PATH" ] && bash "$ALIGNMENT_PATH" || echo -e "${RED}[ERROR] monitor-alignment.sh not found!${NC}"
+    if [ -n "$ALIGNMENT_PATH" ]; then bash "$ALIGNMENT_PATH"; else echo -e "${RED}[ERROR] monitor-alignment.sh not found!${NC}"; fi
 }
 launch_waybar_setup() {
-    [ -n "$WAYBAR_PATH" ] && bash "$WAYBAR_PATH" || echo -e "${RED}[ERROR] setup-waybar-glassmorphism.sh not found!${NC}"
+    if [ -n "$WAYBAR_PATH" ]; then bash "$WAYBAR_PATH"; else echo -e "${RED}[ERROR] setup-waybar-glassmorphism.sh not found!${NC}"; fi
 }
 launch_double_pageup() {
-    [ -n "$PAGEUP_PATH" ] && bash "$PAGEUP_PATH" & || echo -e "${RED}[ERROR] double-pageup.sh not found!${NC}"
+    if [ -n "$PAGEUP_PATH" ]; then bash "$PAGEUP_PATH" & else echo -e "${RED}[ERROR] double-pageup.sh not found!${NC}"; fi
 }
 launch_hotspot() {
-    [ -n "$HOTSPOT_PATH" ] && bash "$HOTSPOT_PATH" || echo -e "${RED}[ERROR] start_hotspot.sh not found!${NC}"
+    if [ -n "$HOTSPOT_PATH" ]; then bash "$HOTSPOT_PATH"; else echo -e "${RED}[ERROR] start_hotspot.sh not found!${NC}"; fi
 }
 launch_sddm_screen() {
-    [ -n "$SDDM_PATH" ] && python3 "$SDDM_PATH" & || echo -e "${RED}[ERROR] sddm-screen-config.py not found!${NC}"
+    if [ -n "$SDDM_PATH" ]; then python3 "$SDDM_PATH" & else echo -e "${RED}[ERROR] sddm-screen-config.py not found!${NC}"; fi
 }
 launch_task_setup() {
     if [ -n "$TASK_SETUP_PATH" ]; then
@@ -98,10 +98,10 @@ launch_task_setup() {
     fi
 }
 launch_dunst_theme() {
-    [ -n "$DUNST_PATH" ] && python3 "$DUNST_PATH" & || echo -e "${RED}[ERROR] setup-notifications-theme.py not found!${NC}"
+    if [ -n "$DUNST_PATH" ]; then python3 "$DUNST_PATH" & else echo -e "${RED}[ERROR] setup-notifications-theme.py not found!${NC}"; fi
 }
 launch_omar_cmd() {
-    [ -n "$OMAR_CMD_PATH" ] && bash "$OMAR_CMD_PATH" || echo -e "${RED}[ERROR] 'omar' command not found!${NC}"
+    if [ -n "$OMAR_CMD_PATH" ]; then bash "$OMAR_CMD_PATH"; else echo -e "${RED}[ERROR] 'omar' command not found!${NC}"; fi
 }
 launch_zen_browser() {
     if [ -n "$ZEN_BROWSER_PATH" ]; then
@@ -111,7 +111,7 @@ launch_zen_browser() {
     fi
 }
 launch_boot_cursor() {
-    [ -n "$BOOT_CURSOR_PATH" ] && python3 "$BOOT_CURSOR_PATH" & || echo -e "${RED}[ERROR] setup-initial-cursor-screen.py not found!${NC}"
+    if [ -n "$BOOT_CURSOR_PATH" ]; then python3 "$BOOT_CURSOR_PATH" & else echo -e "${RED}[ERROR] setup-initial-cursor-screen.py not found!${NC}"; fi
 }
 
 # Graphical GUI Rofi / Zenity Launcher
