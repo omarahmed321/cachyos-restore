@@ -3985,34 +3985,11 @@ bindkey '^A' select-all-line
 # donetask      → pick with fzf → mark done
 # rmtask        → pick with fzf → delete
 # edittask      → pick with fzf → edit text
-todo() {
-    if [[ -z "$*" ]]; then
-        echo "Usage: todo <task text>"
-        return 1
-    fi
-    python3 ~/.local/share/bin/manage_tasks.py todo "$*"
-    fastfetch
-}
-
-doing() {
-    python3 ~/.local/share/bin/manage_tasks.py doing
-    fastfetch
-}
-
-donetask() {
-    python3 ~/.local/share/bin/manage_tasks.py done
-    fastfetch
-}
-
-rmtask() {
-    python3 ~/.local/share/bin/manage_tasks.py remove
-    fastfetch
-}
-
-edittask() {
-    python3 ~/.local/share/bin/manage_tasks.py edit
-    fastfetch
-}
+todo() { "$HOME/.local/share/bin/todo" "$@"; }
+doing() { "$HOME/.local/share/bin/doing" "$@"; }
+donetask() { "$HOME/.local/share/bin/donetask" "$@"; }
+rmtask() { "$HOME/.local/share/bin/rmtask" "$@"; }
+edittask() { "$HOME/.local/share/bin/edittask" "$@"; }
 EOF
 
 # --- WRITE ~/.config/fish/config.fish ---
