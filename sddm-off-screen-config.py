@@ -82,11 +82,54 @@ def get_currently_disabled():
 def apply_disabled_monitors(disabled_list):
     try:
         tmp_target = "/tmp/disabled_monitors"
+        tmp_xsetup = "/tmp/Xsetup"
         with open(tmp_target, 'w') as f:
             for mon in disabled_list:
                 f.write(mon + '\n')
 
-        cmd = f"sudo mkdir -p {SDDM_CONF_DIR} && sudo cp {tmp_target} {DISABLED_MON_FILE} && sudo chmod 644 {DISABLED_MON_FILE}"
+        xsetup_content = """#!/bin/sh
+# Xsetup - run as root before the login dialog appears
+
+CONNECTED_MONITORS=$(xrandr | grep " connected" | awk '{print $1}')
+MONITOR_COUNT=$(echo "$CONNECTED_MONITORS" | wc -l)
+if [ "$MONITOR_COUNT" -gt 1 ]; then
+    TARGET_MON=$(cat /etc/sddm.conf.d/target_monitor 2>/dev/null | tr -d '[:space:]')
+    DISABLED_MONS=$(cat /etc/sddm.conf.d/disabled_monitors 2>/dev/null)
+
+    PRIMARY_MONITOR=""
+    if [ -n "$TARGET_MON" ] && echo "$CONNECTED_MONITORS" | grep -qx "$TARGET_MON"; then
+        PRIMARY_MONITOR="$TARGET_MON"
+    fi
+
+    if [ -z "$PRIMARY_MONITOR" ]; then
+        PRIMARY_MONITOR=$(echo "$CONNECTED_MONITORS" | head -n 1)
+    fi
+
+    if [ -n "$PRIMARY_MONITOR" ]; then
+        XRANDR_CMD="xrandr --output $PRIMARY_MONITOR --auto --primary"
+        for mon in $CONNECTED_MONITORS; do
+            if [ "$mon" != "$PRIMARY_MONITOR" ]; then
+                if echo "$DISABLED_MONS" | grep -qx "$mon"; then
+                    XRANDR_CMD="$XRANDR_CMD --output $mon --off"
+                else
+                    XRANDR_CMD="$XRANDR_CMD --output $mon --auto --right-of $PRIMARY_MONITOR"
+                fi
+            fi
+        done
+        eval "$XRANDR_CMD"
+    fi
+fi
+
+# Mouse sensitivity
+for id in $(xinput list --id-only 2>/dev/null); do
+    xinput set-prop "$id" "libinput Accel Profile Enabled" 0 1 0 2>/dev/null || true
+    xinput set-prop "$id" "libinput Accel Speed" -0.5 2>/dev/null || true
+done
+"""
+        with open(tmp_xsetup, 'w') as f:
+            f.write(xsetup_content)
+
+        cmd = f"sudo mkdir -p {SDDM_CONF_DIR} /usr/share/sddm/scripts && sudo cp {tmp_target} {DISABLED_MON_FILE} && sudo cp {tmp_xsetup} /usr/share/sddm/scripts/Xsetup && sudo chmod 644 {DISABLED_MON_FILE} && sudo chmod +x /usr/share/sddm/scripts/Xsetup"
         res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
         if res.returncode != 0:
             subprocess.run(f"pkexec bash -c '{cmd}'", shell=True, check=True)
