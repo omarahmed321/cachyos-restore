@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # =============================================================================
-#   CachyOS & HyDE Unified Task Manager CLI & GUI Launcher
+#   CachyOS & HyDE Terminal-Native Task Manager (fzf / CLI Menu)
 #   Part of: CachyOS + HyDE System Restorer
+#   Repo:    https://github.com/omarahmed321/cachyos-restore
 # =============================================================================
 
 import sys
@@ -9,8 +10,6 @@ import os
 import subprocess
 
 TASKS_FILE = os.path.expanduser("~/.config/fastfetch/tasks.txt")
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-GUI_SCRIPT = os.path.join(SCRIPT_DIR, "task-manager-gui.py")
 
 def read_tasks():
     if not os.path.exists(TASKS_FILE):
@@ -24,26 +23,44 @@ def write_tasks(tasks):
         for t in tasks:
             f.write(t + "\n")
 
-def select_task_interactively(tasks, prompt_text="Select Task: "):
-    # Try fzf first in terminal
-    if sys.stdin.isatty():
-        try:
-            p = subprocess.Popen(['fzf', f'--prompt={prompt_text}'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-            out, _ = p.communicate(input='\n'.join(tasks))
-            if p.returncode == 0 and out.strip():
-                return out.strip()
-        except Exception:
-            pass
+def select_task_with_fzf(tasks, action_name):
+    if not tasks:
+        print("No tasks found in ~/.config/fastfetch/tasks.txt.")
+        return None
 
-    # Fallback to rofi if available
+    header_text = f"=== Task Manager [{action_name.upper()}] ==="
+    prompt_text = "Select Task > "
+
+    # 1. Primary: Terminal fzf picker
     try:
-        p = subprocess.Popen(['rofi', '-dmenu', '-i', '-p', prompt_text], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        cmd = [
+            'fzf',
+            '--height=40%',
+            '--layout=reverse',
+            '--border=rounded',
+            f'--header={header_text}',
+            f'--prompt={prompt_text}'
+        ]
+        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
         out, _ = p.communicate(input='\n'.join(tasks))
         if p.returncode == 0 and out.strip():
             return out.strip()
     except Exception:
         pass
 
+    # 2. Fallback: Terminal CLI Numbered Selection
+    print(f"\n\033[1;36m=== Task Selection [{action_name.upper()}] ===\033[0m")
+    for i, t in enumerate(tasks, 1):
+        print(f"  \033[1;33m[{i}]\033[0m {t}")
+    try:
+        choice = input("\nEnter choice number (or press Enter to cancel): ").strip()
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(tasks):
+                return tasks[idx]
+    except Exception:
+        pass
+        
     return None
 
 def add_or_update(task_text, new_prefix):
@@ -70,21 +87,40 @@ def add_or_update(task_text, new_prefix):
         
     write_tasks(new_tasks)
 
-def launch_gui(mode="all"):
-    if os.path.exists(GUI_SCRIPT) and (os.environ.get('WAYLAND_DISPLAY') or os.environ.get('DISPLAY')):
-        subprocess.run([sys.executable, GUI_SCRIPT, mode])
-    elif os.path.exists(os.path.expanduser("~/.local/share/bin/task-manager-gui.py")):
-        subprocess.run([sys.executable, os.path.expanduser("~/.local/share/bin/task-manager-gui.py"), mode])
-    else:
-        editor = os.environ.get("EDITOR", "nano")
-        subprocess.run([editor, TASKS_FILE])
+def edit_task_cli(task_to_edit):
+    content = task_to_edit
+    pfx_found = "[ ]"
+    for pfx in ["[ ]", "[/]", "[x]", "- "]:
+        if task_to_edit.startswith(pfx):
+            pfx_found = pfx
+            content = task_to_edit[len(pfx):].strip()
+            break
+            
+    try:
+        new_text = input(f"\nEdit Task [{content}]: ").strip()
+        if new_text:
+            tasks = read_tasks()
+            new_tasks = []
+            for t in tasks:
+                if t == task_to_edit:
+                    new_tasks.append(f"{pfx_found} {new_text}")
+                else:
+                    new_tasks.append(t)
+            write_tasks(new_tasks)
+    except Exception:
+        pass
 
 def handle_action(action, args):
     tasks = read_tasks()
     
     if action == "todo":
         if not args:
-            launch_gui("todo")
+            try:
+                new_t = input("\nEnter new todo task text: ").strip()
+                if new_t:
+                    add_or_update(new_t, "[ ]")
+            except Exception:
+                pass
         else:
             add_or_update(' '.join(args), "[ ]")
             
@@ -94,8 +130,8 @@ def handle_action(action, args):
             if action in prefix_map:
                 add_or_update(' '.join(args), prefix_map[action])
         else:
-            # Interactive selection
-            sel = select_task_interactively(tasks, f"Select Task for {action.upper()}: ")
+            # Terminal-native fzf selection
+            sel = select_task_with_fzf(tasks, action)
             if sel:
                 if action == "doing":
                     add_or_update(sel, "[/]")
@@ -105,13 +141,21 @@ def handle_action(action, args):
                     new_t = [t for t in tasks if t != sel]
                     write_tasks(new_t)
                 elif action == "edit":
-                    launch_gui("edit")
-            else:
-                launch_gui(action)
+                    edit_task_cli(sel)
+
+    # Refresh Fastfetch output after action if in interactive terminal
+    if sys.stdin.isatty():
+        try:
+            subprocess.run(['fastfetch'])
+        except Exception:
+            pass
 
 def main():
     if len(sys.argv) < 2:
-        launch_gui("all")
+        tasks = read_tasks()
+        sel = select_task_with_fzf(tasks, "manage")
+        if sel:
+            add_or_update(sel, "[/]")
         sys.exit(0)
         
     action = sys.argv[1]
