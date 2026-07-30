@@ -2801,22 +2801,12 @@ if command -v hyprctl &>/dev/null && hyprctl monitors &>/dev/null; then
             if [ -n "$SELECTED_SDDM" ]; then
                 sudo mkdir -p /etc/sddm.conf.d 2>/dev/null
                 echo "$SELECTED_SDDM" | sudo tee /etc/sddm.conf.d/target_monitor >/dev/null 2>&1
-                
-                # Auto-disable SDDM on all secondary screens
-                tmp_dis="/tmp/disabled_monitors"
-                > "$tmp_dis"
-                for m_item in "${ALL_MONITOR_NAMES[@]}"; do
-                    if [ "$m_item" != "$SELECTED_SDDM" ]; then
-                        echo "$m_item" >> "$tmp_dis"
-                    fi
-                done
-                sudo cp "$tmp_dis" /etc/sddm.conf.d/disabled_monitors >/dev/null 2>&1
-                sudo chmod 644 /etc/sddm.conf.d/target_monitor /etc/sddm.conf.d/disabled_monitors 2>/dev/null
+                sudo chmod 644 /etc/sddm.conf.d/target_monitor 2>/dev/null
 
                 if [ -f "$SCRIPT_DIR/sddm-screen-config.py" ]; then
                     python3 "$SCRIPT_DIR/sddm-screen-config.py" --set "$SELECTED_SDDM" &>/dev/null || true
                 fi
-                echo -e "${GREEN}[OK] SDDM login screen set to $SELECTED_SDDM (Secondary screens auto-disabled for SDDM)${NC}"
+                echo -e "${GREEN}[OK] SDDM login screen primary output set to $SELECTED_SDDM${NC}"
             fi
 
             # Ask Initial Boot Cursor Screen Target
@@ -5222,13 +5212,11 @@ sudo tee /usr/share/sddm/scripts/Xsetup >/dev/null << 'XSEOF'
 #!/bin/sh
 # Xsetup - run as root before the login dialog appears
 
-# 1. Configure monitors dynamically according to target & disabler configuration
+# 1. Configure monitors dynamically (keep primary monitor and position secondary screens)
 CONNECTED_MONITORS=$(xrandr | grep " connected" | awk '{print $1}')
 MONITOR_COUNT=$(echo "$CONNECTED_MONITORS" | wc -l)
 if [ "$MONITOR_COUNT" -gt 1 ]; then
     TARGET_MON=$(cat /etc/sddm.conf.d/target_monitor 2>/dev/null | tr -d '[:space:]')
-    DISABLED_MONS=$(cat /etc/sddm.conf.d/disabled_monitors 2>/dev/null)
-
     PRIMARY_MONITOR=""
     if [ -n "$TARGET_MON" ] && echo "$CONNECTED_MONITORS" | grep -qx "$TARGET_MON"; then
         PRIMARY_MONITOR="$TARGET_MON"
@@ -5239,17 +5227,10 @@ if [ "$MONITOR_COUNT" -gt 1 ]; then
     fi
 
     if [ -n "$PRIMARY_MONITOR" ]; then
-        # 1. Set Primary Monitor
         xrandr --output "$PRIMARY_MONITOR" --auto --primary 2>/dev/null || true
-
-        # 2. Handle Secondary Monitors (Turn off if disabled, else place right-of)
         for mon in $CONNECTED_MONITORS; do
             if [ "$mon" != "$PRIMARY_MONITOR" ]; then
-                if echo "$DISABLED_MONS" | grep -qx "$mon"; then
-                    xrandr --output "$mon" --off 2>/dev/null || xrandr --output "$mon" --brightness 0 2>/dev/null || true
-                else
-                    xrandr --output "$mon" --auto --right-of "$PRIMARY_MONITOR" 2>/dev/null || true
-                fi
+                xrandr --output "$mon" --auto --right-of "$PRIMARY_MONITOR" 2>/dev/null || true
             fi
         done
     fi
