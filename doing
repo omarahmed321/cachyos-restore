@@ -1,2 +1,17 @@
 #!/usr/bin/env bash
-python3 "$HOME/.local/share/bin/manage_tasks.py" doing "$@"
+TASKS_FILE="$HOME/.config/fastfetch/tasks.txt"
+
+if [ -z "$1" ]; then
+    if [ ! -s "$TASKS_FILE" ]; then
+        echo "No tasks found in ~/.config/fastfetch/tasks.txt"
+        exit 0
+    fi
+    SELECTED=$(fzf --height=40% --layout=reverse --border=rounded --header="=== Mark Task as DOING [/] ===" --prompt="Select task > " < "$TASKS_FILE")
+    if [ -n "$SELECTED" ]; then
+        python3 "$HOME/.local/share/bin/manage_tasks.py" doing "$SELECTED"
+        fastfetch
+    fi
+else
+    python3 "$HOME/.local/share/bin/manage_tasks.py" doing "$@"
+    fastfetch
+fi
