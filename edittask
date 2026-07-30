@@ -6,7 +6,11 @@ if [ ! -s "$TASKS_FILE" ]; then
     exit 0
 fi
 
-SELECTED=$(fzf --height=40% --layout=reverse --border=rounded --header="=== EDIT Task ===" --prompt="Select task to edit > " < "$TASKS_FILE")
+TMP_OUT=$(mktemp)
+fzf --height=40% --layout=reverse --border=rounded --header="=== EDIT Task ===" --prompt="Select task to edit > " < "$TASKS_FILE" > "$TMP_OUT"
+SELECTED=$(cat "$TMP_OUT")
+rm -f "$TMP_OUT"
+
 if [ -n "$SELECTED" ]; then
     read -p "Enter new task description: " NEW_TEXT
     if [ -n "$NEW_TEXT" ]; then

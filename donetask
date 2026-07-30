@@ -6,7 +6,11 @@ if [ -z "$1" ]; then
         echo "No tasks found in ~/.config/fastfetch/tasks.txt"
         exit 0
     fi
-    SELECTED=$(fzf --height=40% --layout=reverse --border=rounded --header="=== Mark Task as DONE [x] ===" --prompt="Select task > " < "$TASKS_FILE")
+    TMP_OUT=$(mktemp)
+    fzf --height=40% --layout=reverse --border=rounded --header="=== Mark Task as DONE [x] ===" --prompt="Select task > " < "$TASKS_FILE" > "$TMP_OUT"
+    SELECTED=$(cat "$TMP_OUT")
+    rm -f "$TMP_OUT"
+    
     if [ -n "$SELECTED" ]; then
         python3 "$HOME/.local/share/bin/manage_tasks.py" done "$SELECTED"
         fastfetch
