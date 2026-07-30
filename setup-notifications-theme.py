@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # =============================================================================
-#   Dunst Notification Theme Customizer (Exact Waybar Glass Capsule Style)
+#   Dunst Notification Theme Customizer (100% Transparent Glass Capsule)
 #   Part of: CachyOS + HyDE System Restorer
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 # =============================================================================
@@ -15,16 +15,16 @@ from tkinter import ttk, messagebox
 DUNST_CONF = os.path.expanduser("~/.config/dunst/dunstrc")
 WAL_COLORS_JSON = os.path.expanduser("~/.cache/wal/colors.json")
 USERPREFS_CONF = os.path.expanduser("~/.config/hypr/userprefs.conf")
+WINDOWRULES_CONF = os.path.expanduser("~/.config/hypr/windowrules.conf")
 
 def get_pywal_colors():
-    bg = "#090a09"
+    bg = "#000000"
     fg = "#bac2b3"
     accent = "#6E835B"
     if os.path.exists(WAL_COLORS_JSON):
         try:
             with open(WAL_COLORS_JSON, 'r') as f:
                 data = json.load(f)
-                bg = data.get("special", {}).get("background", bg)
                 fg = data.get("special", {}).get("foreground", fg)
                 accent = data.get("colors", {}).get("color4", accent)
                 if not accent or accent == bg:
@@ -36,7 +36,7 @@ def get_pywal_colors():
 py_bg, py_fg, py_accent = get_pywal_colors()
 
 THEMES = {
-    "1. 💎 Exact Waybar Glassmorphism Capsule (Matching Image)": f"""[global]
+    "1. 💎 Fully Transparent Glass Capsule (No Dark Background)": f"""[global]
     monitor = 0
     follow = mouse
     width = (280, 420)
@@ -64,8 +64,8 @@ THEMES = {
     separator_color = frame
     sort = yes
     font = JetBrains Mono 10
-    corner_radius = 20
-    background = "{py_bg}80"
+    corner_radius = 22
+    background = "#00000025"
     foreground = "{py_fg}"
     format = "<b>%s</b>\\n%b"
     alignment = left
@@ -76,19 +76,19 @@ THEMES = {
     max_icon_size = 64
 
 [urgency_low]
-    background = "{py_bg}80"
+    background = "#00000020"
     foreground = "{py_fg}"
     frame_color = "{py_accent}40"
     timeout = 5
 
 [urgency_normal]
-    background = "{py_bg}90"
+    background = "#00000030"
     foreground = "{py_fg}"
     frame_color = "{py_accent}80"
     timeout = 5
 
 [urgency_critical]
-    background = "#282828d0"
+    background = "#fb493430"
     foreground = "#fb4934"
     frame_color = "#fb4934"
     timeout = 0
@@ -191,23 +191,48 @@ THEMES = {
 """
 }
 
-def ensure_hyprland_glass_blur():
+def fix_hyprland_layer_rules():
+    # 1. Remove opaque ignore_alpha 1 from windowrules.conf if present
+    if os.path.exists(WINDOWRULES_CONF):
+        try:
+            with open(WINDOWRULES_CONF, 'r') as f:
+                lines = f.readlines()
+            new_lines = []
+            modified = False
+            for line in lines:
+                if "layerrule = ignore_alpha 1, match:namespace notifications" in line:
+                    new_lines.append("# layerrule = ignore_alpha 1, match:namespace notifications # disabled for true glass transparency\n")
+                    modified = True
+                else:
+                    new_lines.append(line)
+            if modified:
+                with open(WINDOWRULES_CONF, 'w') as f:
+                    f.writelines(new_lines)
+        except Exception as e:
+            print(f"Warning updating windowrules.conf: {e}")
+
+    # 2. Add glass blur rules to userprefs.conf
     if os.path.exists(USERPREFS_CONF):
         try:
             with open(USERPREFS_CONF, 'r') as f:
                 content = f.read()
-            if "match:namespace notifications" not in content:
-                with open(USERPREFS_CONF, 'a') as f:
-                    f.write("\n# Glassmorphism Blur for Notifications\nlayerrule = blur 1, match:namespace notifications\nlayerrule = ignore_alpha 0.1, match:namespace notifications\n")
-                subprocess.run(['hyprctl', 'reload'], capture_output=True)
-        except Exception:
-            pass
+            if "match:namespace notifications" not in content or "ignore_alpha 1" in content:
+                # remove old notification rules in userprefs if any
+                lines = [l for l in content.splitlines() if "match:namespace notifications" not in l]
+                lines.append("# Glassmorphism Transparency & Blur for Notifications")
+                lines.append("layerrule = blur 1, match:namespace notifications")
+                lines.append("layerrule = ignore_alpha 0.05, match:namespace notifications")
+                with open(USERPREFS_CONF, 'w') as f:
+                    f.write('\n'.join(lines) + '\n')
+            subprocess.run(['hyprctl', 'reload'], capture_output=True)
+        except Exception as e:
+            print(f"Warning updating userprefs.conf: {e}")
 
 def apply_dunst_theme(theme_name):
     if theme_name not in THEMES:
         return False
     try:
-        ensure_hyprland_glass_blur()
+        fix_hyprland_layer_rules()
         os.makedirs(os.path.dirname(DUNST_CONF), exist_ok=True)
         with open(DUNST_CONF, 'w') as f:
             f.write(THEMES[theme_name])
@@ -217,7 +242,7 @@ def apply_dunst_theme(theme_name):
         subprocess.Popen(["dunst"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         # Send test notification
-        subprocess.run(["notify-send", "-u", "normal", "💎 Glass Capsule Active", "Notification design matched to Waybar!"])
+        subprocess.run(["notify-send", "-u", "normal", "💎 Transparent Glass Active", "Dark background removed! Glassmorphism active."])
         return True
     except Exception as e:
         messagebox.showerror("Error", f"Failed to apply Dunst theme: {e}")
