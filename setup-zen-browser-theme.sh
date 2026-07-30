@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #===============================================================================
-#   Zen Browser Glassmorphism & Pywal Theme Customizer
+#   Original Glassy / Transparent & Borderless Zen Browser Theme
 #   Part of: CachyOS + HyDE System Restorer
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 #===============================================================================
@@ -14,126 +14,192 @@ NC='\033[0m'
 echo -e "${CYAN}${BOLD}"
 cat << "EOF"
   ==============================================================
-        Zen Browser Glassmorphism & Pywal Theme Customizer
+    Glassy / Transparent & Borderless Zen Browser Theme Setup
   ==============================================================
 EOF
 echo -e "${NC}"
 
-ZEN_BASE_DIR="$HOME/.config/zen"
+echo -e "${CYAN}[+] Configuring Glassy/Transparent & Borderless Zen Browser UI...${NC}"
 
-if [ ! -d "$ZEN_BASE_DIR" ]; then
-    echo -e "${YELLOW}[!] Warning: Zen Browser config directory (~/.config/zen) not found.${NC}"
-    echo -e "${CYAN}[*] Please launch Zen Browser at least once first.${NC}"
-    exit 1
+# Pre-seed default Zen Browser profiles if they don't exist yet
+mkdir -p "$HOME/.config/zen"
+if [ ! -f "$HOME/.config/zen/profiles.ini" ]; then
+    echo -e "${CYAN}Pre-seeding Zen Browser profiles.ini and default profile directories...${NC}"
+    cat << 'EOF_INI' > "$HOME/.config/zen/profiles.ini"
+[Profile1]
+Name=Default Profile
+IsRelative=1
+Path=081dvyif.Default Profile
+Default=1
+
+[Profile0]
+Name=Default (release)
+IsRelative=1
+Path=l1u1cimb.Default (release)
+
+[General]
+StartWithLastProfile=1
+Version=2
+
+[Install15B76BAA26BA15E7]
+Default=l1u1cimb.Default (release)
+Locked=1
+EOF_INI
+    mkdir -p "$HOME/.config/zen/081dvyif.Default Profile"
+    mkdir -p "$HOME/.config/zen/l1u1cimb.Default (release)"
 fi
 
-echo -e "${CYAN}[1/3] Locating Zen Browser profiles...${NC}"
+ZEN_PROFILES=()
+while IFS= read -r -d '' dir; do
+    ZEN_PROFILES+=("$dir")
+done < <(find "$HOME/.config/zen" -maxdepth 1 -type d -name "*Default*" -print0 2>/dev/null)
 
-mapfile -t PROFILES < <(find "$ZEN_BASE_DIR" -maxdepth 1 -mindepth 1 -type d \( -name "*.Default*" -o -name "*default*" \))
+if [ ${#ZEN_PROFILES[@]} -gt 0 ]; then
+    for profile in "${ZEN_PROFILES[@]}"; do
+        echo -e "Configuring Zen Browser profile: ${CYAN}$(basename "$profile")${NC}"
+        mkdir -p "$profile/chrome"
+        
+        # Write userChrome.css (Transparent & Borderless Terminal Style)
+        cat << 'ZENCHROME' > "$profile/chrome/userChrome.css"
+/*
+ * Zen Browser - Terminal Style (Transparent & Borderless)
+ */
 
-if [ ${#PROFILES[@]} -eq 0 ]; then
-    mapfile -t PROFILES < <(find "$ZEN_BASE_DIR" -maxdepth 1 -mindepth 1 -type d ! -name "Profile Groups" ! -name "firefox-mpris")
-fi
+/* Enable transparency on the main window and all content wrappers */
+:root,
+#main-window,
+#browser,
+#appcontent,
+browser,
+.browserSidebarContainer,
+#content-deck,
+#tabbrowser-deck,
+#tabbrowser-tabbox {
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
 
-if [ ${#PROFILES[@]} -eq 0 ]; then
-    echo -e "${YELLOW}[!] Error: Could not locate a valid Zen Browser profile directory.${NC}"
-    exit 1
-fi
+/* Completely remove any default borders or separator lines */
+#navigator-toolbox,
+#nav-bar,
+#titlebar,
+#TabsToolbar,
+#zen-appcontent-navbar-container {
+    border: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
 
-echo -e "${CYAN}[2/3] Enabling custom stylesheets in user preferences (prefs.js)...${NC}"
+/* Remove default splitters and frames */
+#zen-sidebar-splitter,
+#appcontent-splitter {
+    display: none !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
+    visibility: collapse !important;
+}
 
-for prof in "${PROFILES[@]}"; do
-    [ -d "$prof" ] || continue
-    echo -e "${GREEN}[+] Target Profile: $(basename "$prof")${NC}"
-    PREFS_FILE="$prof/prefs.js"
-    
-    if [ -f "$PREFS_FILE" ]; then
-        if ! grep -q "toolkit.legacyUserProfileCustomizations.stylesheets" "$PREFS_FILE"; then
-            echo 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' >> "$PREFS_FILE"
-        fi
-        if ! grep -q "svg.context-properties.content.enabled" "$PREFS_FILE"; then
-            echo 'user_pref("svg.context-properties.content.enabled", true);' >> "$PREFS_FILE"
-        fi
-    else
-        cat << 'EOF' > "$PREFS_FILE"
+/* Hide status panels */
+#statuspanel,
+#browser-bottombox {
+    display: none !important;
+    visibility: collapse !important;
+}
+ZENCHROME
+
+        # Write userContent.css
+        cat << 'ZENCONTENT' > "$profile/chrome/userContent.css"
+/*
+ * Zen Browser - Web Content Font & Color Optimization
+ */
+
+/* Force the exact terminal background color on all pages */
+@-moz-document url-prefix(http), url-prefix(https), url-prefix(about:) {
+    :root, body, html {
+        background-color: #090a09 !important;
+    }
+    body, p, span, a, li, h1, h2, h3, h4, h5, h6, input, textarea, button {
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
+        text-rendering: optimizeLegibility !important;
+    }
+}
+ZENCONTENT
+
+        # Write user.js
+        cat << 'ZENUSERJS' > "$profile/user.js"
+// Enable userChrome.css customizations
 user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-user_pref("svg.context-properties.content.enabled", true);
-EOF
-    fi
 
-    CHROME_DIR="$prof/chrome"
-    mkdir -p "$CHROME_DIR"
-    
-    USER_CHROME="$CHROME_DIR/userChrome.css"
-    USER_CONTENT="$CHROME_DIR/userContent.css"
+// Enable native Linux window transparency in Zen Browser
+user_pref("browser.tabs.allow_transparent_browser", true);
+user_pref("widget.transparent-windows", true);
+user_pref("zen.widget.linux.transparency", true);
 
-    echo -e "${CYAN}[3/3] Writing Glassmorphism 3-Island theme to userChrome.css...${NC}"
-    
-    cat << 'EOF' > "$USER_CHROME"
-/* =============================================================================
-   Zen Browser Glassmorphism & Pywal Theme (3-Island Floating Style)
-   ============================================================================= */
+// Enable Compact Mode
+user_pref("zen.view.compact.enable-at-startup", true);
+user_pref("zen.view.compact.toolbar-flash-popup", false);
+user_pref("zen.view.compact.hide-toolbar", true);
 
-:root {
-  --zen-dark-bg: rgba(29, 32, 33, 0.75);
-  --zen-glass-bg: rgba(40, 40, 40, 0.55);
-  --zen-glass-border: rgba(131, 165, 152, 0.35);
-  --zen-accent-color: #83a598;
-  --zen-border-radius: 14px;
-}
+// Disable the hover-to-reveal sidebar and toolbar in compact mode
+user_pref("zen.view.compact.show-sidebar-and-toolbar-on-hover", false);
 
-/* Glassmorphism sidebar & tab strip container */
-#sidebar-box,
-#tabbrowser-tabs,
-.zen-sidebar-panel,
-#navigator-toolbox {
-  background-color: var(--zen-dark-bg) !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
-  border-radius: var(--zen-border-radius) !important;
-  border: 1px solid var(--zen-glass-border) !important;
-}
+// Remove the default 8px frame/borders around the browser content
+user_pref("zen.theme.content-element-separation", 0);
 
-/* Floating rounded URL bar */
-#urlbar-background {
-  background-color: var(--zen-glass-bg) !important;
-  backdrop-filter: blur(12px) !important;
-  border-radius: 20px !important;
-  border: 1px solid var(--zen-glass-border) !important;
-}
+// Collapse sidebar and hide tabs
+user_pref("zen.view.sidebar-expanded", false);
+user_pref("zen.view.use-single-toolbar", true);
+user_pref("zen.tabs.show-newtab-vertical", false);
+user_pref("zen.view.show-newtab-button-top", false);
 
-/* Tab buttons styling */
-.tabbrowser-tab .tab-stack {
-  border-radius: 10px !important;
-  transition: all 0.2s ease-in-out !important;
-}
+// Floating URL bar behavior
+user_pref("zen.urlbar.behavior", "float");
 
-.tabbrowser-tab[selected="true"] .tab-stack {
-  background-color: rgba(131, 165, 152, 0.25) !important;
-  border: 1px solid var(--zen-accent-color) !important;
-}
+// New tab = blank page
+user_pref("browser.newtabpage.enabled", false);
+user_pref("browser.startup.homepage", "about:blank");
+user_pref("browser.startup.page", 1);
+user_pref("zen.urlbar.replace-newtab", false);
 
-/* Remove default harsh borders */
-#navigator-toolbox {
-  border-bottom: none !important;
-}
-EOF
+// Disable session restore
+user_pref("browser.sessionstore.resume_session_once", false);
+user_pref("browser.sessionstore.resume_from_crash", false);
 
-    cat << 'EOF' > "$USER_CONTENT"
-/* Zen Browser Content Glassmorphism overrides */
-@-moz-document url("about:newtab"), url("about:home") {
-  body {
-    background-color: #1d2021 !important;
-    color: #ebdbb2 !important;
-  }
-}
-EOF
+// Font optimizations
+user_pref("font.size.variable.x-western", 18);
+user_pref("font.size.fixed.x-western", 15);
+user_pref("font.minimum-size.x-western", 13);
+ZENUSERJS
 
-done
+        # Also force legacy stylesheets option in prefs.js if it exists
+        PREFS_FILE="$profile/prefs.js"
+        if [ -f "$PREFS_FILE" ]; then
+            if grep -q "toolkit.legacyUserProfileCustomizations.stylesheets" "$PREFS_FILE"; then
+                sed -i 's/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets",.*/user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);/' "$PREFS_FILE"
+            else
+                echo 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' >> "$PREFS_FILE"
+            fi
+        fi
+    done
+    echo -e "${GREEN}[OK] Glassy & Borderless Zen Browser theme applied successfully to all profiles!${NC}"
+else
+    echo -e "${YELLOW}[INFO] No Zen Browser profile found in ~/.config/zen/. Skipping configuration.${NC}"
+fi
 
 # Copy script to user bin
 mkdir -p "$HOME/.local/share/bin"
 cp "$0" "$HOME/.local/share/bin/setup-zen-browser-theme.sh" 2>/dev/null || true
 chmod +x "$HOME/.local/share/bin/setup-zen-browser-theme.sh" 2>/dev/null || true
-
-echo -e "\n${GREEN}${BOLD}[OK] Zen Browser Glassmorphism Theme Installed & Applied Successfully!${NC}"
-echo -e "${CYAN}[*] Restart Zen Browser to experience the new Glassmorphism design.${NC}\n"
