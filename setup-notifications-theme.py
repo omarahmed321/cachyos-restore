@@ -1,62 +1,95 @@
 #!/usr/bin/env python3
 # =============================================================================
-#   Dunst Notification Theme & Appearance Customizer
+#   Dunst Notification Theme & Appearance Customizer (Glassmorphism Pywal)
 #   Part of: CachyOS + HyDE System Restorer
 #   Repo:    https://github.com/omarahmed321/cachyos-restore
 # =============================================================================
 
 import os
 import sys
+import json
 import subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox
 
 DUNST_CONF = os.path.expanduser("~/.config/dunst/dunstrc")
+WAL_COLORS_JSON = os.path.expanduser("~/.cache/wal/colors.json")
+USERPREFS_CONF = os.path.expanduser("~/.config/hypr/userprefs.conf")
+
+def get_pywal_colors():
+    bg = "#1d2021"
+    fg = "#ebdbb2"
+    accent = "#83a598"
+    if os.path.exists(WAL_COLORS_JSON):
+        try:
+            with open(WAL_COLORS_JSON, 'r') as f:
+                data = json.load(f)
+                bg = data.get("special", {}).get("background", bg)
+                fg = data.get("special", {}).get("foreground", fg)
+                accent = data.get("colors", {}).get("color4", accent)
+        except Exception:
+            pass
+    return bg, fg, accent
+
+py_bg, py_fg, py_accent = get_pywal_colors()
 
 THEMES = {
-    "1. 💎 Glassmorphism Floating": """[global]
+    "1. 💎 Waybar 3-Island Glassmorphism (Pywal Blur)": f"""[global]
     monitor = 0
     follow = mouse
-    width = (280, 380)
+    width = (280, 400)
     height = (80, 160)
     origin = top-right
-    offset = 20x50
+    offset = 20x55
     scale = 0
     notification_limit = 5
     progress_bar = true
-    progress_bar_height = 8
+    progress_bar_height = 6
+    progress_bar_frame_width = 0
     progress_bar_min_width = 150
     progress_bar_max_width = 300
-    indicate_consecutive_notifications = true
-    transparency = 20
+    progress_bar_corner_radius = 8
+    icon_corner_radius = 12
+    indicate_hidden = yes
+    transparency = 0
     separator_height = 2
     padding = 12
     horizontal_padding = 16
     text_icon_padding = 12
     frame_width = 2
-    frame_color = "#83a598"
-    gap_size = 8
+    frame_color = "{py_accent}"
+    gap_size = 10
     separator_color = frame
     sort = yes
     font = JetBrains Mono 10
-    corner_radius = 12
-    background = "#1d2021"
-    foreground = "#ebdbb2"
+    corner_radius = 16
+    background = "{py_bg}a0"
+    foreground = "{py_fg}"
+    format = "<b>%s</b>\\n%b"
+    alignment = left
+    vertical_alignment = center
+    show_age_threshold = 60
+    icon_position = left
+    min_icon_size = 32
+    max_icon_size = 64
 
 [urgency_low]
-    background = "#282828"
+    background = "{py_bg}a0"
     foreground = "#a89984"
-    frame_color = "#504945"
+    frame_color = "#50494580"
+    timeout = 5
 
 [urgency_normal]
-    background = "#1d2021"
-    foreground = "#ebdbb2"
-    frame_color = "#83a598"
+    background = "{py_bg}b0"
+    foreground = "{py_fg}"
+    frame_color = "{py_accent}"
+    timeout = 5
 
 [urgency_critical]
-    background = "#3c3836"
+    background = "#282828d0"
     foreground = "#fb4934"
     frame_color = "#fb4934"
+    timeout = 0
 """,
 
     "2. 📜 Gruvbox Retro Dark": """[global]
@@ -136,30 +169,43 @@ THEMES = {
     frame_color = "#d5c4a1"
     font = JetBrains Mono 9
     corner_radius = 18
-    background = "#3c3836"
+    background = "#3c3836a0"
     foreground = "#fbf1c7"
 
 [urgency_low]
-    background = "#3c3836"
+    background = "#3c3836a0"
     foreground = "#a89984"
     frame_color = "#665c54"
 
 [urgency_normal]
-    background = "#3c3836"
+    background = "#3c3836a0"
     foreground = "#fbf1c7"
     frame_color = "#83a598"
 
 [urgency_critical]
-    background = "#504945"
+    background = "#504945d0"
     foreground = "#fb4934"
     frame_color = "#fb4934"
 """
 }
 
+def ensure_hyprland_glass_blur():
+    if os.path.exists(USERPREFS_CONF):
+        try:
+            with open(USERPREFS_CONF, 'r') as f:
+                content = f.read()
+            if "match:namespace notifications" not in content:
+                with open(USERPREFS_CONF, 'a') as f:
+                    f.write("\n# Glassmorphism Blur for Notifications\nlayerrule = blur 1, match:namespace notifications\nlayerrule = ignore_alpha 0.2, match:namespace notifications\n")
+                subprocess.run(['hyprctl', 'reload'], capture_output=True)
+        except Exception:
+            pass
+
 def apply_dunst_theme(theme_name):
     if theme_name not in THEMES:
         return False
     try:
+        ensure_hyprland_glass_blur()
         os.makedirs(os.path.dirname(DUNST_CONF), exist_ok=True)
         with open(DUNST_CONF, 'w') as f:
             f.write(THEMES[theme_name])
@@ -169,7 +215,7 @@ def apply_dunst_theme(theme_name):
         subprocess.Popen(["dunst"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         # Send test notification
-        subprocess.run(["notify-send", "-u", "normal", "Theme Applied!", f"Notification theme set to: {theme_name}"])
+        subprocess.run(["notify-send", "-u", "normal", "✨ Glassmorphism Theme Active!", f"Notification style matched to Waybar: {theme_name}"])
         return True
     except Exception as e:
         messagebox.showerror("Error", f"Failed to apply Dunst theme: {e}")
@@ -178,8 +224,8 @@ def apply_dunst_theme(theme_name):
 class DunstThemeApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Notification Theme Customizer")
-        self.geometry("520x420")
+        self.title("Waybar Glassmorphism Notification Theme")
+        self.geometry("540x440")
         self.configure(bg='#272727')
         
         self.selected_theme = tk.StringVar(value=list(THEMES.keys())[0])
@@ -197,8 +243,8 @@ class DunstThemeApp(tk.Tk):
         style.map('TButton', background=[('active', '#504945')])
 
     def build_ui(self):
-        ttk.Label(self, text="🔔 Notification Theme Customizer", font=('JetBrains Mono', 13, 'bold'), foreground='#d3869b').pack(pady=(15, 5))
-        ttk.Label(self, text="Choose a theme style for Dunst popup notifications:", font=('JetBrains Mono', 9), foreground='#a89984').pack(pady=(0, 15))
+        ttk.Label(self, text="💎 Waybar Glassmorphism Notification Theme", font=('JetBrains Mono', 12, 'bold'), foreground='#83a598').pack(pady=(15, 5))
+        ttk.Label(self, text="Match Dunst notification popups to your 3-island glass Waybar:", font=('JetBrains Mono', 9), foreground='#a89984').pack(pady=(0, 15))
         
         frame = ttk.Frame(self)
         frame.pack(fill='both', expand=True, padx=20, pady=10)
@@ -211,7 +257,7 @@ class DunstThemeApp(tk.Tk):
         btn_frame.pack(fill='x', side='bottom', padx=20, pady=15)
         
         ttk.Button(btn_frame, text="Close", command=self.destroy).pack(side='left')
-        ttk.Button(btn_frame, text="Apply Theme & Test Notification", command=self.save).pack(side='right')
+        ttk.Button(btn_frame, text="Apply Glassmorphism Theme & Test", command=self.save).pack(side='right')
 
     def save(self):
         theme = self.selected_theme.get()
@@ -219,6 +265,10 @@ class DunstThemeApp(tk.Tk):
             messagebox.showinfo("Success", f"Applied '{theme}' notification theme successfully!")
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--auto":
+        apply_dunst_theme(list(THEMES.keys())[0])
+        sys.exit(0)
+        
     if not os.environ.get('WAYLAND_DISPLAY') and not os.environ.get('DISPLAY'):
         print("Error: Display environment not found.")
         sys.exit(1)

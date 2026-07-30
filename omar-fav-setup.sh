@@ -6,7 +6,8 @@
 #
 #   Function:
 #     1. Applies 3-Island Glassmorphism Waybar layout
-#     2. Sets background-for-me.jpg as active wallpaper with Pywal colors
+#     2. Applies 3-Island Glassmorphism Dunst Notification theme
+#     3. Sets background-for-me.jpg as active wallpaper with Pywal colors
 #===============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,15 +32,23 @@ EOF
 echo -e "${NC}"
 
 # 1. Apply Glassmorphism Waybar Config
-echo -e "${CYAN}[1/2] Applying Glassmorphism Waybar layout...${NC}"
+echo -e "${CYAN}[1/3] Applying Glassmorphism Waybar layout...${NC}"
 if [ -f "$SCRIPT_DIR/setup-waybar-glassmorphism.sh" ]; then
     bash "$SCRIPT_DIR/setup-waybar-glassmorphism.sh"
 elif [ -f "$HOME/.local/share/bin/setup-waybar-glassmorphism.sh" ]; then
     bash "$HOME/.local/share/bin/setup-waybar-glassmorphism.sh"
 fi
 
-# 2. Set Favorite Wallpaper & Pywal colors
-echo -e "${CYAN}[2/2] Setting favorite wallpaper (background-for-me.jpg)...${NC}"
+# 2. Apply Glassmorphism Notification Theme
+echo -e "${CYAN}[2/3] Applying Glassmorphism Notification theme...${NC}"
+if [ -f "$SCRIPT_DIR/setup-notifications-theme.py" ]; then
+    python3 "$SCRIPT_DIR/setup-notifications-theme.py" --auto
+elif [ -f "$HOME/.local/share/bin/setup-notifications-theme.py" ]; then
+    python3 "$HOME/.local/share/bin/setup-notifications-theme.py" --auto
+fi
+
+# 3. Set Favorite Wallpaper & Pywal colors
+echo -e "${CYAN}[3/3] Setting favorite wallpaper (background-for-me.jpg)...${NC}"
 if [ -f "$WALLPAPER" ]; then
     swwwallpaper.sh -s "$WALLPAPER" 2>/dev/null || swww img "$WALLPAPER"
     echo -e "${GREEN}[OK] Wallpaper applied successfully!${NC}"
