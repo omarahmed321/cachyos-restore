@@ -5464,42 +5464,61 @@ echo -e "${CYAN}Writing ~/.local/share/bin/omar custom documentation helper...${
 mkdir -p "$HOME/.local/share/bin"
 cat << 'EOF' > "$HOME/.local/share/bin/omar"
 #!/usr/bin/env bash
-# omar - CLI Documentation for custom commands configured on this system
+#===============================================================================
+#   Omar's CachyOS + Hyprland Tools & Documentation Command (Iconless & Concise)
+#   Part of: CachyOS + HyDE System Restorer
+#===============================================================================
 
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${BLUE}${BOLD}======================================================================${NC}"
-echo -e "          ${GREEN}${BOLD} Omar's Custom System Commands Documentation ${NC}"
-echo -e "${BLUE}${BOLD}======================================================================${NC}"
-echo -e "Here is a list of all custom scripts and commands configured on your system:\n"
+cat << "OEOF"
+  ==============================================================
+            OMAR'S CACHYOS & HYPRLAND CONTROL CENTER
+  ==============================================================
+OEOF
 
-echo -e "🎨 ${CYAN}${BOLD}Wallpaper Management:${NC}"
-echo -e "  ${GREEN}${BOLD}addwallpaper${NC} : Open a GUI file picker (or pass file paths as arguments)"
-echo -e "                 to safely copy new wallpapers to the active theme folder"
-echo -e "                 without changing the current background automatically.\n"
+echo -e "\n${CYAN}${BOLD}Control Panel:${NC}"
+echo -e "  ${GREEN}cachy_tools_menu.sh${NC}          : Launch interactive CLI / Rofi GUI control panel"
 
-echo -e "📝 ${CYAN}${BOLD}Task Management (todo-list):${NC}"
-echo -e "  ${GREEN}${BOLD}todo <text>${NC}  : Add a new task to your todo list."
-echo -e "  ${GREEN}${BOLD}doing${NC}        : Pick a task using fzf and move it to active (doing) state."
-echo -e "  ${GREEN}${BOLD}donetask${NC}     : Pick an active task using fzf and mark it as completed."
-echo -e "  ${GREEN}${BOLD}rmtask${NC}       : Pick a task using fzf and delete it from the list."
-echo -e "  ${GREEN}${BOLD}edittask${NC}     : Open the raw tasks text file directly in your default editor"
-echo -e "                 for manual editing or rearranging.\n"
+echo -e "\n${MAGENTA}${BOLD}Appearance & Theme:${NC}"
+echo -e "  ${YELLOW}omar-fav-setup.sh${NC}            : Apply Glassmorphism Waybar & wallpaper"
+echo -e "  ${YELLOW}setup-waybar-glassmorphism.sh${NC}: Configure 3-island floating Waybar"
+echo -e "  ${YELLOW}setup-notifications-theme.py${NC} : Customize Dunst notification popups"
+echo -e "  ${YELLOW}setup-zen-mode.sh${NC}            : Toggle minimal Zen Mode (hide Waybar, zero gaps)"
 
-echo -e "🔒 ${CYAN}${BOLD}Lock Screen & Monitors:${NC}"
-echo -e "  ${GREEN}${BOLD}Super + L${NC}    : Locks the screen dynamically, rendering widgets ONLY on your"
-echo -e "                 primary 144Hz screen and turning off/blanking the other screen.\n"
+echo -e "\n${BLUE}${BOLD}Display, Screen & Cursor:${NC}"
+echo -e "  ${CYAN}hypr-display-settings.py${NC}     : Resolution, custom Hz text entry, scaling & mouse"
+echo -e "  ${CYAN}sddm-screen-config.py${NC}        : Select monitor for SDDM login screen"
+echo -e "  ${CYAN}setup-initial-cursor-screen.py${NC}: Select default screen for cursor on boot"
+echo -e "  ${CYAN}monitor-alignment.sh${NC}         : Dual monitor cursor alignment calibration"
+echo -e "  ${CYAN}nightlight-gui.py${NC}            : Screen warmth slider (0%-100%) with auto-save"
 
-echo -e "${BLUE}${BOLD}======================================================================${NC}"
-echo -e "Tip: You can edit or add more commands to this helper by modifying"
-echo -e "     the ${YELLOW}~/.local/share/bin/omar${NC} script."
-echo -e "${BLUE}${BOLD}======================================================================${NC}"
+echo -e "\n${GREEN}${BOLD}Development & WordPress:${NC}"
+echo -e "  ${GREEN}setup-wordpress-local.sh${NC}     : Install LocalWP tool"
+echo -e "  ${GREEN}fix-polkit-localwp.sh${NC}        : Fix Polkit auth & sync site domains to /etc/hosts"
+
+echo -e "\n${YELLOW}${BOLD}Todo Task Manager:${NC}"
+echo -e "  ${MAGENTA}todo <text>${NC}                  : Add new task to list"
+echo -e "  ${MAGENTA}doing${NC}                        : Pick task via GUI/CLI & mark in-progress [/]"
+echo -e "  ${MAGENTA}donetask${NC}                     : Pick task via GUI/CLI & mark completed [x]"
+echo -e "  ${MAGENTA}rmtask${NC}                       : Pick task via GUI/CLI & remove from list"
+echo -e "  ${MAGENTA}edittask${NC}                     : Pick task via GUI/CLI & edit description"
+echo -e "  ${MAGENTA}task-manager-gui.py${NC}          : Launch interactive Task Manager GUI"
+
+echo -e "\n${CYAN}${BOLD}Shortcuts & Utilities:${NC}"
+echo -e "  ${CYAN}double-pageup.sh${NC}             : Trigger double PageUp keybinding"
+echo -e "  ${CYAN}start_hotspot.sh${NC}             : Launch Wi-Fi hotspot with QR code"
+echo -e "  ${CYAN}addwallpaper${NC}                 : Add wallpapers to current theme folder"
+
+echo -e "\n${CYAN}--------------------------------------------------------------${NC}"
+echo -e " Tip: Run ${YELLOW}cachy_tools_menu.sh --gui${NC} for graphical launcher menu"
+echo -e "${CYAN}--------------------------------------------------------------${NC}\n"
 EOF
 chmod +x "$HOME/.local/share/bin/omar"
 echo -e "${GREEN}omar custom documentation script written.${NC}"
