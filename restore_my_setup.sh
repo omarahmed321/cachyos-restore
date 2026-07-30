@@ -2801,10 +2801,22 @@ if command -v hyprctl &>/dev/null && hyprctl monitors &>/dev/null; then
             if [ -n "$SELECTED_SDDM" ]; then
                 sudo mkdir -p /etc/sddm.conf.d 2>/dev/null
                 echo "$SELECTED_SDDM" | sudo tee /etc/sddm.conf.d/target_monitor >/dev/null 2>&1
+                
+                # Auto-disable SDDM on all secondary screens
+                tmp_dis="/tmp/disabled_monitors"
+                > "$tmp_dis"
+                for m_item in "${ALL_MONITOR_NAMES[@]}"; do
+                    if [ "$m_item" != "$SELECTED_SDDM" ]; then
+                        echo "$m_item" >> "$tmp_dis"
+                    fi
+                done
+                sudo cp "$tmp_dis" /etc/sddm.conf.d/disabled_monitors >/dev/null 2>&1
+                sudo chmod 644 /etc/sddm.conf.d/target_monitor /etc/sddm.conf.d/disabled_monitors 2>/dev/null
+
                 if [ -f "$SCRIPT_DIR/sddm-screen-config.py" ]; then
                     python3 "$SCRIPT_DIR/sddm-screen-config.py" --set "$SELECTED_SDDM" &>/dev/null || true
                 fi
-                echo -e "${GREEN}[OK] SDDM login screen set to $SELECTED_SDDM${NC}"
+                echo -e "${GREEN}[OK] SDDM login screen set to $SELECTED_SDDM (Secondary screens auto-disabled for SDDM)${NC}"
             fi
 
             # Ask Initial Boot Cursor Screen Target

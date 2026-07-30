@@ -210,6 +210,25 @@ class SDDMDisablerApp(tk.Tk):
             messagebox.showinfo("Success", msg)
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--auto":
+        monitors = get_monitors_info()
+        target_mon = None
+        max_hz = -1
+        for name, data in monitors.items():
+            hz_val = 60
+            try:
+                hz_val = float(data['refresh_rate'].replace('Hz', '').strip())
+            except Exception:
+                pass
+            if hz_val > max_hz:
+                max_hz = hz_val
+                target_mon = name
+
+        disabled_list = [name for name in monitors.keys() if name != target_mon]
+        if apply_disabled_monitors(disabled_list):
+            print(f"Auto-configured SDDM: Primary={target_mon}, Disabled={', '.join(disabled_list)}")
+        sys.exit(0)
+
     if len(sys.argv) > 2 and sys.argv[1] == "--disable":
         mon_to_disable = sys.argv[2:]
         if apply_disabled_monitors(mon_to_disable):
