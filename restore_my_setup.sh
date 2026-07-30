@@ -5210,13 +5210,15 @@ sudo tee /usr/share/sddm/scripts/Xsetup >/dev/null << 'XSEOF'
 #!/bin/sh
 # Xsetup - run as root before the login dialog appears
 
-# 1. Configure monitors dynamically according to target configuration
+# 1. Configure monitors dynamically according to target & disabler configuration
 CONNECTED_MONITORS=$(xrandr | grep " connected" | awk '{print $1}')
 MONITOR_COUNT=$(echo "$CONNECTED_MONITORS" | wc -l)
 if [ "$MONITOR_COUNT" -gt 1 ]; then
     TARGET_MON=$(cat /etc/sddm.conf.d/target_monitor 2>/dev/null | tr -d '[:space:]')
+    DISABLED_MONS=$(cat /etc/sddm.conf.d/disabled_monitors 2>/dev/null)
+
     PRIMARY_MONITOR=""
-    if [ -n "$TARGET_MON" ] && echo "$CONNECTED_MONITORS" | grep -q "^$TARGET_MON$"; then
+    if [ -n "$TARGET_MON" ] && echo "$CONNECTED_MONITORS" | grep -qx "$TARGET_MON"; then
         PRIMARY_MONITOR="$TARGET_MON"
     fi
     
@@ -5228,7 +5230,11 @@ if [ "$MONITOR_COUNT" -gt 1 ]; then
         XRANDR_CMD="xrandr --output $PRIMARY_MONITOR --auto --primary"
         for mon in $CONNECTED_MONITORS; do
             if [ "$mon" != "$PRIMARY_MONITOR" ]; then
-                XRANDR_CMD="$XRANDR_CMD --output $mon --auto --right-of $PRIMARY_MONITOR"
+                if echo "$DISABLED_MONS" | grep -qx "$mon"; then
+                    XRANDR_CMD="$XRANDR_CMD --output $mon --off"
+                else
+                    XRANDR_CMD="$XRANDR_CMD --output $mon --auto --right-of $PRIMARY_MONITOR"
+                fi
             fi
         done
         eval "$XRANDR_CMD"

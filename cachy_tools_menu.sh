@@ -50,6 +50,7 @@ HOTSPOT_PATH=$(find_tool "start_hotspot.sh")
 
 # New Tools
 SDDM_PATH=$(find_tool "sddm-screen-config.py")
+SDDM_OFF_PATH=$(find_tool "sddm-off-screen-config.py")
 TASK_SETUP_PATH=$(find_tool "setup-task-manager.sh")
 TASK_GUI_PATH=$(find_tool "task-manager-gui.py")
 DUNST_PATH=$(find_tool "setup-notifications-theme.py")
@@ -87,6 +88,9 @@ launch_hotspot() {
 }
 launch_sddm_screen() {
     if [ -n "$SDDM_PATH" ]; then python3 "$SDDM_PATH" & else echo -e "${RED}[ERROR] sddm-screen-config.py not found!${NC}"; fi
+}
+launch_sddm_off_screen() {
+    if [ -n "$SDDM_OFF_PATH" ]; then python3 "$SDDM_OFF_PATH" & else echo -e "${RED}[ERROR] sddm-off-screen-config.py not found!${NC}"; fi
 }
 launch_task_setup() {
     if [ -n "$TASK_SETUP_PATH" ]; then
@@ -130,7 +134,8 @@ gui_menu() {
 12. 🔔 Notification Theme Customizer (Dunst)
 13. 🚀 View Command 'omar' System Help
 14. 🌐 Zen Browser Glassmorphism Theme (setup-zen-browser-theme.sh)
-15. 🎯 Initial Boot Cursor Screen Selector"
+15. 🎯 Initial Boot Cursor Screen Selector
+16. 🚫 SDDM Screen Visibility Disabler (Turn OFF SDDM on Secondary Screens)"
 
     if command -v rofi &>/dev/null; then
         SELECTION=$(echo -e "$OPTIONS" | rofi -dmenu -i -p "CachyOS Control Panel:")
@@ -154,7 +159,8 @@ gui_menu() {
             "13. 🚀 View Command 'omar' System Help" \
             "14. 🌐 Zen Browser Glassmorphism Theme" \
             "15. 🎯 Initial Boot Cursor Screen Selector" \
-            --width=520 --height=580 2>/dev/null)
+            "16. 🚫 SDDM Screen Visibility Disabler" \
+            --width=540 --height=620 2>/dev/null)
     else
         cli_menu
         return
@@ -170,12 +176,13 @@ gui_menu() {
         *"Waybar Glassmorphism"*) launch_waybar_setup ;;
         *"Double PageUp"*) launch_double_pageup ;;
         *"Hotspot"*) launch_hotspot ;;
-        *"SDDM Login Screen"*) launch_sddm_screen ;;
+        *"SDDM Login Screen Selector"*) launch_sddm_screen ;;
         *"Setup Task Manager"*) launch_task_setup ;;
         *"Notification Theme"*) launch_dunst_theme ;;
         *"Command 'omar'"*) launch_omar_cmd ;;
         *"Zen Browser Glassmorphism"*) launch_zen_browser ;;
         *"Boot Cursor Screen"*) launch_boot_cursor ;;
+        *"SDDM Screen Visibility Disabler"*) launch_sddm_off_screen ;;
         *) exit 0 ;;
     esac
 }
@@ -207,9 +214,10 @@ EOF
         echo -e "  ${GREEN}${BOLD}13)${NC} 🚀 View Command 'omar' System Help (${YELLOW}omar${NC})"
         echo -e "  ${GREEN}${BOLD}14)${NC} 🌐 Zen Browser Glassmorphism Theme (${YELLOW}setup-zen-browser-theme.sh${NC})"
         echo -e "  ${GREEN}${BOLD}15)${NC} 🎯 Initial Boot Cursor Screen Selector (${YELLOW}setup-initial-cursor-screen.py${NC})"
-        echo -e "  ${RED}${BOLD}16)${NC} 🚪 Exit"
+        echo -e "  ${GREEN}${BOLD}16)${NC} 🚫 SDDM Screen Visibility Disabler (${YELLOW}sddm-off-screen-config.py${NC})"
+        echo -e "  ${RED}${BOLD}17)${NC} 🚪 Exit"
         echo -e "${CYAN}--------------------------------------------------------------${NC}"
-        read -p " Select choice [1-16]: " choice
+        read -p " Select choice [1-17]: " choice
 
         case "$choice" in
             1) launch_fav_setup; read -p "Press Enter to continue..." ;;
@@ -227,7 +235,8 @@ EOF
             13) launch_omar_cmd; read -p "Press Enter to continue..." ;;
             14) launch_zen_browser; read -p "Press Enter to continue..." ;;
             15) launch_boot_cursor; read -p "Press Enter to continue..." ;;
-            16|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
+            16) launch_sddm_off_screen; read -p "Press Enter to continue..." ;;
+            17|q|Q) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
             *) echo -e "${RED}[!] Invalid choice.${NC}"; sleep 1 ;;
         esac
     done
