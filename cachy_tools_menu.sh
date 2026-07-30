@@ -50,6 +50,7 @@ HOTSPOT_PATH=$(find_tool "start_hotspot.sh")
 
 # New Tools
 SDDM_PATH=$(find_tool "sddm-screen-config.py")
+TASK_SETUP_PATH=$(find_tool "setup-task-manager.sh")
 TASK_GUI_PATH=$(find_tool "task-manager-gui.py")
 DUNST_PATH=$(find_tool "setup-notifications-theme.py")
 OMAR_CMD_PATH=$(find_tool "omar")
@@ -87,8 +88,14 @@ launch_hotspot() {
 launch_sddm_screen() {
     [ -n "$SDDM_PATH" ] && python3 "$SDDM_PATH" & || echo -e "${RED}[ERROR] sddm-screen-config.py not found!${NC}"
 }
-launch_task_gui() {
-    [ -n "$TASK_GUI_PATH" ] && python3 "$TASK_GUI_PATH" & || echo -e "${RED}[ERROR] task-manager-gui.py not found!${NC}"
+launch_task_setup() {
+    if [ -n "$TASK_SETUP_PATH" ]; then
+        bash "$TASK_SETUP_PATH"
+    elif [ -n "$TASK_GUI_PATH" ]; then
+        python3 "$TASK_GUI_PATH" &
+    else
+        echo -e "${RED}[ERROR] setup-task-manager.sh not found!${NC}"
+    fi
 }
 launch_dunst_theme() {
     [ -n "$DUNST_PATH" ] && python3 "$DUNST_PATH" & || echo -e "${RED}[ERROR] setup-notifications-theme.py not found!${NC}"
@@ -119,7 +126,7 @@ gui_menu() {
 8. ⌨️ Double PageUp Trigger
 9. 🔌 Wi-Fi Hotspot Controller
 10. 🖥️ SDDM Login Screen Selector
-11. 📝 Interactive Task Manager GUI (doing/donetask/rmtask)
+11. 📝 Setup Task Manager & Shell Integrator (setup-task-manager.sh)
 12. 🔔 Notification Theme Customizer (Dunst)
 13. 🚀 View Command 'omar' System Help
 14. 🌐 Zen Browser Glassmorphism Theme (setup-zen-browser-theme.sh)
@@ -142,7 +149,7 @@ gui_menu() {
             "8. ⌨️ Double PageUp Trigger" \
             "9. 🔌 Wi-Fi Hotspot Controller" \
             "10. 🖥️ SDDM Login Screen Selector" \
-            "11. 📝 Interactive Task Manager GUI" \
+            "11. 📝 Setup Task Manager & Shell Integrator" \
             "12. 🔔 Notification Theme Customizer" \
             "13. 🚀 View Command 'omar' System Help" \
             "14. 🌐 Zen Browser Glassmorphism Theme" \
@@ -164,7 +171,7 @@ gui_menu() {
         *"Double PageUp"*) launch_double_pageup ;;
         *"Hotspot"*) launch_hotspot ;;
         *"SDDM Login Screen"*) launch_sddm_screen ;;
-        *"Interactive Task Manager"*) launch_task_gui ;;
+        *"Setup Task Manager"*) launch_task_setup ;;
         *"Notification Theme"*) launch_dunst_theme ;;
         *"Command 'omar'"*) launch_omar_cmd ;;
         *"Zen Browser Glassmorphism"*) launch_zen_browser ;;
@@ -195,7 +202,7 @@ EOF
         echo -e "  ${MAGENTA}${BOLD}9)${NC} 🔌 Wi-Fi Hotspot Controller (${YELLOW}start_hotspot.sh${NC})"
         echo -e "  ${CYAN}--------------------------------------------------------------${NC}"
         echo -e "  ${GREEN}${BOLD}10)${NC} 🖥️ SDDM Login Screen Selector (${YELLOW}sddm-screen-config.py${NC})"
-        echo -e "  ${GREEN}${BOLD}11)${NC} 📝 Interactive Task Manager GUI (${YELLOW}task-manager-gui.py${NC})"
+        echo -e "  ${GREEN}${BOLD}11)${NC} 📝 Setup Task Manager & Shell Integrator (${YELLOW}setup-task-manager.sh${NC})"
         echo -e "  ${GREEN}${BOLD}12)${NC} 🔔 Notification Theme Customizer (${YELLOW}setup-notifications-theme.py${NC})"
         echo -e "  ${GREEN}${BOLD}13)${NC} 🚀 View Command 'omar' System Help (${YELLOW}omar${NC})"
         echo -e "  ${GREEN}${BOLD}14)${NC} 🌐 Zen Browser Glassmorphism Theme (${YELLOW}setup-zen-browser-theme.sh${NC})"
@@ -215,7 +222,7 @@ EOF
             8) launch_double_pageup; read -p "Press Enter to continue..." ;;
             9) launch_hotspot; read -p "Press Enter to continue..." ;;
             10) launch_sddm_screen; read -p "Press Enter to continue..." ;;
-            11) launch_task_gui; read -p "Press Enter to continue..." ;;
+            11) launch_task_setup; read -p "Press Enter to continue..." ;;
             12) launch_dunst_theme; read -p "Press Enter to continue..." ;;
             13) launch_omar_cmd; read -p "Press Enter to continue..." ;;
             14) launch_zen_browser; read -p "Press Enter to continue..." ;;
