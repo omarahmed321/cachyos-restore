@@ -3979,12 +3979,8 @@ select-all-line() {
 zle -N select-all-line
 bindkey '^A' select-all-line
 
-# Task management functions
-# todo <text>   → add new task
-# doing         → pick with fzf → mark in-progress
-# donetask      → pick with fzf → mark done
-# rmtask        → pick with fzf → delete
-# edittask      → pick with fzf → edit text
+# Task management aliases & delegation
+unfunction todo doing donetask rmtask edittask 2>/dev/null || true
 todo() { "$HOME/.local/share/bin/todo" "$@"; }
 doing() { "$HOME/.local/share/bin/doing" "$@"; }
 donetask() { "$HOME/.local/share/bin/donetask" "$@"; }
