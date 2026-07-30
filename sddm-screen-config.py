@@ -104,6 +104,8 @@ CONNECTED_MONITORS=$(xrandr | grep " connected" | awk '{print $1}')
 MONITOR_COUNT=$(echo "$CONNECTED_MONITORS" | wc -l)
 if [ "$MONITOR_COUNT" -gt 1 ]; then
     TARGET_MON=$(cat /etc/sddm.conf.d/target_monitor 2>/dev/null | tr -d '[:space:]')
+    DISABLED_MONS=$(cat /etc/sddm.conf.d/disabled_monitors 2>/dev/null)
+
     PRIMARY_MONITOR=""
     if [ -n "$TARGET_MON" ] && echo "$CONNECTED_MONITORS" | grep -qx "$TARGET_MON"; then
         PRIMARY_MONITOR="$TARGET_MON"
@@ -114,13 +116,19 @@ if [ "$MONITOR_COUNT" -gt 1 ]; then
     fi
 
     if [ -n "$PRIMARY_MONITOR" ]; then
-        XRANDR_CMD="xrandr --output $PRIMARY_MONITOR --auto --primary"
+        # 1. Set Primary Monitor
+        xrandr --output "$PRIMARY_MONITOR" --auto --primary 2>/dev/null || true
+
+        # 2. Handle Secondary Monitors (Turn off if disabled, else place right-of)
         for mon in $CONNECTED_MONITORS; do
             if [ "$mon" != "$PRIMARY_MONITOR" ]; then
-                XRANDR_CMD="$XRANDR_CMD --output $mon --auto --right-of $PRIMARY_MONITOR"
+                if echo "$DISABLED_MONS" | grep -qx "$mon"; then
+                    xrandr --output "$mon" --off 2>/dev/null || xrandr --output "$mon" --brightness 0 2>/dev/null || true
+                else
+                    xrandr --output "$mon" --auto --right-of "$PRIMARY_MONITOR" 2>/dev/null || true
+                fi
             fi
         done
-        eval "$XRANDR_CMD"
     fi
 fi
 

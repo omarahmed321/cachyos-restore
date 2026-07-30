@@ -106,17 +106,19 @@ if [ "$MONITOR_COUNT" -gt 1 ]; then
     fi
 
     if [ -n "$PRIMARY_MONITOR" ]; then
-        XRANDR_CMD="xrandr --output $PRIMARY_MONITOR --auto --primary"
+        # 1. Set Primary Monitor
+        xrandr --output "$PRIMARY_MONITOR" --auto --primary 2>/dev/null || true
+
+        # 2. Handle Secondary Monitors (Turn off if disabled, else place right-of)
         for mon in $CONNECTED_MONITORS; do
             if [ "$mon" != "$PRIMARY_MONITOR" ]; then
                 if echo "$DISABLED_MONS" | grep -qx "$mon"; then
-                    XRANDR_CMD="$XRANDR_CMD --output $mon --off"
+                    xrandr --output "$mon" --off 2>/dev/null || xrandr --output "$mon" --brightness 0 2>/dev/null || true
                 else
-                    XRANDR_CMD="$XRANDR_CMD --output $mon --auto --right-of $PRIMARY_MONITOR"
+                    xrandr --output "$mon" --auto --right-of "$PRIMARY_MONITOR" 2>/dev/null || true
                 fi
             fi
         done
-        eval "$XRANDR_CMD"
     fi
 fi
 
